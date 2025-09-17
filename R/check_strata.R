@@ -26,13 +26,14 @@ check_random_deviation <- function(data) {
   planned_factors <- data$IWRS %>%
     rowwise() %>%
     select(all_of(c("随机号", "分层因素"))) %>%
-    mutate(RANDID = `随机号`,
-           STRAT1 = strsplit(`分层因素`, "\\*")[[1]][1],
-           STRAT2 = strsplit(`分层因素`, "\\*")[[1]][2]
+    mutate(
+      RANDID = `随机号`,
+      STRAT1 = strsplit(`分层因素`, "\\*")[[1]][1],
+      STRAT2 = strsplit(`分层因素`, "\\*")[[1]][2]
     ) %>%
     right_join(rand_subjects, by = "RANDID") %>%
     select(RANDID, SUBJID, STRAT1, STRAT2, `分层因素`)
-    
+
   actual_factors <- data$SF %>%
     # Get statin use before randomization
     select(SUBJID, RANDTT, RANDLDL)
@@ -93,10 +94,12 @@ print.rand_deviation <- function(x, ...) {
     cat("\nDeviation Details:\n")
     # Format each row of details into the Chinese message format
     formatted_details <- apply(x$details, 1, function(row) {
-      sprintf("%s受试者在IWRS系统中选择的随机分层因素为%s，实际随机分层因素为%s。",
-              row["SUBJID"],  # Assuming 'subjid' is the column name for subject ID
-              row["iwrs_value"],  # Assuming 'iwrs_value' is the column for IWRS factor
-              row["actual_value"])  # Assuming 'actual_value' is the column for actual factor
+      sprintf(
+        "%s受试者在IWRS系统中选择的随机分层因素为%s，实际随机分层因素为%s。",
+        row["SUBJID"], # Assuming 'subjid' is the column name for subject ID
+        row["iwrs_value"], # Assuming 'iwrs_value' is the column for IWRS factor
+        row["actual_value"]
+      ) # Assuming 'actual_value' is the column for actual factor
     })
     cat(formatted_details, sep = "\n")
   }

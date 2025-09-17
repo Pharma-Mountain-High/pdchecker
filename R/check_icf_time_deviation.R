@@ -25,15 +25,15 @@ check_icf_time_deviation <- function(data, ignore_vars = "BRTHDAT") {
 
   # Find all time variables across datasets
   time_deviations <- data.frame()
-  
+
   for (dataset_name in names(data)) {
     df <- data[[dataset_name]]
     # Look for date/time columns (common suffixes)
     date_cols <- names(df)[sapply(df, function(col) lubridate::is.Date(col))]
-    
+
     # Remove ignored variables from the check
     date_cols <- setdiff(date_cols, ignore_vars)
-    
+
     if (length(date_cols) > 0) {
       for (col in date_cols) {
         df_times <- df %>%
@@ -45,8 +45,8 @@ check_icf_time_deviation <- function(data, ignore_vars = "BRTHDAT") {
             event_datetime = as.POSIXct(get(col))
           ) %>%
           left_join(icf_times, by = "SUBJID") %>%
-          filter(!is.na(event_datetime) & !is.na(icf_datetime) & 
-                 event_datetime < icf_datetime) %>%
+          filter(!is.na(event_datetime) & !is.na(icf_datetime) &
+            event_datetime < icf_datetime) %>%
           select(SUBJID, action, event_datetime, icf_datetime) %>%
           mutate(diff_date = as.numeric(difftime(event_datetime, icf_datetime, units = "days")))
 
@@ -89,15 +89,15 @@ print.icf_time_deviation <- function(x, ...) {
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
     formatted_details <- apply(x$details, 1, function(row) {
-      sprintf("%s受试者,首次知情同意书在%s签署,但在%s进行了操作%s，早于知情同意时间%s天",
-              row["SUBJID"],
-              row["icf_datetime"],
-              row["event_datetime"],
-              row["action"],
-              row["diff_date"]
-              )
+      sprintf(
+        "%s受试者,首次知情同意书在%s签署,但在%s进行了操作%s，早于知情同意时间%s天",
+        row["SUBJID"],
+        row["icf_datetime"],
+        row["event_datetime"],
+        row["action"],
+        row["diff_date"]
+      )
     })
     cat(formatted_details, sep = "\n")
   }
 }
-
