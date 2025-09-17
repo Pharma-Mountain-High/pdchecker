@@ -12,7 +12,8 @@ on:
       - reopened
       - ready_for_review
     branches:
-      - [main, devel]
+      - main
+      - devel
   workflow_dispatch:
   workflow_call:
     inputs:
