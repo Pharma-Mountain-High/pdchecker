@@ -17,7 +17,7 @@ Missing Data from sas7bdat imported datesets could be imported in different
 ways we currently check for 'NA', NA, '.', and ''.
 }
 \examples{
-is_sas_na(c(1,2,NA))
+is_sas_na(c(1, 2, NA))
 
 is_sas_na(c("a", NA, "NA", ""))
 }
