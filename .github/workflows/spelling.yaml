@@ -12,7 +12,7 @@ on:
       - reopened
       - ready_for_review
     branches:
-      - main
+      - [main, devel]
   workflow_dispatch:
   workflow_call:
     secrets:
