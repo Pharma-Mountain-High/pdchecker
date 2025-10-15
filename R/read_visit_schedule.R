@@ -2,6 +2,7 @@
 #'
 #' @param window_str 窗口期字符串 (如: "±3d", "≤24h", "+2天", "-1d")
 #' @return 包含窗口期类型和数值的列表
+#' @noRd
 parse_window_period <- function(window_str) {
   # 处理缺失值
   if (is.na(window_str) || window_str == "" || is.null(window_str)) {
@@ -81,8 +82,8 @@ parse_window_period <- function(window_str) {
 #'
 #' @description
 #' 读取访视编码Excel或CSV文件，解析窗口期列为两个新变量：
-#' - 窗口期_类型：区分 ≤、±、+、-、固定、范围等类型
-#' - 窗口期_数值：具体的窗口时间数值（自动转换h为天数）
+#' - type：区分 ≤、±、+、-、固定、范围等类型
+#' - wpvalue：具体的窗口时间数值（自动转换h为天数）
 #'
 #' 支持的窗口期格式示例：
 #' - "±3d" → 类型: ±, 数值: 3
@@ -94,8 +95,9 @@ parse_window_period <- function(window_str) {
 #'
 #' @param file_path 文件路径（.xlsx, .xls 或 .csv）
 #' @param sheet_name Excel工作表名称（默认: "Sheet1"）
-#' @return 包含原始变量和两个新解析变量的数据框
-#' @importFrom readxl read_excel
+#' @return 一个 tibble 对象，包含输入文件的所有列，并新增两列：
+#'   \item{type}{窗口期类型（字符型），可能的值：±、≤、≥、+、-、范围、其他}
+#'   \item{wpvalue}{窗口期数值（字符型），以天为单位}
 #' @export
 read_visit_schedule <- function(file_path, sheet_name = "Sheet1") {
 
@@ -141,7 +143,7 @@ read_visit_schedule <- function(file_path, sheet_name = "Sheet1") {
   # 逐行解析窗口期
   if (nrow(data) > 0) {
     for (i in seq_len(nrow(data))) {
-      window_str <- data[i, window_col]
+      window_str <- data[[i, window_col]]
 
       # 解析窗口期
       result <- parse_window_period(window_str)
