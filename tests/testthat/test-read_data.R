@@ -36,7 +36,7 @@ test_that("read_raw_data handles empty directory", {
 })
 
 
-test_that("read_raw_data validates IWRS file existence", {
+test_that("read_raw_data warns when IWRS file does not exist", {
   temp_dir <- tempdir()
 
   # Create a format file so we don't fail on format file check
@@ -48,15 +48,97 @@ test_that("read_raw_data validates IWRS file existence", {
       return(character(0))
     },
     `haven::read_sas` = function(file, ...) {
-      data.frame(FMTNAME = "TEST", START = "1", LABEL = "Test")
+      if (grepl("formats", file)) {
+        return(data.frame(FMTNAME = "TEST", START = "1", LABEL = "Test"))
+      }
+      return(data.frame(SUBJID = "001", VALUE = 1))
     },
     {
-      expect_error(
-        read_raw_data(temp_dir, iwrs_file = "nonexistent_iwrs.csv"),
+      expect_warning(
+        result <- read_raw_data(temp_dir, iwrs_file = "nonexistent_iwrs.csv"),
         "IWRS file does not exist: nonexistent_iwrs.csv"
       )
+
+      # Should still return SAS data without IWRS
+      expect_false("IWRS" %in% names(result))
+      expect_true("DATA" %in% names(result))
     }
   )
+})
+
+test_that("read_raw_data works without IWRS file when iwrs_file is NULL", {
+  temp_dir <- tempdir()
+
+  # Mock to return SAS files
+  with_mock(
+    `list.files` = function(path, pattern, ...) {
+      if (grepl("sas7bdat", pattern)) {
+        return(c("formats.sas7bdat", "dm.sas7bdat"))
+      }
+      return(character(0))
+    },
+    `haven::read_sas` = function(file, ...) {
+      if (grepl("formats", file)) {
+        return(data.frame(FMTNAME = "TEST", START = "1", LABEL = "Test"))
+      }
+      return(data.frame(SUBJID = "001", VALUE = 1))
+    },
+    {
+      expect_message(
+        result <- read_raw_data(temp_dir, iwrs_file = NULL),
+        "No IWRS file specified"
+      )
+
+      # Should not have IWRS in result
+      expect_false("IWRS" %in% names(result))
+      # Should have SAS data
+      expect_true("DM" %in% names(result))
+    }
+  )
+})
+
+test_that("read_raw_data warns when IWRS file is empty", {
+  temp_dir <- tempdir()
+
+  # Create empty IWRS file
+  iwrs_content <- c(
+    "Header line 1",
+    "Header line 2",
+    "SUBJID,TREATMENT"
+  )
+  iwrs_file <- file.path(temp_dir, "empty_iwrs.csv")
+  writeLines(iwrs_content, iwrs_file)
+
+  # Mock to return SAS files
+  with_mock(
+    `list.files` = function(path, pattern, ...) {
+      if (grepl("sas7bdat", pattern)) {
+        return(c("formats.sas7bdat", "dm.sas7bdat"))
+      }
+      return(character(0))
+    },
+    `haven::read_sas` = function(file, ...) {
+      if (grepl("formats", file)) {
+        return(data.frame(FMTNAME = "TEST", START = "1", LABEL = "Test"))
+      }
+      return(data.frame(SUBJID = "001", VALUE = 1))
+    },
+    {
+      expect_warning(
+        result <- read_raw_data(temp_dir, iwrs_file = iwrs_file),
+        "IWRS file is empty"
+      )
+
+      # Should have IWRS in result but it's empty
+      expect_true("IWRS" %in% names(result))
+      expect_equal(nrow(result$IWRS), 0)
+      # Should still have SAS data
+      expect_true("DM" %in% names(result))
+    }
+  )
+
+  # Clean up
+  unlink(iwrs_file)
 })
 
 test_that("read_raw_data handles no format file error", {
@@ -155,7 +237,7 @@ test_that("read_raw_data handles format file read error", {
   unlink(iwrs_file)
 })
 
-test_that("read_raw_data handles IWRS file read error", {
+test_that("read_raw_data warns on IWRS file read error", {
   temp_dir <- tempdir()
 
   # Create a malformed IWRS file
@@ -171,16 +253,23 @@ test_that("read_raw_data handles IWRS file read error", {
       return(character(0))
     },
     `haven::read_sas` = function(file, ...) {
-      data.frame(FMTNAME = "TEST", START = "1", LABEL = "Test")
+      if (grepl("formats", file)) {
+        return(data.frame(FMTNAME = "TEST", START = "1", LABEL = "Test"))
+      }
+      return(data.frame(SUBJID = "001", VALUE = 1))
     },
     `readr::read_csv` = function(...) {
       stop("Failed to parse CSV")
     },
     {
-      expect_error(
-        read_raw_data(temp_dir, iwrs_file = iwrs_file),
+      expect_warning(
+        result <- read_raw_data(temp_dir, iwrs_file = iwrs_file),
         "Failed to read IWRS file.*Failed to parse CSV"
       )
+
+      # Should still return SAS data without IWRS
+      expect_false("IWRS" %in% names(result))
+      expect_true("DATA" %in% names(result))
     }
   )
 
@@ -846,6 +935,89 @@ test_that("read_raw_data_with_formats validates inputs (data_dir and catalog_fil
   unlink(temp_file)
 })
 
+test_that("read_raw_data_with_formats works without IWRS file when iwrs_file is NULL", {
+  temp_dir <- tempdir()
+
+  # Create mock catalog file
+  catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
+  file.create(catalog_file)
+
+  # Mock to return SAS files
+  with_mock(
+    `list.files` = function(path, pattern, ...) {
+      if (grepl("sas7bdat", pattern)) {
+        return("dm.sas7bdat")
+      }
+      return(character(0))
+    },
+    `haven::read_sas` = function(...) {
+      data.frame(SUBJID = "001", VALUE = 1)
+    },
+    `haven::is.labelled` = function(x) FALSE,
+    {
+      expect_message(
+        result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = NULL),
+        "No IWRS file specified"
+      )
+
+      # Should not have IWRS in result
+      expect_false("IWRS" %in% names(result))
+      # Should have SAS data
+      expect_true("DM" %in% names(result))
+    }
+  )
+
+  # Clean up
+  unlink(catalog_file)
+})
+
+test_that("read_raw_data_with_formats warns when IWRS file is empty", {
+  temp_dir <- tempdir()
+
+  # Create empty IWRS file
+  iwrs_content <- c(
+    "Header line 1",
+    "Header line 2",
+    "SUBJID,TREATMENT"
+  )
+  iwrs_file <- file.path(temp_dir, "empty_iwrs.csv")
+  writeLines(iwrs_content, iwrs_file)
+
+  # Create mock catalog file
+  catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
+  file.create(catalog_file)
+
+  # Mock to return SAS files
+  with_mock(
+    `list.files` = function(path, pattern, ...) {
+      if (grepl("sas7bdat", pattern)) {
+        return("dm.sas7bdat")
+      }
+      return(character(0))
+    },
+    `haven::read_sas` = function(...) {
+      data.frame(SUBJID = "001", VALUE = 1)
+    },
+    `haven::is.labelled` = function(x) FALSE,
+    {
+      expect_warning(
+        result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = iwrs_file),
+        "IWRS file is empty"
+      )
+
+      # Should have IWRS in result but it's empty
+      expect_true("IWRS" %in% names(result))
+      expect_equal(nrow(result$IWRS), 0)
+      # Should still have SAS data
+      expect_true("DM" %in% names(result))
+    }
+  )
+
+  # Clean up
+  unlink(catalog_file)
+  unlink(iwrs_file)
+})
+
 test_that("read_raw_data_with_formats handles empty directory", {
   temp_dir <- tempdir()
   # Create IWRS file
@@ -868,7 +1040,7 @@ test_that("read_raw_data_with_formats handles empty directory", {
   )
 })
 
-test_that("read_raw_data_with_formats validates IWRS file existence", {
+test_that("read_raw_data_with_formats warns when IWRS file does not exist", {
   temp_dir <- tempdir()
 
   # Create mock catalog file
@@ -883,11 +1055,19 @@ test_that("read_raw_data_with_formats validates IWRS file existence", {
       }
       return(character(0))
     },
+    `haven::read_sas` = function(...) {
+      data.frame(SUBJID = "001", VALUE = 1)
+    },
+    `haven::is.labelled` = function(x) FALSE,
     {
-      expect_error(
-        read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = "nonexistent_iwrs.csv"),
+      expect_warning(
+        result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = "nonexistent_iwrs.csv"),
         "IWRS file does not exist: nonexistent_iwrs.csv"
       )
+
+      # Should still return SAS data without IWRS
+      expect_false("IWRS" %in% names(result))
+      expect_true("TEST_DATA" %in% names(result))
     }
   )
 
@@ -895,7 +1075,7 @@ test_that("read_raw_data_with_formats validates IWRS file existence", {
   unlink(catalog_file)
 })
 
-test_that("read_raw_data_with_formats handles IWRS file read error", {
+test_that("read_raw_data_with_formats warns on IWRS file read error", {
   temp_dir <- tempdir()
 
   # Create mock catalog file
@@ -914,14 +1094,22 @@ test_that("read_raw_data_with_formats handles IWRS file read error", {
       }
       return(character(0))
     },
+    `haven::read_sas` = function(...) {
+      data.frame(SUBJID = "001", VALUE = 1)
+    },
+    `haven::is.labelled` = function(x) FALSE,
     `readr::read_csv` = function(...) {
       stop("Failed to parse CSV")
     },
     {
-      expect_error(
-        read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = iwrs_file),
+      expect_warning(
+        result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = iwrs_file),
         "Failed to read IWRS file.*Failed to parse CSV"
       )
+
+      # Should still return SAS data without IWRS
+      expect_false("IWRS" %in% names(result))
+      expect_true("TEST_DATA" %in% names(result))
     }
   )
 
