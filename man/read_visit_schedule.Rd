@@ -12,7 +12,9 @@ read_visit_schedule(file_path, sheet_name = "Sheet1")
 \item{sheet_name}{Excel工作表名称（默认: "Sheet1"）}
 }
 \value{
-包含原始变量和两个新解析变量的数据框
+一个 tibble 对象，包含输入文件的所有列，并新增两列：
+\item{type}{窗口期类型（字符型），可能的值：±、≤、≥、+、-、范围、其他}
+\item{wpvalue}{窗口期数值（字符型），以天为单位}
 }
 \description{
 读取访视编码Excel或CSV文件，解析窗口期列为两个新变量：

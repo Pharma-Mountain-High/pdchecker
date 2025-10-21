@@ -11,7 +11,11 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
     dplyr,
+    haven,
+    lubridate,
+    magrittr,
     readxl,
+    rlang,
     tibble
 Suggests: 
     openxlsx,

@@ -14,13 +14,29 @@ read_raw_data_with_formats(
 \arguments{
 \item{data_dir}{Directory containing SAS data files (.sas7bdat)}
 
-\item{catalog_file}{Path to SAS format catalog file (.sas7bcat)}
+\item{catalog_file}{Path to SAS format catalog file (.sas7bcat). This file contains
+the format definitions that will be applied to the data.}
 
-\item{catalog_encoding}{Encoding to use for the catalog file, defaults to "UTF-8"}
+\item{iwrs_file}{Path to IWRS CSV file. Defaults to "iwrs.csv".
+The CSV file should have 2 header rows that will be skipped during import.}
+
+\item{encoding}{Character encoding to use when reading SAS files and catalog file.
+Defaults to "UTF-8". Common alternatives include "latin1", "GBK", etc.}
 }
 \value{
-List of data frames containing study data with formats applied
+A named list of data.frames with the following structure:
+\describe{
+\item{IWRS}{IWRS data frame with randomization information. Always present as the first element.}
+\item{<DATASET_NAME>}{Additional datasets read from SAS files (e.g., DM, AE, LB, VS, etc.).
+Dataset names are converted to uppercase and derived from the SAS filename without the .sas7bdat extension.}
+}
+All column names within each data frame are converted to uppercase.
+Columns with SAS format labels (labelled data) are automatically converted to factors,
+with factor levels corresponding to the format labels from the catalog file.
+Datasets that failed to read are excluded from the returned list (with a warning message).
+Empty datasets (0 rows) are included but reported via warning.
 }
 \description{
 This function reads raw SAS datasets using a format catalog file to apply formats.
+Formats are applied by converting labelled columns to factors using the catalog labels.
 }

@@ -7,10 +7,27 @@
 read_raw_data(folder, iwrs_file = "iwrs.csv", format_file = NULL)
 }
 \arguments{
-\item{folder}{Path to data directory}
+\item{folder}{Path to data directory containing SAS files}
+
+\item{iwrs_file}{Path to IWRS CSV file. Defaults to "iwrs.csv".
+The CSV file should have 2 header rows that will be skipped during import.}
+
+\item{format_file}{Optional path to Excel format mapping file (.xlsx).
+If provided, will be used to map coded values to labels. The Excel file should contain
+columns: "表" (table name), "变量" (variable name), "编码值" (coded value),
+"编码说明" (label), and "匹配状态" (match status, should be "完全匹配").}
 }
 \value{
-A named list of data.frames where names are filenames
+A named list of data.frames with the following structure:
+\describe{
+\item{IWRS}{IWRS data frame with randomization information. Always present as the first element.}
+\item{<DATASET_NAME>}{Additional datasets read from SAS files (e.g., DM, AE, LB, VS, etc.).
+Dataset names are converted to uppercase and derived from the SAS filename without the .sas7bdat extension.}
+}
+All column names within each data frame are converted to uppercase.
+Format mapping is applied if format files are available.
+Datasets that failed to read are excluded from the returned list (with a warning message).
+Empty datasets (0 rows) are included but reported via warning.
 }
 \description{
 Scan specified directory and read all SAS format files
