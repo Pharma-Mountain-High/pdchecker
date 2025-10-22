@@ -4,13 +4,14 @@
 \alias{read_raw_data}
 \title{Read raw data}
 \usage{
-read_raw_data(folder, iwrs_file = "iwrs.csv", format_file = NULL)
+read_raw_data(folder, iwrs_file = NULL, format_file = NULL)
 }
 \arguments{
 \item{folder}{Path to data directory containing SAS files}
 
-\item{iwrs_file}{Path to IWRS CSV file. Defaults to "iwrs.csv".
-The CSV file should have 2 header rows that will be skipped during import.}
+\item{iwrs_file}{Path to IWRS CSV file. Defaults to NULL (no IWRS file).
+If provided, the CSV file should have 2 header rows that will be skipped during import.
+If NULL or if the file does not exist, IWRS data will be skipped with a message/warning.}
 
 \item{format_file}{Optional path to Excel format mapping file (.xlsx).
 If provided, will be used to map coded values to labels. The Excel file should contain
@@ -20,7 +21,7 @@ columns: "表" (table name), "变量" (variable name), "编码值" (coded value)
 \value{
 A named list of data.frames with the following structure:
 \describe{
-\item{IWRS}{IWRS data frame with randomization information. Always present as the first element.}
+\item{IWRS}{IWRS data frame with randomization information. Present as the first element only if iwrs_file is provided and successfully read.}
 \item{<DATASET_NAME>}{Additional datasets read from SAS files (e.g., DM, AE, LB, VS, etc.).
 Dataset names are converted to uppercase and derived from the SAS filename without the .sas7bdat extension.}
 }
