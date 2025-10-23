@@ -15,6 +15,7 @@ on:
     branches:
       - main
       - devel
+      - devel-qinghuan
   workflow_dispatch:
   workflow_call:
     secrets:
