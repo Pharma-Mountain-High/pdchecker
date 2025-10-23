@@ -513,7 +513,9 @@ test_that("read_raw_data warns about multiple empty datasets with summary", {
       expect_true(any(grepl("The following datasets are empty", warning_messages)))
 
       # Check that all empty dataset names are in the warning message
-      empty_warning <- warning_messages[grepl("The following datasets are empty", warning_messages)]
+      empty_warning <- warning_messages[
+        grepl("The following datasets are empty", warning_messages)
+      ]
       expect_true(grepl("EMPTY1", empty_warning))
       expect_true(grepl("EMPTY2", empty_warning))
       expect_true(grepl("EMPTY3", empty_warning))
@@ -1072,7 +1074,11 @@ test_that("read_raw_data_with_formats warns when IWRS file does not exist", {
     `haven::is.labelled` = function(x) FALSE,
     {
       expect_warning(
-        result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = "nonexistent_iwrs.csv"),
+        result <- read_raw_data_with_formats(
+          temp_dir,
+          catalog_file,
+          iwrs_file = "nonexistent_iwrs.csv"
+        ),
         "IWRS file does not exist: nonexistent_iwrs.csv"
       )
 
@@ -1363,7 +1369,11 @@ test_that("read_raw_data_with_formats warns about multiple empty datasets with s
       warning_messages <- NULL
       withCallingHandlers(
         {
-          result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = iwrs_file)
+          result <- read_raw_data_with_formats(
+            temp_dir,
+            catalog_file,
+            iwrs_file = iwrs_file
+          )
         },
         warning = function(w) {
           warning_messages <<- c(warning_messages, conditionMessage(w))
@@ -1375,7 +1385,9 @@ test_that("read_raw_data_with_formats warns about multiple empty datasets with s
       expect_true(any(grepl("The following datasets are empty", warning_messages)))
 
       # Check that all empty dataset names are in the warning message
-      empty_warning <- warning_messages[grepl("The following datasets are empty", warning_messages)]
+      empty_warning <- warning_messages[
+        grepl("The following datasets are empty", warning_messages)
+      ]
       expect_true(grepl("EMPTY_DM", empty_warning))
       expect_true(grepl("EMPTY_AE", empty_warning))
       expect_true(grepl("EMPTY_LB", empty_warning))
