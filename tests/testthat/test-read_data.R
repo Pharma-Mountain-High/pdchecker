@@ -16,6 +16,7 @@ create_temp_csv_file <- function(data, filename) {
   temp_file
 }
 
+# Test for read_raw_data function
 test_that("read_raw_data validates directory existence", {
   expect_error(
     read_raw_data("nonexistent_directory"),
@@ -30,9 +31,9 @@ test_that("read_raw_data handles empty directory", {
   iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
 
   expect_warning(
-    result <- read_raw_data(temp_dir,iwrs_file = iwrs_file),
+    result <- read_raw_data(temp_dir, iwrs_file = iwrs_file),
     "No SAS files found in the specified directory"
-    )
+  )
 })
 
 
@@ -383,8 +384,12 @@ test_that("read_raw_data applies format mapping correctly without modifying FMT_
       return(data.frame(SUBJID = "001", STATUS = "1"))
     },
     `file.exists` = function(path) {
-      if (grepl("formats.xlsx", path)) return(TRUE)
-      if (grepl("iwrs", path)) return(TRUE)
+      if (grepl("formats.xlsx", path)) {
+        return(TRUE)
+      }
+      if (grepl("iwrs", path)) {
+        return(TRUE)
+      }
       return(FALSE)
     },
     `readxl::read_excel` = function(path, ...) {
@@ -474,8 +479,10 @@ test_that("read_raw_data warns about multiple empty datasets with summary", {
   with_mock(
     `list.files` = function(path, pattern, ...) {
       if (grepl("sas7bdat", pattern)) {
-        return(c("formats.sas7bdat", "empty1.sas7bdat", "empty2.sas7bdat",
-                 "empty3.sas7bdat", "nonempty.sas7bdat"))
+        return(c(
+          "formats.sas7bdat", "empty1.sas7bdat", "empty2.sas7bdat",
+          "empty3.sas7bdat", "nonempty.sas7bdat"
+        ))
       }
       return(character(0))
     },
@@ -699,8 +706,12 @@ test_that("read_raw_data correctly filters FMT_DF when FMT_TBL exists", {
       return(data.frame(SUBJID = "001", STATUS = "1", GENDER = "M", AGE = "1"))
     },
     `file.exists` = function(path) {
-      if (grepl("formats.xlsx", path)) return(TRUE)
-      if (grepl("iwrs", path)) return(TRUE)
+      if (grepl("formats.xlsx", path)) {
+        return(TRUE)
+      }
+      if (grepl("iwrs", path)) {
+        return(TRUE)
+      }
       return(FALSE)
     },
     `readxl::read_excel` = function(path, ...) {
@@ -911,7 +922,7 @@ test_that("read_raw_data handles unmapped values in format mapping", {
   unlink(iwrs_file)
 })
 
-# Tests for read_raw_data_with_formats
+# Test for read_raw_data_with_formats function
 test_that("read_raw_data_with_formats validates inputs (data_dir and catalog_file)", {
   expect_error(
     read_raw_data_with_formats("nonexistent_dir", "catalog.sas7bcat"),
@@ -1035,7 +1046,7 @@ test_that("read_raw_data_with_formats handles empty directory", {
   file.create(catalog_file)
 
   expect_warning(
-    result <- read_raw_data_with_formats(temp_dir,catalog_file,iwrs_file = iwrs_file),
+    result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = iwrs_file),
     "No SAS data files found in directory: ", temp_dir
   )
 })
@@ -1321,8 +1332,10 @@ test_that("read_raw_data_with_formats warns about multiple empty datasets with s
   with_mock(
     `list.files` = function(path, pattern, ...) {
       if (grepl("sas7bdat", pattern)) {
-        return(c("empty_dm.sas7bdat", "empty_ae.sas7bdat",
-                 "empty_lb.sas7bdat", "vs.sas7bdat"))
+        return(c(
+          "empty_dm.sas7bdat", "empty_ae.sas7bdat",
+          "empty_lb.sas7bdat", "vs.sas7bdat"
+        ))
       }
       return(character(0))
     },
@@ -1479,8 +1492,9 @@ test_that("read_raw_data_with_formats uses custom encoding", {
     `haven::is.labelled` = function(x) FALSE,
     {
       result <- read_raw_data_with_formats(temp_dir, catalog_file,
-                                          iwrs_file = iwrs_file,
-                                          encoding = "GBK")
+        iwrs_file = iwrs_file,
+        encoding = "GBK"
+      )
 
       # Verify encoding was used
       expect_equal(encoding_used, "GBK")
@@ -1572,4 +1586,3 @@ test_that("read_raw_data_with_formats successfully processes labelled data", {
   unlink(catalog_file)
   unlink(iwrs_file)
 })
-
