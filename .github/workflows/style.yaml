@@ -118,19 +118,35 @@ jobs:
 
       - name: Run styler 👟
         run: |
+          # Debug information
+          cat("Working directory:", getwd(), "\n")
+          cat("styler version:", as.character(packageVersion("styler")), "\n")
+          cat("R version:", R.version.string, "\n")
+          
           changed_files <- unlist(strsplit(
             "${{ steps.changed-files.outputs.all_changed_files }}",
             split=","
           ))
+          cat("Raw changed files:", changed_files, "\n")
+          
           is_r_file <- function(x) {
               ext <- tools::file_ext(x)
               ext %in% c("R", "Rmd", "Rnw", "Rmarkdown", "qmd")
           }
           changed_r_files <- Filter(is_r_file, changed_files)
+          cat("Filtered R files:", changed_r_files, "\n")
+          cat("Files exist:", sapply(changed_r_files, file.exists), "\n")
+          
           dry <- if(isTRUE(as.logical("${{ inputs.auto-update }}"))) "off" else "on"
+          cat("Dry mode:", dry, "\n")
+          
           detect <- styler::style_file(changed_r_files, dry = dry)
+          cat("Detection results:\n")
+          print(detect)
+          
           if (TRUE %in% detect$changed) {
             problems <- subset(detect$file, detect$changed == T)
+            cat("Files with style issues:", problems, "\n")
             dput(problems, file = "/tmp/style-problems.R")
             writeLines(
               problems,
