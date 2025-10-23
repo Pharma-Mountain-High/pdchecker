@@ -2,12 +2,12 @@
 #'
 #' Scan specified directory and read all SAS format files
 #' @param folder Path to data directory containing SAS files
-#' @param iwrs_file Path to IWRS CSV file. Defaults to NULL (no IWRS file). 
+#' @param iwrs_file Path to IWRS CSV file. Defaults to NULL (no IWRS file).
 #'   If provided, the CSV file should have 2 header rows that will be skipped during import.
 #'   If NULL or if the file does not exist, IWRS data will be skipped with a message/warning.
-#' @param format_file Optional path to Excel format mapping file (.xlsx). 
+#' @param format_file Optional path to Excel format mapping file (.xlsx).
 #'   If provided, will be used to map coded values to labels. The Excel file should contain
-#'   columns: "表" (table name), "变量" (variable name), "编码值" (coded value), 
+#'   columns: "表" (table name), "变量" (variable name), "编码值" (coded value),
 #'   "编码说明" (label), and "匹配状态" (match status, should be "完全匹配").
 #' @return A named list of data.frames with the following structure:
 #'   \describe{
@@ -15,7 +15,7 @@
 #'     \item{<DATASET_NAME>}{Additional datasets read from SAS files (e.g., DM, AE, LB, VS, etc.).
 #'       Dataset names are converted to uppercase and derived from the SAS filename without the .sas7bdat extension.}
 #'   }
-#'   All column names within each data frame are converted to uppercase. 
+#'   All column names within each data frame are converted to uppercase.
 #'   Format mapping is applied if format files are available.
 #'   Datasets that failed to read are excluded from the returned list (with a warning message).
 #'   Empty datasets (0 rows) are included but reported via warning.
@@ -185,10 +185,10 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
 #' @param data_dir Directory containing SAS data files (.sas7bdat)
 #' @param catalog_file Path to SAS format catalog file (.sas7bcat). This file contains
 #'   the format definitions that will be applied to the data.
-#' @param iwrs_file Path to IWRS CSV file. Defaults to NULL (no IWRS file). 
+#' @param iwrs_file Path to IWRS CSV file. Defaults to NULL (no IWRS file).
 #'   If provided, the CSV file should have 2 header rows that will be skipped during import.
 #'   If NULL or if the file does not exist, IWRS data will be skipped with a message/warning.
-#' @param encoding Character encoding to use when reading SAS files and catalog file. 
+#' @param encoding Character encoding to use when reading SAS files and catalog file.
 #'   Defaults to "UTF-8". Common alternatives include "latin1", "GBK", etc.
 #' @return A named list of data.frames with the following structure:
 #'   \describe{
@@ -220,8 +220,8 @@ read_raw_data_with_formats <- function(data_dir, catalog_file, iwrs_file = NULL,
   }
 
   # Find all SAS data files
-  sas_files <- list.files(data_dir, 
-    pattern = "\\.sas7bdat$", 
+  sas_files <- list.files(data_dir,
+    pattern = "\\.sas7bdat$",
     full.names = TRUE,
     ignore.case = TRUE
   )
