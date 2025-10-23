@@ -7,7 +7,6 @@ on:
       - "v*"
     branches:
       - main
-      - devel-qinghuan
   pull_request:
     types:
       - opened
