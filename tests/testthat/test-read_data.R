@@ -419,7 +419,6 @@ test_that("read_raw_data applies format mapping correctly without modifying FMT_
 })
 
 
-
 test_that("read_raw_data warns about empty datasets", {
   temp_dir <- tempdir()
 
@@ -1134,7 +1133,6 @@ test_that("read_raw_data_with_formats warns on IWRS file read error", {
   unlink(catalog_file)
   unlink(iwrs_file)
 })
-
 
 
 test_that("read_raw_data_with_formats processes files with catalog", {
