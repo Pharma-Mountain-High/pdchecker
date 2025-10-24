@@ -16,6 +16,7 @@ create_temp_csv_file <- function(data, filename) {
   temp_file
 }
 
+# Test for read_raw_data function
 test_that("read_raw_data validates directory existence", {
   expect_error(
     read_raw_data("nonexistent_directory"),
@@ -30,9 +31,9 @@ test_that("read_raw_data handles empty directory", {
   iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
 
   expect_warning(
-    result <- read_raw_data(temp_dir,iwrs_file = iwrs_file),
+    result <- read_raw_data(temp_dir, iwrs_file = iwrs_file),
     "No SAS files found in the specified directory"
-    )
+  )
 })
 
 
@@ -383,8 +384,12 @@ test_that("read_raw_data applies format mapping correctly without modifying FMT_
       return(data.frame(SUBJID = "001", STATUS = "1"))
     },
     `file.exists` = function(path) {
-      if (grepl("formats.xlsx", path)) return(TRUE)
-      if (grepl("iwrs", path)) return(TRUE)
+      if (grepl("formats.xlsx", path)) {
+        return(TRUE)
+      }
+      if (grepl("iwrs", path)) {
+        return(TRUE)
+      }
       return(FALSE)
     },
     `readxl::read_excel` = function(path, ...) {
@@ -412,7 +417,6 @@ test_that("read_raw_data applies format mapping correctly without modifying FMT_
   # Clean up
   unlink(iwrs_file)
 })
-
 
 
 test_that("read_raw_data warns about empty datasets", {
@@ -474,8 +478,10 @@ test_that("read_raw_data warns about multiple empty datasets with summary", {
   with_mock(
     `list.files` = function(path, pattern, ...) {
       if (grepl("sas7bdat", pattern)) {
-        return(c("formats.sas7bdat", "empty1.sas7bdat", "empty2.sas7bdat",
-                 "empty3.sas7bdat", "nonempty.sas7bdat"))
+        return(c(
+          "formats.sas7bdat", "empty1.sas7bdat", "empty2.sas7bdat",
+          "empty3.sas7bdat", "nonempty.sas7bdat"
+        ))
       }
       return(character(0))
     },
@@ -506,7 +512,9 @@ test_that("read_raw_data warns about multiple empty datasets with summary", {
       expect_true(any(grepl("The following datasets are empty", warning_messages)))
 
       # Check that all empty dataset names are in the warning message
-      empty_warning <- warning_messages[grepl("The following datasets are empty", warning_messages)]
+      empty_warning <- warning_messages[
+        grepl("The following datasets are empty", warning_messages)
+      ]
       expect_true(grepl("EMPTY1", empty_warning))
       expect_true(grepl("EMPTY2", empty_warning))
       expect_true(grepl("EMPTY3", empty_warning))
@@ -699,8 +707,12 @@ test_that("read_raw_data correctly filters FMT_DF when FMT_TBL exists", {
       return(data.frame(SUBJID = "001", STATUS = "1", GENDER = "M", AGE = "1"))
     },
     `file.exists` = function(path) {
-      if (grepl("formats.xlsx", path)) return(TRUE)
-      if (grepl("iwrs", path)) return(TRUE)
+      if (grepl("formats.xlsx", path)) {
+        return(TRUE)
+      }
+      if (grepl("iwrs", path)) {
+        return(TRUE)
+      }
       return(FALSE)
     },
     `readxl::read_excel` = function(path, ...) {
@@ -911,7 +923,7 @@ test_that("read_raw_data handles unmapped values in format mapping", {
   unlink(iwrs_file)
 })
 
-# Tests for read_raw_data_with_formats
+# Test for read_raw_data_with_formats function
 test_that("read_raw_data_with_formats validates inputs (data_dir and catalog_file)", {
   expect_error(
     read_raw_data_with_formats("nonexistent_dir", "catalog.sas7bcat"),
@@ -1035,7 +1047,7 @@ test_that("read_raw_data_with_formats handles empty directory", {
   file.create(catalog_file)
 
   expect_warning(
-    result <- read_raw_data_with_formats(temp_dir,catalog_file,iwrs_file = iwrs_file),
+    result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = iwrs_file),
     "No SAS data files found in directory: ", temp_dir
   )
 })
@@ -1061,7 +1073,11 @@ test_that("read_raw_data_with_formats warns when IWRS file does not exist", {
     `haven::is.labelled` = function(x) FALSE,
     {
       expect_warning(
-        result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = "nonexistent_iwrs.csv"),
+        result <- read_raw_data_with_formats(
+          temp_dir,
+          catalog_file,
+          iwrs_file = "nonexistent_iwrs.csv"
+        ),
         "IWRS file does not exist: nonexistent_iwrs.csv"
       )
 
@@ -1117,7 +1133,6 @@ test_that("read_raw_data_with_formats warns on IWRS file read error", {
   unlink(catalog_file)
   unlink(iwrs_file)
 })
-
 
 
 test_that("read_raw_data_with_formats processes files with catalog", {
@@ -1321,8 +1336,10 @@ test_that("read_raw_data_with_formats warns about multiple empty datasets with s
   with_mock(
     `list.files` = function(path, pattern, ...) {
       if (grepl("sas7bdat", pattern)) {
-        return(c("empty_dm.sas7bdat", "empty_ae.sas7bdat",
-                 "empty_lb.sas7bdat", "vs.sas7bdat"))
+        return(c(
+          "empty_dm.sas7bdat", "empty_ae.sas7bdat",
+          "empty_lb.sas7bdat", "vs.sas7bdat"
+        ))
       }
       return(character(0))
     },
@@ -1350,7 +1367,11 @@ test_that("read_raw_data_with_formats warns about multiple empty datasets with s
       warning_messages <- NULL
       withCallingHandlers(
         {
-          result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = iwrs_file)
+          result <- read_raw_data_with_formats(
+            temp_dir,
+            catalog_file,
+            iwrs_file = iwrs_file
+          )
         },
         warning = function(w) {
           warning_messages <<- c(warning_messages, conditionMessage(w))
@@ -1362,7 +1383,9 @@ test_that("read_raw_data_with_formats warns about multiple empty datasets with s
       expect_true(any(grepl("The following datasets are empty", warning_messages)))
 
       # Check that all empty dataset names are in the warning message
-      empty_warning <- warning_messages[grepl("The following datasets are empty", warning_messages)]
+      empty_warning <- warning_messages[
+        grepl("The following datasets are empty", warning_messages)
+      ]
       expect_true(grepl("EMPTY_DM", empty_warning))
       expect_true(grepl("EMPTY_AE", empty_warning))
       expect_true(grepl("EMPTY_LB", empty_warning))
@@ -1479,8 +1502,9 @@ test_that("read_raw_data_with_formats uses custom encoding", {
     `haven::is.labelled` = function(x) FALSE,
     {
       result <- read_raw_data_with_formats(temp_dir, catalog_file,
-                                          iwrs_file = iwrs_file,
-                                          encoding = "GBK")
+        iwrs_file = iwrs_file,
+        encoding = "GBK"
+      )
 
       # Verify encoding was used
       expect_equal(encoding_used, "GBK")
@@ -1572,4 +1596,3 @@ test_that("read_raw_data_with_formats successfully processes labelled data", {
   unlink(catalog_file)
   unlink(iwrs_file)
 })
-
