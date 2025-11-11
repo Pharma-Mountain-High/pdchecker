@@ -4,15 +4,40 @@
 \alias{check_icf_time_deviation}
 \title{Check if any time variables occur before informed consent time}
 \usage{
-check_icf_time_deviation(data, ignore_vars = "BRTHDAT")
+check_icf_time_deviation(
+  data,
+  ic_dataset = "IC",
+  ic_date_var = "ICDAT",
+  ignore_vars = "BRTHDAT",
+  exclude_datasets = NULL
+)
 }
 \arguments{
 \item{data}{List of data frames containing study data}
 
-\item{ignore_vars}{Character vector of variables to ignore in the check (default: "BRTHDAT")}
+\item{ic_dataset}{Character string specifying the name of the IC dataset (default: "IC")}
+
+\item{ic_date_var}{Character string specifying the name of the IC date variable (default: "ICDAT")}
+
+\item{ignore_vars}{Character vector of variables to ignore in the check (default: "BRTHDAT"). Can specify multiple variables, e.g., c("BRTHDAT", "MHSTDAT")}
+
+\item{exclude_datasets}{Character vector of dataset names to exclude from the check (default: NULL). Can specify multiple datasets, e.g., c("DM", "DS")}
 }
 \value{
-List containing check results and descriptions
+A list of class "icf_time_deviation" with the following components:
+\describe{
+\item{has_deviation}{Logical. TRUE if any time deviations were found, FALSE otherwise}
+\item{messages}{Character vector. Summary message describing the deviation}
+\item{details}{Data frame. Contains detailed deviation records with columns:
+\itemize{
+\item SUBJID: Subject identifier
+\item action: Dataset and variable name (format: "dataset.variable")
+\item event_datetime: Date when the event occurred
+\item icf_datetime: Date when informed consent was obtained
+\item diff_date: Numeric. Difference in days (negative values indicate event occurred before IC)
+}
+}
+}
 }
 \description{
 Check if any time variables occur before informed consent time
