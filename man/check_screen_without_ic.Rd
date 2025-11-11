@@ -4,13 +4,40 @@
 \alias{check_screen_without_ic}
 \title{Check for screened subjects without informed consent}
 \usage{
-check_screen_without_ic(data)
+check_screen_without_ic(
+  data,
+  sv_dataset = "SV",
+  ic_dataset = "IC",
+  visit_var = "VISIT",
+  visit_pattern = "筛选|Screening|screening",
+  ic_date_var = "ICDAT"
+)
 }
 \arguments{
 \item{data}{List of data frames containing study data}
+
+\item{sv_dataset}{Character string specifying which dataset to use for visit data (default: "SV")}
+
+\item{ic_dataset}{Character string specifying which dataset to use for informed consent data (default: "IC")}
+
+\item{visit_var}{Character string specifying the variable name for visit in visit dataset (default: "VISIT")}
+
+\item{visit_pattern}{Character string or vector specifying the pattern(s) to identify screening visits (default: "筛选|Screening|screening")}
+
+\item{ic_date_var}{Character string specifying the variable name for informed consent date in IC dataset (default: "ICDAT")}
 }
 \value{
-List containing check results and descriptions
+A list of class "screen_ic_check" containing:
+\describe{
+\item{has_deviation}{Logical value indicating whether any deviation was found.
+\code{TRUE} if subjects with screening visits but without informed consent were found,
+\code{FALSE} otherwise.}
+\item{messages}{Character vector of deviation messages.
+Returns "未签署知情同意书" when deviations are found, empty character vector otherwise.}
+\item{details}{Data frame containing SUBJID column with subject IDs who have screening visits
+but no informed consent date (or date is NA).
+Returns empty data frame if no deviations found.}
+}
 }
 \description{
 Check for screened subjects without informed consent
