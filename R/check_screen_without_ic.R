@@ -1,10 +1,34 @@
+# Global variables
+utils::globalVariables(c("SUBJID"))
+
 #' Check for screened subjects without informed consent
 #'
 #' @param data List of data frames containing study data
-#' @return List containing check results and descriptions
-#' @importFrom dplyr anti_join select distinct
+#' @param sv_dataset Character string specifying which dataset to use for visit data (default: "SV")
+#' @param ic_dataset Character string specifying which dataset to use for informed consent data (default: "IC")
+#' @param visit_var Character string specifying the variable name for visit in visit dataset (default: "VISIT")
+#' @param visit_pattern Character string or vector specifying the pattern(s) to identify screening visits (default: "筛选|Screening|screening")
+#' @param ic_date_var Character string specifying the variable name for informed consent date in IC dataset (default: "ICDAT")
+#' @return A list of class "screen_ic_check" containing:
+#' \describe{
+#'   \item{has_deviation}{Logical value indicating whether any deviation was found.
+#'     \code{TRUE} if subjects with screening visits but without informed consent were found,
+#'     \code{FALSE} otherwise.}
+#'   \item{messages}{Character vector of deviation messages.
+#'     Returns "未签署知情同意书" when deviations are found, empty character vector otherwise.}
+#'   \item{details}{Data frame containing SUBJID column with subject IDs who have screening visits
+#'     but no informed consent date (or date is NA).
+#'     Returns empty data frame if no deviations found.}
+#' }
+#' @importFrom dplyr anti_join select distinct filter %>%
+#' @importFrom rlang .data
 #' @export
-check_screen_without_ic <- function(data) {
+check_screen_without_ic <- function(data,
+                                    sv_dataset = "SV",
+                                    ic_dataset = "IC",
+                                    visit_var = "VISIT",
+                                    visit_pattern = "筛选|Screening|screening",
+                                    ic_date_var = "ICDAT") {
   # Initialize results
   results <- list(
     has_deviation = FALSE,
@@ -13,22 +37,34 @@ check_screen_without_ic <- function(data) {
   )
 
   # Validate required datasets
-  required_datasets <- c("SCR", "IC", "RAND")
+  required_datasets <- c(sv_dataset, ic_dataset)
   missing_datasets <- setdiff(required_datasets, names(data))
   if (length(missing_datasets) > 0) {
     stop("Missing required datasets: ", paste(missing_datasets, collapse = ", "))
   }
 
-  # Get unique subjects from SCR dataset
-  scr_subjects <- data$SCR %>%
+  # Validate that visit_var exists in sv_dataset
+  if (!visit_var %in% names(data[[sv_dataset]])) {
+    stop(sprintf("Variable '%s' not found in dataset '%s'", visit_var, sv_dataset))
+  }
+
+  # Validate that ic_date_var exists in ic_dataset
+  if (!ic_date_var %in% names(data[[ic_dataset]])) {
+    stop(sprintf("Variable '%s' not found in dataset '%s'", ic_date_var, ic_dataset))
+  }
+
+  # Get unique subjects from screening dataset with screening visits
+  screening_subjects <- data[[sv_dataset]] %>%
+    filter(grepl(visit_pattern, .data[[visit_var]], ignore.case = TRUE)) %>%
     distinct(SUBJID)
 
-  # Get unique subjects from IC dataset
-  ic_subjects <- data$IC %>%
+  # Get unique subjects from IC dataset with non-empty consent date
+  ic_subjects <- data[[ic_dataset]] %>%
+    filter(!is.na(.data[[ic_date_var]])) %>%
     distinct(SUBJID)
 
-  # Find subjects in SCR but not in IC
-  missing_ic <- scr_subjects %>%
+  # Find subjects with screening visit but not in IC
+  missing_ic <- screening_subjects %>%
     anti_join(ic_subjects, by = "SUBJID")
 
   # Compile results
@@ -63,7 +99,7 @@ print.screen_ic_check <- function(x, ...) {
     cat("\nDeviation Details:\n")
     formatted_details <- apply(x$details, 1, function(row) {
       sprintf(
-        "受试者%s在未签署知情同意书的情况下进行了筛选。",
+        "受试者%s在未签署知情同意书的情况下进行了筛选期访视。",
         row["SUBJID"]
       )
     })
