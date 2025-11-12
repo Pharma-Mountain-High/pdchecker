@@ -114,7 +114,7 @@ Must contain the following columns:
 The following features are under development:
 
 - ✅ Data reading functionality
-- 🚧 Informed consent missing and time deviation checks
+- ✅ Informed consent missing and time deviation checks
 - 🚧 Visit missing and window deviation checks
 - 🚧 Laboratory test missing and window deviation checks
 - 🚧 Inclusion criteria checks (age, laboratory parameters, etc.)
