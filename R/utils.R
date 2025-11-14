@@ -370,3 +370,36 @@ capture_check_results <- function(..., data) {
 
   return(combined_df)
 }
+
+#' Match visit type based on visit type string
+#'
+#' @description
+#' Internal helper function to classify visit types based on Chinese text patterns.
+#' This function is used by both \code{generate_planned_visit_dates} and
+#' \code{check_missing_visit} to ensure consistent visit type classification.
+#'
+#' @param visit_type Character string, visit type description (e.g., "筛选", "治疗周期1")
+#'
+#' @return Character string, one of: "screening", "treatment", "end_of_treatment",
+#'   "follow_up", or "unknown"
+#'
+#' @keywords internal
+#' @noRd
+match_visit_type <- function(visit_type) {
+  if (is.na(visit_type)) {
+    return("unknown")
+  }
+  visit_type <- tolower(visit_type)
+
+  if (grepl("筛选", visit_type)) {
+    return("screening")
+  } else if (grepl("治疗", visit_type) && !grepl("治疗结束", visit_type)) {
+    return("treatment")
+  } else if (grepl("治疗结束|退出", visit_type)) {
+    return("end_of_treatment")
+  } else if (grepl("随访", visit_type)) {
+    return("follow_up")
+  } else {
+    return("unknown")
+  }
+}

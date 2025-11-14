@@ -25,9 +25,12 @@ ascvd
 bcat
 bdat
 csv
+cutoffdt
 datesets
 datetime
 eGFR
+eos
+eot
 fn
 gfr
 ic
@@ -40,6 +43,7 @@ sas
 statin
 tg
 tibble
+visittype
 wpvalue
 xls
 xlsx
