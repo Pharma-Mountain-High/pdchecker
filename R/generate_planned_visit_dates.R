@@ -98,26 +98,6 @@ generate_planned_visit_dates <- function(data,
                                          ds_dataset = "DS",
                                          ds_date_var = "DSDAT",
                                          cycle_days = 28) {
-  # 模糊匹配访视类型的辅助函数
-  match_visit_type <- function(visit_type) {
-    if (is.na(visit_type)) {
-      return("unknown")
-    }
-    visit_type <- tolower(visit_type)
-
-    if (grepl("筛选", visit_type)) {
-      return("screening")
-    } else if (grepl("治疗", visit_type) && !grepl("治疗结束", visit_type)) {
-      return("treatment")
-    } else if (grepl("治疗结束|退出", visit_type)) {
-      return("end_of_treatment")
-    } else if (grepl("随访", visit_type)) {
-      return("follow_up")
-    } else {
-      return("unknown")
-    }
-  }
-
   # 判断是否为D1访视的辅助函数
   is_d1_visit <- function(visit_name, visit_day) {
     if (is.na(visit_day)) {
@@ -215,6 +195,7 @@ generate_planned_visit_dates <- function(data,
   }
 
   # 准备访视信息数据框
+  # 使用 utils.R 中的共享函数 match_visit_type 进行访视类型分类
   visit_info <- visit_schedule_data %>%
     mutate(
       visit = 访视名称,
