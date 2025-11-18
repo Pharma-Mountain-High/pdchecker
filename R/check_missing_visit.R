@@ -49,11 +49,14 @@
 #'   \describe{
 #'     \item{has_deviation}{逻辑值。TRUE表示有缺失访视，FALSE表示无缺失访视}
 #'     \item{messages}{字符向量。偏差描述信息}
-#'     \item{details}{Data frame。缺失访视详细信息，包含以下列：
+#'     \item{details}{Data frame。缺失访视详细信息，每个缺失访视一条记录，包含以下列：
 #'       \itemize{
 #'         \item SUBJID: 受试者ID
-#'         \item first_ex_date: 受试者的首次给药日期
-#'         \item missing_visits: 缺失的访视名称及计划日期（格式：访视名称(计划日期)，多个访视用"、"分隔）
+#'         \item first_dose_date: 受试者的首次用药日期
+#'         \item VISIT: 缺失的访视名称
+#'         \item VISITNUM: 访视编号
+#'         \item planned_date: 计划访视日期
+#'         \item visittype: 访视类型
 #'         \item eot_date: 受试者的治疗结束日期
 #'         \item eos_date: 受试者的研究结束日期
 #'         \item cutoffdt: 数据截止日期
@@ -114,7 +117,7 @@ check_missing_visit <- function(planned_dates,
     # 治疗结束、退出研究、随访期：min(eosdate, cutoffdt)
 
     # 获取该受试者的各种日期
-    first_ex_date <- unique(subj_planned$first_ex_date)[1]
+    first_dose_date <- unique(subj_planned$first_dose_date)[1]
     eot_date <- unique(subj_planned$eot_date)[1]
     eos_date <- unique(subj_planned$eos_date)[1]
 
@@ -153,29 +156,29 @@ check_missing_visit <- function(planned_dates,
 
     # 构建结果 - 报告根据访视类型判断应该完成但未完成的访视
     if (nrow(missing_visit_subset) > 0) {
-      # 构建带计划日期的缺失访视文本：访视名称(计划日期)
-      missing_with_dates <- sapply(seq_len(nrow(missing_visit_subset)), function(i) {
-        visit_name <- missing_visit_subset$VISIT[i]
-        planned_date <- missing_visit_subset$planned_date[i]
-        sprintf("%s(%s)", visit_name, as.character(planned_date))
-      })
-      missing_text <- paste(missing_with_dates, collapse = "、")
-
       # 计算完成的访视数（只计算有效计划访视中的）
       completed_subset <- dplyr::filter(valid_planned_visits, status == "completed")
       completed_count <- nrow(completed_subset)
 
-      return(data.frame(
-        SUBJID = subj_id,
-        first_ex_date = first_ex_date,
-        missing_visits = missing_text,
-        eot_date = eot_date,
-        eos_date = eos_date,
-        cutoffdt = cutoffdt,
-        valid_visits_count = nrow(valid_planned_visits),
-        completed_visits_count = completed_count,
-        stringsAsFactors = FALSE
-      ))
+      # 为每个缺失访视创建一条记录
+      missing_records <- lapply(seq_len(nrow(missing_visit_subset)), function(i) {
+        data.frame(
+          SUBJID = subj_id,
+          first_dose_date = first_dose_date,
+          VISIT = missing_visit_subset$VISIT[i],
+          VISITNUM = missing_visit_subset$VISITNUM[i],
+          planned_date = missing_visit_subset$planned_date[i],
+          visittype = missing_visit_subset$visittype[i],
+          eot_date = eot_date,
+          eos_date = eos_date,
+          cutoffdt = cutoffdt,
+          valid_visits_count = nrow(valid_planned_visits),
+          completed_visits_count = completed_count,
+          stringsAsFactors = FALSE
+        )
+      })
+
+      return(do.call(rbind, missing_records))
     } else {
       return(data.frame())
     }
@@ -197,7 +200,7 @@ check_missing_visit <- function(planned_dates,
   # Get deviations (subjects with missing visits)
   # 检查数据框是否为空
   if (nrow(subject_visits) > 0) {
-    deviations <- dplyr::filter(subject_visits, !is.na(missing_visits))
+    deviations <- dplyr::filter(subject_visits, !is.na(VISIT))
   } else {
     deviations <- data.frame()
   }
@@ -234,13 +237,13 @@ print.missing_visit_check <- function(x, ...) {
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
     formatted_details <- apply(x$details, 1, function(row) {
-      missing_info <- if (!is.na(row["missing_visits"])) row["missing_visits"] else "无缺失访视"
-      first_ex <- if (!is.na(row["first_ex_date"])) row["first_ex_date"] else "未记录"
+      visit_info <- sprintf("%s(%s)", row["VISIT"], row["planned_date"])
+      first_dose <- if (!is.na(row["first_dose_date"])) row["first_dose_date"] else "未记录"
       sprintf(
         "受试者编号%s，首次用药时间为%s，计划进行的%s访视遗漏。",
         row["SUBJID"],
-        first_ex,
-        missing_info
+        first_dose,
+        visit_info
       )
     })
     cat(formatted_details, sep = "\n")

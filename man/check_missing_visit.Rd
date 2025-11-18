@@ -17,11 +17,14 @@ List，包含以下组件：
 \describe{
 \item{has_deviation}{逻辑值。TRUE表示有缺失访视，FALSE表示无缺失访视}
 \item{messages}{字符向量。偏差描述信息}
-\item{details}{Data frame。缺失访视详细信息，包含以下列：
+\item{details}{Data frame。缺失访视详细信息，每个缺失访视一条记录，包含以下列：
 \itemize{
 \item SUBJID: 受试者ID
-\item first_ex_date: 受试者的首次给药日期
-\item missing_visits: 缺失的访视名称及计划日期（格式：访视名称(计划日期)，多个访视用"、"分隔）
+\item first_dose_date: 受试者的首次用药日期
+\item VISIT: 缺失的访视名称
+\item VISITNUM: 访视编号
+\item planned_date: 计划访视日期
+\item visittype: 访视类型
 \item eot_date: 受试者的治疗结束日期
 \item eos_date: 受试者的研究结束日期
 \item cutoffdt: 数据截止日期
