@@ -9,6 +9,7 @@ generate_planned_visit_dates(
   visit_schedule_data,
   ex_datasets = "EX",
   ex_date_var = "EXSTDAT",
+  ex_end_date_var = NULL,
   sv_dataset = "SV",
   sv_visit_var = "VISIT",
   sv_visitnum_var = "VISITNUM",
@@ -34,6 +35,15 @@ generate_planned_visit_dates(
 \item 如果长度为1，则所有数据集使用同一列名
 \item 如果长度等于 \code{ex_datasets} 的长度，则与数据集一一对应
 \item 例如：c("EXSTDAT1", "EXSTDAT2") 分别对应 c("EX1", "EX2")
+}}
+
+\item{ex_end_date_var}{Character vector，用药结束日期变量名向量（默认: NULL）。
+\itemize{
+\item 如果为 NULL 或空向量，则末次给药日期使用 \code{ex_date_var}（给药开始日期）
+\item 如果指定，则末次给药日期使用给药结束日期
+\item 如果长度为1，则所有数据集使用同一列名
+\item 如果长度等于 \code{ex_datasets} 的长度，则与数据集一一对应
+\item 例如：c("EXENDAT1", "EXENDAT2") 分别对应 c("EX1", "EX2")
 }}
 
 \item{sv_dataset}{Character string，访视数据集名称（默认: "SV"）}
@@ -71,7 +81,8 @@ Data frame，包含以下列：
 \item{wp_value}{窗口期数值（天数）}
 \item{actual_date}{实际访视日期（如有）}
 \item{status}{访视状态（completed=已完成，missing=未完成）}
-\item{first_ex_date}{受试者首次给药日期}
+\item{first_dose_date}{受试者首次用药日期}
+\item{last_dose_date}{受试者末次用药日期}
 \item{eot_date}{受试者治疗结束日期}
 \item{eos_date}{受试者研究结束日期}
 }
@@ -87,34 +98,89 @@ Data frame，包含以下列：
 \subsection{1. 筛选期访视（Screening）}{
 
 计划日期 = 首次给药日期
+
+\strong{示例}：如果首次给药日期为 2024-01-01，则筛选访视的计划日期为 2024-01-01
 }
 
 \subsection{2. 治疗期访视（Treatment）}{
+\subsection{\strong{D1访视（访视日=1）}}{
+
+\strong{C1D1（第1周期D1）}：
 \itemize{
-\item \strong{D1访视（访视日=1）}：
+\item 如有实际访视记录：计划日期 = 实际访视日期
+\item 无实际访视记录：计划日期 = 首次给药日期
+}
+
+\strong{CnD1（后续周期D1，n>1）}：
 \itemize{
-\item 第1周期D1：计划日期 = 首次给药日期（如有实际访视则使用实际日期）
-\item 后续周期D1：计划日期 = 上一周期D1日期 + 周期天数
+\item 计划日期 = 上一周期D1的基准日期 + 周期天数（cycle_days，默认28天）
+\item \strong{基准日期选择规则}：
+\enumerate{
+\item 优先使用上一周期D1的\strong{实际访视日期}（如果存在）
+\item 否则使用上一周期D1的\strong{计划日期}
 }
-\item \strong{非D1访视（如D8, D15）}：
+}
+
+\strong{关键特性}：
 \itemize{
-\item 计划日期 = 当前周期D1日期 + (当前访视日 - 1)
-\item 例如：C1D8 = C1D1 + 7天，C2D15 = C2D1 + 14天
+\item C2D1、C3D1等访视的计划日期按规则递推，不直接使用其自身的实际访视日期
+\item 如果C2D1有实际访视，该实际日期会影响C3D1的计划日期计算
 }
+
+\strong{示例}：
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{首次给药日期：2024-01-01
+C1D1计划日期：2024-01-01（无实际访视）
+C2D1计划日期：2024-01-01 + 28天 = 2024-01-29
+C2D1实际日期：2024-02-02（延后访视）
+C3D1计划日期：2024-02-02 + 28天 = 2024-03-01（基于C2D1实际日期）
+}\if{html}{\out{</div>}}
 }
+
+\subsection{\strong{非D1访视（如D8, D15, D21）}}{
+
+计划日期 = 该周期D1的基准日期 + (访视日 - 1)
+
+\strong{基准日期选择规则}：
+\enumerate{
+\item 优先使用该周期D1的\strong{实际访视日期}（如果存在）
+\item 否则使用该周期D1的\strong{计划日期}
+}
+
+\strong{示例}：
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{C2D1计划日期：2024-01-29
+C2D1实际日期：2024-02-02
+
+C2D8计划日期：2024-02-02 + 7天 = 2024-02-09（基于D1实际日期）
+C2D15计划日期：2024-02-02 + 14天 = 2024-02-16（基于D1实际日期）
+}\if{html}{\out{</div>}}
+}
+
 }
 
 \subsection{3. 治疗结束访视（End of Treatment）}{
 \itemize{
-\item EOT访视：计划日期 = 治疗结束日期
-\item EOT+数字格式（如EOT+7）：计划日期 = 治疗结束日期 + 天数
-\item EOS访视：计划日期 = 研究结束日期
+\item \strong{EOT}：计划日期 = 治疗结束日期（eot_date）
+\item \strong{EOT+数字}：计划日期 = 治疗结束日期 + 天数
+\itemize{
+\item 例如：EOT+7 = eot_date + 7天
+}
+\item \strong{EOS}：计划日期 = 研究结束日期（eos_date）
 }
 }
 
 \subsection{4. 随访访视（Follow-up）}{
 \itemize{
-\item EOT+数字格式（如EOT+30）：计划日期 = 治疗结束日期 + 天数
+\item \strong{EOT+数字}：计划日期 = 治疗结束日期 + 天数
+\itemize{
+\item 例如：EOT+30 = eot_date + 30天
+}
+\item \strong{Last Dose+数字} 或 \strong{LD+数字}：计划日期 = 末次用药日期 + 天数
+\itemize{
+\item 例如：LD+30 = last_dose_date + 30天
+\item 例如：Last Dose+60 = last_dose_date + 60天
+}
 }
 }
 
@@ -122,19 +188,78 @@ Data frame，包含以下列：
 
 \subsection{窗口期计算}{
 
-根据访视编码数据中的窗口期类型计算窗口期范围：
+根据访视编码数据中的窗口期类型计算窗口期范围：\tabular{lllll}{
+   窗口期类型 \tab 窗口开始 \tab 窗口结束 \tab 说明 \tab 示例 \cr
+   \verb{±3d} \tab 计划日期-3 \tab 计划日期+3 \tab 前后各3天 \tab 计划2024-01-10，窗口2024-01-07至2024-01-13 \cr
+   \verb{+2d} \tab 计划日期 \tab 计划日期+2 \tab 只能延后 \tab 计划2024-01-10，窗口2024-01-10至2024-01-12 \cr
+   \verb{-2d} \tab 计划日期-2 \tab 计划日期 \tab 只能提前 \tab 计划2024-01-10，窗口2024-01-08至2024-01-10 \cr
+   \verb{≤2d} \tab 计划日期-2 \tab 计划日期 \tab 最多提前2天 \tab 计划2024-01-10，窗口2024-01-08至2024-01-10 \cr
+   \verb{≥2d} \tab 计划日期 \tab 计划日期+2 \tab 最多延后2天 \tab 计划2024-01-10，窗口2024-01-10至2024-01-12 \cr
+}
+
+
+\strong{窗口期用途}：用于判断实际访视是否在允许的时间范围内，超出窗口期视为方案偏离。
+}
+
+\subsection{首次和末次给药日期计算}{
+\subsection{\strong{首次给药日期（first_dose_date）}}{
 \itemize{
-\item \verb{±3d}：计划日期前后各3天（窗口开始 = 计划日期-3，窗口结束 = 计划日期+3）
-\item \verb{+2d}：只能延后2天（窗口开始 = 计划日期，窗口结束 = 计划日期+2）
-\item \verb{-2d}：只能提前2天（窗口开始 = 计划日期-2，窗口结束 = 计划日期）
-\item \verb{≤2d}：最多提前2天（窗口开始 = 计划日期-2，窗口结束 = 计划日期）
-\item \verb{≥2d}：最多延后2天（窗口开始 = 计划日期，窗口结束 = 计划日期+2）
+\item 从所有指定的试验用药数据集（ex_datasets）中提取每个受试者的\strong{最早}用药开始日期
+\item 始终使用\strong{给药开始日期}变量（ex_date_var）
+\item 支持多个用药数据集，会自动合并并取最小值
+}
+
+\strong{示例}：
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{EX1数据：受试者001，用药日期 2024-01-01、2024-01-29
+EX2数据：受试者001，用药日期 2024-01-03
+首次给药日期 = min(2024-01-01, 2024-01-29, 2024-01-03) = 2024-01-01
+}\if{html}{\out{</div>}}
+}
+
+\subsection{\strong{末次给药日期（last_dose_date）}}{
+\itemize{
+\item 根据是否指定给药结束日期变量（ex_end_date_var）采用不同逻辑：
+}
+
+\strong{情况1：未指定 ex_end_date_var（默认）}
+\itemize{
+\item 使用给药开始日期（ex_date_var）
+\item 从所有用药记录中取\strong{最晚}的给药开始日期
+}
+
+\strong{情况2：指定了 ex_end_date_var}
+\itemize{
+\item 使用给药结束日期（ex_end_date_var）
+\item 从所有用药记录中取\strong{最晚}的给药结束日期
+\item 适用于有明确给药开始和结束日期的研究
+}
+
+\strong{示例}：
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# 情况1：只有开始日期
+EX数据：受试者001
+  - 2024-01-01（开始）
+  - 2024-01-29（开始）
+末次给药日期 = max(2024-01-01, 2024-01-29) = 2024-01-29
+
+# 情况2：有开始和结束日期
+EX数据：受试者001
+  - 2024-01-01（开始）→ 2024-01-03（结束）
+  - 2024-01-29（开始）→ 2024-02-01（结束）
+末次给药日期 = max(2024-01-03, 2024-02-01) = 2024-02-01
+}\if{html}{\out{</div>}}
+
+\strong{参数配置}：
+\itemize{
+\item 支持多个数据集：\code{ex_datasets = c("EX1", "EX2")}
+\item 可为每个数据集指定不同的列名：
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{ex_date_var = c("EXSTDAT1", "EXSTDAT2")
+ex_end_date_var = c("EXENDAT1", "EXENDAT2")
+}\if{html}{\out{</div>}}
 }
 }
 
-\subsection{首次给药日期计算}{
-
-从所有指定的试验用药数据集中提取每个受试者的最早一次用药开始日期作为首次给药日期。
-支持多个用药数据集（如EX1, EX2），可为每个数据集指定不同的日期列名。
 }
 }

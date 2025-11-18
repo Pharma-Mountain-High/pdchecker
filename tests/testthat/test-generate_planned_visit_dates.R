@@ -75,7 +75,7 @@ test_that("基本功能：正常输入返回数据框", {
   expected_cols <- c(
     "SUBJID", "VISIT", "VISITNUM", "planned_date",
     "wp_start", "wp_end", "actual_date", "status",
-    "first_ex_date", "eot_date", "eos_date"
+    "first_dose_date", "eot_date", "eos_date"
   )
   expect_true(all(expected_cols %in% names(result)))
 
@@ -96,11 +96,11 @@ test_that("基本功能：计算首次给药日期", {
 
   # 检查受试者001的首次给药日期（应为2024-01-01）
   subj_001 <- result[result$SUBJID == "001", ]
-  expect_equal(as.character(unique(subj_001$first_ex_date)), "2024-01-01")
+  expect_equal(as.character(unique(subj_001$first_dose_date)), "2024-01-01")
 
   # 检查受试者002的首次给药日期（应为2024-01-05）
   subj_002 <- result[result$SUBJID == "002", ]
-  expect_equal(as.character(unique(subj_002$first_ex_date)), "2024-01-05")
+  expect_equal(as.character(unique(subj_002$first_dose_date)), "2024-01-05")
 })
 
 # ===== 访视计划日期计算测试 =====
@@ -116,7 +116,7 @@ test_that("筛选期访视计划日期等于首次给药日期", {
   # 筛选访视的计划日期应等于首次给药日期
   screening_visits <- result[result$VISIT == "筛选访视", ]
 
-  expect_true(all(screening_visits$planned_date == screening_visits$first_ex_date,
+  expect_true(all(screening_visits$planned_date == screening_visits$first_dose_date,
     na.rm = TRUE
   ))
 })
@@ -132,7 +132,7 @@ test_that("治疗期D1访视计划日期计算正确", {
 
   # C1D1应等于首次给药日期
   c1d1_visits <- result[result$VISIT == "C1D1", ]
-  expect_true(all(c1d1_visits$planned_date == c1d1_visits$first_ex_date,
+  expect_true(all(c1d1_visits$planned_date == c1d1_visits$first_dose_date,
     na.rm = TRUE
   ))
 
@@ -265,7 +265,7 @@ test_that("多数据集支持：多个EX数据集使用相同日期列", {
 
   # 应使用最早的日期（2023-12-28）
   subj_001 <- result[result$SUBJID == "001", ]
-  expect_equal(as.character(unique(subj_001$first_ex_date)), "2023-12-28")
+  expect_equal(as.character(unique(subj_001$first_dose_date)), "2023-12-28")
 })
 
 test_that("多数据集支持：多个EX数据集使用不同日期列", {
@@ -287,7 +287,7 @@ test_that("多数据集支持：多个EX数据集使用不同日期列", {
 
   # 应使用最早的日期（2023-12-25）
   subj_001 <- result[result$SUBJID == "001", ]
-  expect_equal(as.character(unique(subj_001$first_ex_date)), "2023-12-25")
+  expect_equal(as.character(unique(subj_001$first_dose_date)), "2023-12-25")
 })
 
 # ===== 参数验证测试 =====
@@ -371,9 +371,9 @@ test_that("边界情况：受试者没有用药记录", {
     visit_schedule_data = test_data$visit_schedule
   )
 
-  # 该受试者的first_ex_date应为NA
+  # 该受试者的first_dose_date应为NA
   subj_999 <- result[result$SUBJID == "999", ]
-  expect_true(all(is.na(subj_999$first_ex_date)))
+  expect_true(all(is.na(subj_999$first_dose_date)))
 
   # 计划日期也应为NA
   expect_true(all(is.na(subj_999$planned_date)))
@@ -466,9 +466,9 @@ test_that("边界情况：日期列包含SAS缺失值", {
     )
   })
 
-  # 受试者004的first_ex_date应为NA
+  # 受试者004的first_dose_date应为NA
   subj_004 <- result[result$SUBJID == "004", ]
-  expect_true(all(is.na(subj_004$first_ex_date)))
+  expect_true(all(is.na(subj_004$first_dose_date)))
 })
 
 # ===== 返回结果完整性测试 =====
