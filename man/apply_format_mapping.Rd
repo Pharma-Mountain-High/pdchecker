@@ -7,13 +7,17 @@
 apply_format_mapping(data, format_df)
 }
 \arguments{
-\item{data}{List of data frames containing study data}
+\item{data}{Data frame or list of data frames containing study data}
 
-\item{format_df}{Data frame containing format information}
+\item{format_df}{Data frame containing format mapping information with columns:
+FMTNAME, START, and LABEL}
 }
 \value{
-List of data frames with mapped values
+Data frame or list of data frames with values mapped according to format_df
 }
 \description{
-Map values in data frames based on format information
+Map values in data frames based on format information, similar to SAS formats.
+This function applies value mappings defined in a format data frame to corresponding
+columns in the input data.
 }
+\concept{format utilities}

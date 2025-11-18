@@ -4,16 +4,41 @@
 \alias{capture_check_results}
 \title{Capture and parse output from multiple check functions}
 \usage{
-capture_check_results(..., data)
+capture_check_results(..., data = NULL)
 }
 \arguments{
-\item{...}{Named list of check functions to run}
+\item{...}{Named functions to run. Each should be a function that accepts a
+data parameter. The names will be used as check identifiers if check names
+cannot be extracted from the output}
 
-\item{data}{Data to pass to each check function}
+\item{data}{Data object to pass to each check function. Can be NULL if the
+functions don't use it (optional, defaults to NULL)}
 }
 \value{
-Data frame with combined check results
+Data frame with combined check results from all functions, with columns
+depending on the parsed output structure
 }
 \description{
-Capture and parse output from multiple check functions
+Runs multiple check functions, captures their console output, parses it, and
+combines the results into a single data frame. This is useful for batch processing
+multiple data quality checks.
 }
+\details{
+Each function in \code{...} should accept a single \code{data} parameter and
+should print formatted output to the console. The console output is captured
+and parsed using \code{\link{parse_check_output}}.
+
+If a function produces no output, the function attempts to use the return value
+directly via \code{\link{as_check_df}}. If the check name cannot be extracted
+from the output, the parameter name is used as the check name.
+}
+\seealso{
+\code{\link{parse_check_output}}, \code{\link{as_check_df}},
+\code{\link{combine_check_results}}
+
+Other check result utilities: 
+\code{\link{as_check_df}()},
+\code{\link{combine_check_results}()},
+\code{\link{parse_check_output}()}
+}
+\concept{check result utilities}

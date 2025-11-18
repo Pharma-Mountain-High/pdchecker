@@ -1,9 +1,17 @@
 #' Apply format mapping to data
 #'
-#' Map values in data frames based on format information
-#' @param data List of data frames containing study data
-#' @param format_df Data frame containing format information
-#' @return List of data frames with mapped values
+#' @description
+#' Map values in data frames based on format information, similar to SAS formats.
+#' This function applies value mappings defined in a format data frame to corresponding
+#' columns in the input data.
+#'
+#' @param data Data frame or list of data frames containing study data
+#' @param format_df Data frame containing format mapping information with columns:
+#'   FMTNAME, START, and LABEL
+#'
+#' @return Data frame or list of data frames with values mapped according to format_df
+#'
+#' @family format utilities
 #' @export
 apply_format_mapping <- function(data, format_df) {
   # Convert format_df START column to character to ensure matching
@@ -46,21 +54,16 @@ apply_format_mapping <- function(data, format_df) {
 }
 
 
-#' Check if the elements could be of any SAS missing data variant
+#' Check if elements could be SAS missing data variants
 #'
-#' Missing Data from sas7bdat imported datesets could be imported in different
-#' ways we currently check for 'NA', NA, '.', and ''.
+#' Missing data from sas7bdat imported datasets could be imported in different
+#' ways. This function checks for 'NA', NA, '.', and '' (empty string).
 #'
-#' @param x vector with data
+#' @param x Vector with data to check
 #'
-#' @return logical vector
+#' @return Logical vector indicating which elements are SAS missing values
 #'
 #' @export
-#' @keywords internal
-#' @examples
-#' is_sas_na(c(1, 2, NA))
-#'
-#' is_sas_na(c("a", NA, "NA", ""))
 is_sas_na <- function(x) {
   x <- trimws(x)
   is.na(x) |
@@ -71,10 +74,37 @@ is_sas_na <- function(x) {
 
 #' Convert check results to a standardized data frame
 #'
+#' @description
+#' Converts check result objects (lists) into standardized data frames for easier
+#' manipulation and reporting. This function is particularly useful for combining
+#' results from multiple checks.
+#'
+#' @details
+#' The function expects check_result to be a list with at least the following components:
+#' \describe{
+#'   \item{has_deviation}{Logical. Whether any deviation was found}
+#'   \item{messages}{Character vector. Summary messages}
+#'   \item{details}{Data frame (optional). Detailed deviation information}
+#' }
+#'
+#' If details are present and non-empty, the function returns the detailed data frame
+#' with added check_name and has_deviation columns. Otherwise, it returns a summary
+#' data frame with one row.
+#'
 #' @param check_result List containing check results from any check function
-#' @param check_name Name of the check (optional, will be extracted from class if not provided)
-#' @return Data frame with standardized check results
-#' @importFrom dplyr bind_rows mutate
+#' @param check_name Character string. Name of the check (optional, will be extracted
+#'   from the object's class attribute if not provided)
+#'
+#' @return Data frame with standardized check results containing columns:
+#' \describe{
+#'   \item{check_name}{Character. Name of the check}
+#'   \item{has_deviation}{Logical. Whether deviation was found}
+#'   \item{message}{Character. Summary message (collapsed from messages vector)}
+#'   \item{...}{Additional columns from details if present}
+#' }
+#'
+#' @family check result utilities
+#' @importFrom dplyr bind_rows
 #' @export
 as_check_df <- function(check_result, check_name = NULL) {
   # Extract check name from class if not provided
@@ -130,8 +160,24 @@ as_check_df <- function(check_result, check_name = NULL) {
 
 #' Combine multiple check results into a single data frame
 #'
-#' @param ... Multiple check result objects
-#' @return Data frame with combined check results
+#' @description
+#' Combines multiple check result objects into a single data frame by converting
+#' each result using \code{\link{as_check_df}} and then row-binding them together.
+#' NULL results are automatically skipped.
+#'
+#' @details
+#' This is a convenience function for aggregating results from multiple data quality
+#' checks. Each check result is converted to a standardized data frame format before
+#' combining, ensuring consistent structure in the output.
+#'
+#' @param ... Multiple check result objects (lists) to combine. NULL values are ignored
+#'
+#' @return Data frame with combined check results. Each row represents either a check
+#'   summary or a detailed deviation record, depending on the input check results
+#'
+#' @seealso \code{\link{as_check_df}} for converting individual check results
+#'
+#' @family check result utilities
 #' @importFrom dplyr bind_rows
 #' @export
 combine_check_results <- function(...) {
@@ -157,14 +203,41 @@ combine_check_results <- function(...) {
 
 #' Parse console output from check functions into a data frame
 #'
-#' This function captures or parses the console output from check functions
-#' and converts it into a standardized data frame format.
+#' @description
+#' Parses the console output from check functions and converts it into a standardized
+#' data frame format. Can either parse existing text or capture output directly from
+#' a function call.
 #'
-#' @param text Text string containing check function console output, or a connection to read from
-#' @param capture_output If TRUE, the function will capture output from the provided function call
+#' @details
+#' The function expects output in a specific format with sections:
+#' \itemize{
+#'   \item Header: Check name, typically numbered (e.g., "8.4 Visit Window Check")
+#'   \item Deviation status: "Has deviation: YES" or "Has deviation: NO"
+#'   \item Findings: Summary messages following "Findings:"
+#'   \item Deviation Details: Detailed information following "Deviation Details:"
+#' }
+#'
+#' When parsing deviation details, the function attempts to extract subject IDs (SUBJID)
+#' from lines containing the Chinese character "受试者" followed by numeric IDs. If multiple
+#' subjects are found, each gets a separate row in the output.
+#'
+#' @param text Character string or vector containing check function console output,
+#'   or a connection object to read from. Used when capture_output is FALSE
+#' @param capture_output Logical. If TRUE, the function will capture output from
+#'   check_fn instead of using the text parameter
 #' @param check_fn Function to call (only used if capture_output is TRUE)
-#' @param ... Arguments to pass to check_fn (only used if capture_output is TRUE)
-#' @return Data frame with standardized check results
+#' @param ... Additional arguments to pass to check_fn (only used if capture_output is TRUE)
+#'
+#' @return Data frame with standardized check results containing columns:
+#' \describe{
+#'   \item{SUBJID}{Character. Subject ID (extracted from details if available, otherwise NA)}
+#'   \item{check_name}{Character. Name of the check}
+#'   \item{has_deviation}{Logical. Whether deviation was found}
+#'   \item{message}{Character. Summary findings message}
+#'   \item{details}{Character. Detailed deviation information}
+#' }
+#'
+#' @family check result utilities
 #' @importFrom utils capture.output
 #' @export
 parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = NULL, ...) {
@@ -190,7 +263,7 @@ parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = N
   }
 
   # Initialize result data
-  check_name <- NULL
+  check_name <- "unnamed_check"
   has_deviation <- FALSE
   message <- NA_character_
   details <- NA_character_
@@ -211,6 +284,10 @@ parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = N
       header_text <- regmatches(text, alt_header_match)
       check_name <- gsub("\\n$", "", header_text)
     }
+  }
+
+  if (is.null(check_name) || length(check_name) == 0 || check_name == "") {
+    check_name <- "unnamed_check"
   }
 
   # Extract deviation status
@@ -288,19 +365,29 @@ parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = N
           # Find position of "受试者" in the line
           subj_pos <- regexpr("受试者", line, fixed = TRUE)[1]
           if (subj_pos > 0) {
-            # Extract subject ID (assuming ID is 5 digits after "受试者")
-            subj_start <- subj_pos + nchar("受试者")
-            subj_id <- substr(line, subj_start, subj_start + 4)
-            # Clean up any non-numeric characters
-            SUBJID <- gsub("[^0-9]", "", subj_id)
+            # Extract subject ID using regex to find continuous digits after "受试者"
+            # This pattern looks for "受试者" followed by optional non-digit chars, then captures all digits
+            subj_pattern <- "受试者[^0-9]*([0-9]+)"
+            subj_match <- regexpr(subj_pattern, line, perl = TRUE)
+
+            if (subj_match > 0) {
+              # Extract the matched text
+              matched_text <- regmatches(line, subj_match)
+              # Extract only the digits
+              SUBJID <- gsub("[^0-9]", "", matched_text)
+            } else {
+              # Fallback: try to extract any number after "受试者"
+              remaining_text <- substr(line, subj_pos + nchar("受试者"), nchar(line))
+              SUBJID <- gsub(".*?([0-9]+).*", "\\1", remaining_text)
+            }
 
             # Create a row for this subject
             result_rows[[i]] <- data.frame(
+              SUBJID = SUBJID,
               check_name = check_name,
               has_deviation = has_deviation,
               message = message,
               details = line, # Just include this specific line
-              SUBJID = SUBJID,
               stringsAsFactors = FALSE
             )
           }
@@ -316,11 +403,11 @@ parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = N
 
   # If no subject-specific rows were created, return a single row
   result_df <- data.frame(
+    SUBJID = NA_character_,
     check_name = check_name,
     has_deviation = has_deviation,
     message = message,
     details = details,
-    SUBJID = NA_character_,
     stringsAsFactors = FALSE
   )
 
@@ -329,11 +416,35 @@ parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = N
 
 #' Capture and parse output from multiple check functions
 #'
-#' @param ... Named list of check functions to run
-#' @param data Data to pass to each check function
-#' @return Data frame with combined check results
+#' @description
+#' Runs multiple check functions, captures their console output, parses it, and
+#' combines the results into a single data frame. This is useful for batch processing
+#' multiple data quality checks.
+#'
+#' @details
+#' Each function in \code{...} should accept a single \code{data} parameter and
+#' should print formatted output to the console. The console output is captured
+#' and parsed using \code{\link{parse_check_output}}.
+#'
+#' If a function produces no output, the function attempts to use the return value
+#' directly via \code{\link{as_check_df}}. If the check name cannot be extracted
+#' from the output, the parameter name is used as the check name.
+#'
+#' @param ... Named functions to run. Each should be a function that accepts a
+#'   data parameter. The names will be used as check identifiers if check names
+#'   cannot be extracted from the output
+#' @param data Data object to pass to each check function. Can be NULL if the
+#'   functions don't use it (optional, defaults to NULL)
+#'
+#' @return Data frame with combined check results from all functions, with columns
+#'   depending on the parsed output structure
+#'
+#' @seealso \code{\link{parse_check_output}}, \code{\link{as_check_df}},
+#'   \code{\link{combine_check_results}}
+#'
+#' @family check result utilities
 #' @export
-capture_check_results <- function(..., data) {
+capture_check_results <- function(..., data = NULL) {
   check_fns <- list(...)
 
   # If no names provided, create default names
@@ -352,13 +463,26 @@ capture_check_results <- function(..., data) {
     # Create a text connection to capture output
     output <- utils::capture.output(result <- fn(data))
 
-    # Parse the output
-    parsed_result <- parse_check_output(text = output)
+    if (length(output) == 0 || all(output == "")) {
+      if (exists("result") && !is.null(result)) {
+        parsed_result <- as_check_df(result, check_name = fn_name)
+      } else {
+        parsed_result <- data.frame(
+          check_name = fn_name,
+          has_deviation = FALSE,
+          message = "No output captured",
+          stringsAsFactors = FALSE
+        )
+      }
+    } else {
+      # Parse the output
+      parsed_result <- parse_check_output(text = output)
 
-    # If check_name was not found in the output, use function name
-    if (is.null(parsed_result$check_name) || length(parsed_result$check_name) == 0 ||
-      all(is.na(parsed_result$check_name)) || all(parsed_result$check_name == "")) {
-      parsed_result$check_name <- fn_name
+      # If check_name was not found in the output, use function name
+      if (is.null(parsed_result$check_name) || length(parsed_result$check_name) == 0 ||
+        all(is.na(parsed_result$check_name)) || all(parsed_result$check_name == "")) {
+        parsed_result$check_name <- fn_name
+      }
     }
 
     # Add to results
@@ -378,7 +502,8 @@ capture_check_results <- function(..., data) {
 #' This function is used by both \code{generate_planned_visit_dates} and
 #' \code{check_missing_visit} to ensure consistent visit type classification.
 #'
-#' @param visit_type Character string, visit type description (e.g., "筛选", "治疗周期1")
+#' @param visit_type Character string, visit type description in Chinese
+#'   (e.g., "筛选" for screening, "治疗周期1" for treatment cycle 1)
 #'
 #' @return Character string, one of: "screening", "treatment", "end_of_treatment",
 #'   "follow_up", or "unknown"
