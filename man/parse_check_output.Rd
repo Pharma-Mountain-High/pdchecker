@@ -7,18 +7,48 @@
 parse_check_output(text = NULL, capture_output = FALSE, check_fn = NULL, ...)
 }
 \arguments{
-\item{text}{Text string containing check function console output, or a connection to read from}
+\item{text}{Character string or vector containing check function console output,
+or a connection object to read from. Used when capture_output is FALSE}
 
-\item{capture_output}{If TRUE, the function will capture output from the provided function call}
+\item{capture_output}{Logical. If TRUE, the function will capture output from
+check_fn instead of using the text parameter}
 
 \item{check_fn}{Function to call (only used if capture_output is TRUE)}
 
-\item{...}{Arguments to pass to check_fn (only used if capture_output is TRUE)}
+\item{...}{Additional arguments to pass to check_fn (only used if capture_output is TRUE)}
 }
 \value{
-Data frame with standardized check results
+Data frame with standardized check results containing columns:
+\describe{
+\item{SUBJID}{Character. Subject ID (extracted from details if available, otherwise NA)}
+\item{check_name}{Character. Name of the check}
+\item{has_deviation}{Logical. Whether deviation was found}
+\item{message}{Character. Summary findings message}
+\item{details}{Character. Detailed deviation information}
+}
 }
 \description{
-This function captures or parses the console output from check functions
-and converts it into a standardized data frame format.
+Parses the console output from check functions and converts it into a standardized
+data frame format. Can either parse existing text or capture output directly from
+a function call.
 }
+\details{
+The function expects output in a specific format with sections:
+\itemize{
+\item Header: Check name, typically numbered (e.g., "8.4 Visit Window Check")
+\item Deviation status: "Has deviation: YES" or "Has deviation: NO"
+\item Findings: Summary messages following "Findings:"
+\item Deviation Details: Detailed information following "Deviation Details:"
+}
+
+When parsing deviation details, the function attempts to extract subject IDs (SUBJID)
+from lines containing the Chinese character "受试者" followed by numeric IDs. If multiple
+subjects are found, each gets a separate row in the output.
+}
+\seealso{
+Other check result utilities: 
+\code{\link{as_check_df}()},
+\code{\link{capture_check_results}()},
+\code{\link{combine_check_results}()}
+}
+\concept{check result utilities}
