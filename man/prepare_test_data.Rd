@@ -160,8 +160,8 @@ lb_prepared <- prepare_test_data(
   test_date_var = "LBDAT",
   test_result_var = "ORRES",
   test_cat_var = "LBCAT",
-  test_de_var = "LBTEST",  # 检查项目名称，如"红细胞计数"
-  tb_name_var = NULL  # 使用 test_dataset "LB" 作为数据集名称
+  test_de_var = "LBTEST", # 检查项目名称，如"红细胞计数"
+  tb_name_var = NULL # 使用 test_dataset "LB" 作为数据集名称
 )
 
 # 准备生命体征检查数据，使用原始数据中的数据集名称列
@@ -170,9 +170,9 @@ vs_prepared <- prepare_test_data(
   test_dataset = "VS",
   test_date_var = "VSDAT",
   test_result_var = "VSORRES",
-  test_cat_var = NULL,  # 如果没有分类变量
-  test_de_var = "VSTEST",  # 检查项目名称
-  tb_name_var = "VSTB"  # 如果原始数据中有数据集名称列
+  test_cat_var = NULL, # 如果没有分类变量
+  test_de_var = "VSTEST", # 检查项目名称
+  tb_name_var = "VSTB" # 如果原始数据中有数据集名称列
 )
 
 # 使用配置文件预先生成应该存在的检查记录骨架
@@ -188,7 +188,7 @@ lb_prepared_with_config <- prepare_test_data(
   test_result_var = "ORRES",
   test_cat_var = "LBCAT",
   test_de_var = "LBTEST",
-  config = config_df  # 或使用文件路径: config = "test_config.xlsx"
+  config = config_df # 或使用文件路径: config = "test_config.xlsx"
 )
 # 输出将包含所有应该存在的访视-检查项组合
 # 即使原始数据中没有相应记录，也会显示为空记录（TESTDAT=NA等）
@@ -202,7 +202,7 @@ lb_prepared_partial <- prepare_test_data(
   test_cat_var = "LBCAT",
   test_de_var = "LBTEST",
   config = config_df,
-  config_cat = c("血常规", "血生化")  # 只使用血常规和血生化，忽略尿常规
+  config_cat = c("血常规", "血生化") # 只使用血常规和血生化，忽略尿常规
 )
 
 # 只保留入组受试者的记录
@@ -212,8 +212,8 @@ lb_prepared_enrolled <- prepare_test_data(
   test_date_var = "LBDAT",
   test_result_var = "ORRES",
   test_cat_var = "LBCAT",
-  enrl_dataset = "ENROL",  # 入组数据集
-  enrl_yn_var = "ENRYN"    # 是否入组变量
+  enrl_dataset = "ENROL", # 入组数据集
+  enrl_yn_var = "ENRYN" # 是否入组变量
 )
 # 只保留 ENRYN="是" 的受试者记录
 
@@ -224,7 +224,7 @@ lb_prepared_male <- prepare_test_data(
   test_date_var = "LBDAT",
   test_result_var = "ORRES",
   test_cat_var = "LBCAT",
-  filter_cond = "SUBJECT|SEX=='男'"  # 只保留男性受试者
+  filter_cond = "SUBJECT|SEX=='男'" # 只保留男性受试者
 )
 
 # 同一数据集的多个条件
@@ -244,7 +244,7 @@ lb_prepared_multi <- prepare_test_data(
   test_date_var = "LBDAT",
   test_result_var = "ORRES",
   test_cat_var = "LBCAT",
-  filter_cond = "SUBJECT|SEX=='男';DM|AGE>18"  # 从SUBJECT筛选男性，从DM筛选年龄>18，取交集
+  filter_cond = "SUBJECT|SEX=='男';DM|AGE>18" # 从SUBJECT筛选男性，从DM筛选年龄>18，取交集
 )
 
 # 同时使用入组筛选和自定义筛选（取交集）
@@ -256,7 +256,7 @@ lb_prepared_both <- prepare_test_data(
   test_cat_var = "LBCAT",
   enrl_dataset = "ENROL",
   enrl_yn_var = "ENRYN",
-  filter_cond = "SUBJECT|SEX=='男'"  # 只保留既入组又是男性的受试者
+  filter_cond = "SUBJECT|SEX=='男'" # 只保留既入组又是男性的受试者
 )
 }
 
