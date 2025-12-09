@@ -13,7 +13,6 @@ on:
       - ready_for_review
     branches:
       - main
-      - devel
       - devel-qinghuan
   workflow_dispatch:
   workflow_call:
@@ -26,7 +25,7 @@ on:
       auto-update:
         description: If R code style is not up-to-date, styling will automatically be applied and restyled files will be automatically committed o the branch.
         required: false
-        default: true
+        default: false
         type: boolean
       package-subdirectory:
         description: Subdirectory in the repository, where the R package is located.
@@ -127,8 +126,7 @@ jobs:
               ext %in% c("R", "Rmd", "Rnw", "Rmarkdown", "qmd")
           }
           changed_r_files <- Filter(is_r_file, changed_files)
-          auto_update_input <- "${{ inputs.auto-update }}"
-          dry <- if(auto_update_input == "" || isTRUE(as.logical(auto_update_input))) "off" else "on"
+          dry <- if(isTRUE(as.logical("${{ inputs.auto-update }}"))) "off" else "on"
           detect <- styler::style_file(changed_r_files, dry = dry)
           if (TRUE %in% detect$changed) {
             problems <- subset(detect$file, detect$changed == T)
@@ -161,7 +159,7 @@ jobs:
       - name: Autocommit styled files ↗️
         id: autocommit-styled-files
         if: >
-          (inputs.auto-update == '' || inputs.auto-update == true || inputs.auto-update == 'true')
+          inputs.auto-update
             && steps.check_files.outputs.files_exists == 'true'
         run: |
           git config --global user.name 'github-actions'
@@ -178,7 +176,7 @@ jobs:
 
       - name: Styler check summary 🅾
         if: >
-          ((inputs.auto-update == false || inputs.auto-update == 'false')
+          (inputs.auto-update != true
             && steps.check_files.outputs.files_exists == 'true')
             || (steps.autocommit-styled-files.outcome != 'success'
             && steps.autocommit-styled-files.outcome != 'skipped')
