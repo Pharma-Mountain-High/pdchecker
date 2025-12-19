@@ -108,6 +108,7 @@ parse_window_period <- function(window_str) {
 #' @return 一个 tibble 对象，包含输入文件的所有列，并新增（或覆盖）两列：
 #'   \item{type}{窗口期类型（字符型），可能的值：±、≤、≥、+、-、范围、其他、NA}
 #'   \item{wpvalue}{窗口期数值（字符型），以天为单位。无法解析时为 "NA"}
+#' @importFrom utils read.csv
 #' @export
 read_visitcode_file <- function(file_path, sheet_name = "Sheet1") {
   # 检查文件是否存在

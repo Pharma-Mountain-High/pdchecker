@@ -1,2 +1,14 @@
-^pdchecker\.Rproj$
+^CICD-GUIDE\.md$
+^LICENSE$
+^LICENSE\.md$
 ^\.Rproj\.user$
+^\.github$
+^\.lintr$
+^\.markdownlint\.yaml$
+^\.pre-commit-config\.yaml$
+^\.pre-commit-quickref\.md$
+^_pkgdown\.yml$
+^pdchecker\.Rproj$
+^staged_dependencies\.yaml$
+^\.cursorrules$
+^node_modules$

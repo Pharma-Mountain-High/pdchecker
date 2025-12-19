@@ -3,8 +3,10 @@
 #' @param data List of data frames containing study data
 #' @param ic_dataset Character string specifying the name of the IC dataset (default: "IC")
 #' @param ic_date_var Character string specifying the name of the IC date variable (default: "ICDAT")
-#' @param ignore_vars Character vector of variables to ignore in the check (default: "BRTHDAT"). Can specify multiple variables, e.g., c("BRTHDAT", "MHSTDAT")
-#' @param exclude_datasets Character vector of dataset names to exclude from the check (default: NULL). Can specify multiple datasets, e.g., c("DM", "DS")
+#' @param ignore_vars Character vector of variables to ignore in the check (default: "BRTHDAT").
+#' Can specify multiple variables, e.g., c("BRTHDAT", "MHSTDAT")
+#' @param exclude_datasets Character vector of dataset names to exclude from the check (default: NULL).
+#' Can specify multiple datasets, e.g., c("DM", "DS")
 #' @return A list of class "icf_time_deviation" with the following components:
 #'   \describe{
 #'     \item{has_deviation}{Logical. TRUE if any time deviations were found, FALSE otherwise}
@@ -21,7 +23,11 @@
 #'   }
 #' @importFrom dplyr filter mutate select left_join all_of arrange group_by slice ungroup bind_rows
 #' @export
-check_icf_time_deviation <- function(data, ic_dataset = "IC", ic_date_var = "ICDAT", ignore_vars = "BRTHDAT", exclude_datasets = NULL) {
+check_icf_time_deviation <- function(data,
+                                     ic_dataset = "IC",
+                                     ic_date_var = "ICDAT",
+                                     ignore_vars = "BRTHDAT",
+                                     exclude_datasets = NULL) {
   # Initialize results
   results <- list(
     has_deviation = FALSE,
@@ -74,8 +80,7 @@ check_icf_time_deviation <- function(data, ic_dataset = "IC", ic_date_var = "ICD
             )
           ) %>%
           left_join(icf_times, by = "SUBJID") %>%
-          filter(!is.na(event_datetime) & !is.na(icf_datetime) &
-            event_datetime < icf_datetime) %>%
+          filter(!is.na(event_datetime) & !is.na(icf_datetime) & event_datetime < icf_datetime) %>%
           select(SUBJID, action, event_datetime, icf_datetime) %>%
           mutate(diff_date = as.numeric(difftime(event_datetime, icf_datetime, units = "days")))
 

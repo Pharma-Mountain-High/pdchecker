@@ -307,7 +307,7 @@ test_that("check_missing_visit 正确计算访视统计数据", {
   expect_true(all(subj_001$completed_visits_count > 0))
   expect_true(all(subj_001$completed_visits_count < subj_001$valid_visits_count))
 
-  # 缺失数 = 有效访视数 - 完成数
+  # 计算缺失数：有效访视数减去完成数
   missing_count <- subj_001$valid_visits_count[1] - subj_001$completed_visits_count[1]
   # 检查缺失访视记录的数量
   expect_equal(missing_count, nrow(subj_001))

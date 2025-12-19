@@ -89,7 +89,7 @@ jobs:
         uses: insightsengineering/r-revdepcheck-action@main
         with:
           github-token: ${{ steps.github-token.outputs.token }}
-          additional-env-vars:  ${{ inputs.additional-env-vars }}
+          additional-env-vars: ${{ inputs.additional-env-vars }}
 
       - name: GChat notification 🔔
         if: (failure() || cancelled()) && steps.revdepcheck.outcome != 'success' && env.gchat_webhook != ''

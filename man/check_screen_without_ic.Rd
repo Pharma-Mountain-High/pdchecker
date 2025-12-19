@@ -22,9 +22,11 @@ check_screen_without_ic(
 
 \item{visit_var}{Character string specifying the variable name for visit in visit dataset (default: "VISIT")}
 
-\item{visit_pattern}{Character string or vector specifying the pattern(s) to identify screening visits (default: "筛选|Screening|screening")}
+\item{visit_pattern}{Character string or vector specifying the pattern(s) to
+identify screening visits (default: "筛选|Screening|screening")}
 
-\item{ic_date_var}{Character string specifying the variable name for informed consent date in IC dataset (default: "ICDAT")}
+\item{ic_date_var}{Character string specifying the variable name for informed
+consent date in IC dataset (default: "ICDAT")}
 }
 \value{
 A list of class "screen_ic_check" containing:

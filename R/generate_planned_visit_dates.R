@@ -183,7 +183,8 @@
 #'     \item{eos_date}{受试者研究结束日期}
 #'   }
 #'
-#' @importFrom dplyr filter select mutate arrange group_by ungroup left_join case_when if_else sym distinct bind_rows slice
+#' @importFrom dplyr filter select mutate arrange group_by ungroup left_join
+#' @importFrom dplyr case_when if_else sym distinct bind_rows slice
 #' @importFrom magrittr %>%
 #' @export
 generate_planned_visit_dates <- function(data,

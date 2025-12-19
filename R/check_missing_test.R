@@ -49,9 +49,9 @@
 #'
 #' **1. TESTCAT为空**（访视没有对应的检查记录）
 #' - 判断条件：TESTCAT为空或NA
-#' - 输出：同一受试者、同一访视、同一TBNAME只输出一条记录
+#' - 输出：同一受试者、同一访视、同一`TBNAME`只输出一条记录
 #' - 格式：如"LB缺失"
-#' - 缺失原因："未进行[TBNAME]检查"
+#' - 缺失原因："未进行`TBNAME`检查"
 #'
 #' **2. TESTCAT不为空，但整个TESTCAT缺失**（例如整个"血常规"检查都未做）
 #' - 判断条件：TESTCAT不为空，且TESTDAT为空 或 TESTYN不等于"是"
@@ -90,7 +90,7 @@
 #'         \item VISITNUM: 访视编号
 #'         \item visit_date: 实际访视日期
 #'         \item test_name: 检查项名称
-#'         \item missing_reason: 缺失原因（未进行[TBNAME]检查/整个检查项目未进行/检查结果为空）
+#'         \item missing_reason: 缺失原因（未进行`TBNAME`检查/整个检查项目未进行/检查结果为空）
 #'         \item missing_type: 缺失类型（TESTCAT为空/TESTCAT缺失/TESTDE缺失）
 #'       }
 #'     }

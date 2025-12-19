@@ -7,8 +7,10 @@ utils::globalVariables(c("SUBJID"))
 #' @param sv_dataset Character string specifying which dataset to use for visit data (default: "SV")
 #' @param ic_dataset Character string specifying which dataset to use for informed consent data (default: "IC")
 #' @param visit_var Character string specifying the variable name for visit in visit dataset (default: "VISIT")
-#' @param visit_pattern Character string or vector specifying the pattern(s) to identify screening visits (default: "筛选|Screening|screening")
-#' @param ic_date_var Character string specifying the variable name for informed consent date in IC dataset (default: "ICDAT")
+#' @param visit_pattern Character string or vector specifying the pattern(s) to
+#'   identify screening visits (default: "筛选|Screening|screening")
+#' @param ic_date_var Character string specifying the variable name for informed
+#'   consent date in IC dataset (default: "ICDAT")
 #' @return A list of class "screen_ic_check" containing:
 #' \describe{
 #'   \item{has_deviation}{Logical value indicating whether any deviation was found.

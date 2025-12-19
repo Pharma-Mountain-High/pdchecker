@@ -374,16 +374,16 @@ parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = N
               # Extract the matched text
               matched_text <- regmatches(line, subj_match)
               # Extract only the digits
-              SUBJID <- gsub("[^0-9]", "", matched_text)
+              subjid <- gsub("[^0-9]", "", matched_text)
             } else {
               # Fallback: try to extract any number after "受试者"
               remaining_text <- substr(line, subj_pos + nchar("受试者"), nchar(line))
-              SUBJID <- gsub(".*?([0-9]+).*", "\\1", remaining_text)
+              subjid <- gsub(".*?([0-9]+).*", "\\1", remaining_text)
             }
 
             # Create a row for this subject
             result_rows[[i]] <- data.frame(
-              SUBJID = SUBJID,
+              SUBJID = subjid,
               check_name = check_name,
               has_deviation = has_deviation,
               message = message,
@@ -479,8 +479,10 @@ capture_check_results <- function(..., data = NULL) {
       parsed_result <- parse_check_output(text = output)
 
       # If check_name was not found in the output, use function name
-      if (is.null(parsed_result$check_name) || length(parsed_result$check_name) == 0 ||
-        all(is.na(parsed_result$check_name)) || all(parsed_result$check_name == "")) {
+      check_name <- parsed_result$check_name
+      is_empty <- is.null(check_name) || length(check_name) == 0 ||
+        all(is.na(check_name)) || all(check_name == "")
+      if (is_empty) {
         parsed_result$check_name <- fn_name
       }
     }

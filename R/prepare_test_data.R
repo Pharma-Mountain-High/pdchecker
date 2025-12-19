@@ -267,7 +267,6 @@ prepare_test_data <- function(data,
     for (i in seq_along(filter_conditions)) {
       filter_item <- filter_conditions[i]
 
-      # 解析单个筛选条件: "数据集名|筛选条件"
       filter_parts <- strsplit(filter_item, "\\|", fixed = FALSE)[[1]]
 
       if (length(filter_parts) != 2) {

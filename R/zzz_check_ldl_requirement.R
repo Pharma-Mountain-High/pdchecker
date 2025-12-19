@@ -42,9 +42,13 @@ check_ldl_requirement <- function(data) {
     select(SUBJID, RANDLDL, RANDTT)
 
   # Get disease history
+  ascvd_pattern <- paste0(
+    "ASC|动脉粥样硬化|缺血性心肌病|冠心病|冠状动脉血运重建术后|",
+    "缺血性卒中|短暂性脑缺血发作|外周动脉疾病|血运重建术|PAD|TIA"
+  )
   disease_history <- data$MH %>%
     group_by(SUBJID) %>%
-    summarise(has_ascvd = any(grepl("ASC|动脉粥样硬化|缺血性心肌病|冠心病|冠状动脉血运重建术后|缺血性卒中|短暂性脑缺血发作|外周动脉疾病|血运重建术|PAD|TIA", MHTERM, ignore.case = TRUE))) %>%
+    summarise(has_ascvd = any(grepl(ascvd_pattern, MHTERM, ignore.case = TRUE))) %>%
     ungroup()
 
   # Combine data for checking

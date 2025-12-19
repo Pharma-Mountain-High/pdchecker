@@ -9,21 +9,25 @@ read_raw_data(folder, iwrs_file = NULL, format_file = NULL)
 \arguments{
 \item{folder}{Path to data directory containing SAS files}
 
-\item{iwrs_file}{Path to IWRS CSV file. Defaults to NULL (no IWRS file).
-If provided, the CSV file should have 2 header rows that will be skipped during import.
-If NULL or if the file does not exist, IWRS data will be skipped with a message/warning.}
+\item{iwrs_file}{Path to iwrs CSV file. Defaults to NULL (no iwrs file).
+If provided, the CSV file should have 2 header rows that will be skipped
+during import. If NULL or if the file does not exist, iwrs data will be
+skipped with a message/warning.}
 
 \item{format_file}{Optional path to Excel format mapping file (.xlsx).
-If provided, will be used to map coded values to labels. The Excel file should contain
-columns: "表" (table name), "变量" (variable name), "编码值" (coded value),
-"编码说明" (label), and "匹配状态" (match status, should be "完全匹配").}
+If provided, will be used to map coded values to labels. The Excel file
+should contain columns: "表" (table name), "变量" (variable name),
+"编码值" (coded value), "编码说明" (label), and "匹配状态"
+(match status, should be "完全匹配").}
 }
 \value{
 A named list of data.frames with the following structure:
 \describe{
-\item{IWRS}{IWRS data frame with randomization information. Present as the first element only if iwrs_file is provided and successfully read.}
-\item{<DATASET_NAME>}{Additional datasets read from SAS files (e.g., DM, AE, LB, VS, etc.).
-Dataset names are converted to uppercase and derived from the SAS filename without the .sas7bdat extension.}
+\item{iwrs}{iwrs data frame with randomization information. Present as
+the first element only if iwrs_file is provided and successfully read.}
+\item{<DATASET_NAME>}{Additional datasets read from SAS files
+(e.g., DM, AE, LB, VS, etc.). Dataset names are converted to uppercase
+and derived from the SAS filename without the .sas7bdat extension.}
 }
 All column names within each data frame are converted to uppercase.
 Format mapping is applied if format files are available.

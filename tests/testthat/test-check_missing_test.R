@@ -149,8 +149,7 @@ test_that("检测情况1：TESTCAT为空（访视无检查记录）", {
   expect_gt(nrow(testcat_empty), 0)
 
   # 检查 002 的 V2（TESTCAT 为 NA）
-  subj002_v2 <- testcat_empty[testcat_empty$SUBJID == "002" &
-    testcat_empty$VISIT == "V2", ]
+  subj002_v2 <- testcat_empty[testcat_empty$SUBJID == "002" & testcat_empty$VISIT == "V2", ]
   expect_equal(nrow(subj002_v2), 1)
 
   # 检查缺失原因
@@ -171,8 +170,7 @@ test_that("检测情况2：TESTCAT不为空但整个检查项缺失", {
   expect_gt(nrow(testcat_missing), 0)
 
   # 检查 002 的 V3（TESTYN = "否"）
-  subj002_v3 <- testcat_missing[testcat_missing$SUBJID == "002" &
-    testcat_missing$VISIT == "V3", ]
+  subj002_v3 <- testcat_missing[testcat_missing$SUBJID == "002" & testcat_missing$VISIT == "V3", ]
   expect_equal(nrow(subj002_v3), 1)
 
   # 检查缺失原因
@@ -193,8 +191,7 @@ test_that("检测情况3：单个TESTDE指标缺失", {
   expect_gt(nrow(testde_missing), 0)
 
   # 检查 003 的 V2（ORRES = NA，但 TESTDAT 有值）
-  subj003_v2 <- testde_missing[testde_missing$SUBJID == "003" &
-    testde_missing$VISIT == "V2", ]
+  subj003_v2 <- testde_missing[testde_missing$SUBJID == "003" & testde_missing$VISIT == "V2", ]
   expect_equal(nrow(subj003_v2), 1)
 
   # 检查缺失原因
@@ -252,8 +249,8 @@ test_that("test_var 和 test 参数可以筛选特定检查项", {
   # 结果中应该只有血常规相关的缺失
   if (nrow(result$details) > 0) {
     # 检查 TESTCAT 不为空的记录都是"血常规"
-    non_empty_testcat <- result$details[!is.na(result$details$missing_type) &
-      result$details$missing_type != "TESTCAT为空", ]
+    non_empty_testcat <- result$details |>
+      dplyr::filter(!is.na(missing_type), missing_type != "TESTCAT为空")
     if (nrow(non_empty_testcat) > 0) {
       # test_name 应该包含"血常规"或者是"全部LB"
       expect_true(all(grepl("血常规|全部", result$details$test_name)))

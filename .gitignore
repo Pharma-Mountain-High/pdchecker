@@ -1,2 +1,8 @@
 .Rproj.user
 .Rhistory
+.pre-commit-quickref.md
+CICD-GUIDE.md
+.cursorrules
+
+# Node.js dependencies (used by pre-commit hooks like prettier)
+node_modules/

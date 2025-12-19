@@ -19,9 +19,11 @@ check_icf_time_deviation(
 
 \item{ic_date_var}{Character string specifying the name of the IC date variable (default: "ICDAT")}
 
-\item{ignore_vars}{Character vector of variables to ignore in the check (default: "BRTHDAT"). Can specify multiple variables, e.g., c("BRTHDAT", "MHSTDAT")}
+\item{ignore_vars}{Character vector of variables to ignore in the check (default: "BRTHDAT").
+Can specify multiple variables, e.g., c("BRTHDAT", "MHSTDAT")}
 
-\item{exclude_datasets}{Character vector of dataset names to exclude from the check (default: NULL). Can specify multiple datasets, e.g., c("DM", "DS")}
+\item{exclude_datasets}{Character vector of dataset names to exclude from the check (default: NULL).
+Can specify multiple datasets, e.g., c("DM", "DS")}
 }
 \value{
 A list of class "icf_time_deviation" with the following components:

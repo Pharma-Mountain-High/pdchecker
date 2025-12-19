@@ -32,7 +32,7 @@ List，包含以下组件：
 \item VISITNUM: 访视编号
 \item visit_date: 实际访视日期
 \item test_name: 检查项名称
-\item missing_reason: 缺失原因（未进行\link{TBNAME}检查/整个检查项目未进行/检查结果为空）
+\item missing_reason: 缺失原因（未进行\code{TBNAME}检查/整个检查项目未进行/检查结果为空）
 \item missing_type: 缺失类型（TESTCAT为空/TESTCAT缺失/TESTDE缺失）
 }
 }
@@ -88,9 +88,9 @@ result <- check_missing_test(data = prepared_data_with_config)
 \strong{1. TESTCAT为空}（访视没有对应的检查记录）
 \itemize{
 \item 判断条件：TESTCAT为空或NA
-\item 输出：同一受试者、同一访视、同一TBNAME只输出一条记录
+\item 输出：同一受试者、同一访视、同一\code{TBNAME}只输出一条记录
 \item 格式：如"LB缺失"
-\item 缺失原因："未进行\link{TBNAME}检查"
+\item 缺失原因："未进行\code{TBNAME}检查"
 }
 
 \strong{2. TESTCAT不为空，但整个TESTCAT缺失}（例如整个"血常规"检查都未做）

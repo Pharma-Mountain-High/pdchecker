@@ -57,7 +57,7 @@ test_that("read_raw_data warns when IWRS file does not exist", {
     {
       expect_warning(
         result <- read_raw_data(temp_dir, iwrs_file = "nonexistent_iwrs.csv"),
-        "IWRS file does not exist: nonexistent_iwrs.csv"
+        "iwrs file does not exist: nonexistent_iwrs.csv"
       )
 
       # Should still return SAS data without IWRS
@@ -87,7 +87,7 @@ test_that("read_raw_data works without IWRS file when iwrs_file is NULL", {
     {
       expect_message(
         result <- read_raw_data(temp_dir, iwrs_file = NULL),
-        "No IWRS file specified"
+        "No iwrs file specified"
       )
 
       # Should not have IWRS in result
@@ -127,7 +127,7 @@ test_that("read_raw_data warns when IWRS file is empty", {
     {
       expect_warning(
         result <- read_raw_data(temp_dir, iwrs_file = iwrs_file),
-        "IWRS file is empty"
+        "iwrs file is empty"
       )
 
       # Should have IWRS in result but it's empty
@@ -265,7 +265,7 @@ test_that("read_raw_data warns on IWRS file read error", {
     {
       expect_warning(
         result <- read_raw_data(temp_dir, iwrs_file = iwrs_file),
-        "Failed to read IWRS file.*Failed to parse CSV"
+        "Failed to read iwrs file.*Failed to parse CSV"
       )
 
       # Should still return SAS data without IWRS
@@ -969,7 +969,7 @@ test_that("read_raw_data_with_formats works without IWRS file when iwrs_file is 
     {
       expect_message(
         result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = NULL),
-        "No IWRS file specified"
+        "No iwrs file specified"
       )
 
       # Should not have IWRS in result
@@ -1014,7 +1014,7 @@ test_that("read_raw_data_with_formats warns when IWRS file is empty", {
     {
       expect_warning(
         result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = iwrs_file),
-        "IWRS file is empty"
+        "iwrs file is empty"
       )
 
       # Should have IWRS in result but it's empty
@@ -1078,7 +1078,7 @@ test_that("read_raw_data_with_formats warns when IWRS file does not exist", {
           catalog_file,
           iwrs_file = "nonexistent_iwrs.csv"
         ),
-        "IWRS file does not exist: nonexistent_iwrs.csv"
+        "iwrs file does not exist: nonexistent_iwrs.csv"
       )
 
       # Should still return SAS data without IWRS
@@ -1120,7 +1120,7 @@ test_that("read_raw_data_with_formats warns on IWRS file read error", {
     {
       expect_warning(
         result <- read_raw_data_with_formats(temp_dir, catalog_file, iwrs_file = iwrs_file),
-        "Failed to read IWRS file.*Failed to parse CSV"
+        "Failed to read iwrs file.*Failed to parse CSV"
       )
 
       # Should still return SAS data without IWRS
@@ -1596,3 +1596,4 @@ test_that("read_raw_data_with_formats successfully processes labelled data", {
   unlink(catalog_file)
   unlink(iwrs_file)
 })
+
