@@ -594,7 +594,8 @@ jobs:
           github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
         with:
           check_name: Unit Tests Summary
-          junit_files: "${{ env.PKGNAME }}.Rcheck/tests/testthat/junit-result.xml"
+          # Warning: Input 'junit_files' has been deprecated with message: Use "files" option instead.
+          files: "${{ env.PKGNAME }}.Rcheck/tests/testthat/junit-result.xml"
 
       - name: Fetch JUnit XML reports from ${{ env.junit_xml_storage }} ⤵️
         if: steps.check-junit-xml.outputs.files_exists == 'true' && env.junit_xml_comparison == 'true'
