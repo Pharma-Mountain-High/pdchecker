@@ -3,7 +3,6 @@
 # to avoid "no visible binding for global variable" notes in R CMD check
 
 utils::globalVariables(c(
-
   # =========================================================================
   # Subject and Site Information
   # =========================================================================
@@ -32,7 +31,6 @@ utils::globalVariables(c(
   # Randomization Related
   # =========================================================================
   "RANDID", "RANDTT", "RANDLDL",
-
   "STRAT1", "STRAT2", "STRAT1FL", "STRAT2FL",
   # Chinese column names
   "分层因素",
@@ -124,4 +122,3 @@ utils::globalVariables(c(
   # =========================================================================
   "rowwise"
 ))
-

@@ -1596,4 +1596,3 @@ test_that("read_raw_data_with_formats successfully processes labelled data", {
   unlink(catalog_file)
   unlink(iwrs_file)
 })
-
