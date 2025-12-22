@@ -8,7 +8,7 @@ utils::globalVariables(c("SUBJID"))
 #' @param ic_dataset Character string specifying which dataset to use for informed consent data (default: "IC")
 #' @param visit_var Character string specifying the variable name for visit in visit dataset (default: "VISIT")
 #' @param visit_pattern Character string or vector specifying the pattern(s) to
-#'   identify screening visits (default: "筛选|Screening|screening")
+#'   identify screening visits (default: "Screening|screening")
 #' @param ic_date_var Character string specifying the variable name for informed
 #'   consent date in IC dataset (default: "ICDAT")
 #' @return A list of class "screen_ic_check" containing:
@@ -16,8 +16,7 @@ utils::globalVariables(c("SUBJID"))
 #'   \item{has_deviation}{Logical value indicating whether any deviation was found.
 #'     \code{TRUE} if subjects with screening visits but without informed consent were found,
 #'     \code{FALSE} otherwise.}
-#'   \item{messages}{Character vector of deviation messages.
-#'     Returns "未签署知情同意书" when deviations are found, empty character vector otherwise.}
+#'   \item{messages}{Character vector of deviation messages.}
 #'   \item{details}{Data frame containing SUBJID column with subject IDs who have screening visits
 #'     but no informed consent date (or date is NA).
 #'     Returns empty data frame if no deviations found.}

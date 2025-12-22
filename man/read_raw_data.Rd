@@ -16,9 +16,8 @@ skipped with a message/warning.}
 
 \item{format_file}{Optional path to Excel format mapping file (.xlsx).
 If provided, will be used to map coded values to labels. The Excel file
-should contain columns: "表" (table name), "变量" (variable name),
-"编码值" (coded value), "编码说明" (label), and "匹配状态"
-(match status, should be "完全匹配").}
+should contain columns: (table name), (variable name),
+(coded value),  (label), and (match status).}
 }
 \value{
 A named list of data.frames with the following structure:
