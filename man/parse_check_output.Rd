@@ -42,7 +42,7 @@ The function expects output in a specific format with sections:
 }
 
 When parsing deviation details, the function attempts to extract subject IDs (SUBJID)
-from lines containing the Chinese character "受试者" followed by numeric IDs. If multiple
+from lines containing the Chinese character "Subject" followed by numeric IDs. If multiple
 subjects are found, each gets a separate row in the output.
 }
 \seealso{
