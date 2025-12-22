@@ -9,7 +9,7 @@ check_screen_without_ic(
   sv_dataset = "SV",
   ic_dataset = "IC",
   visit_var = "VISIT",
-  visit_pattern = "筛选|Screening|screening",
+  visit_pattern = "Screening|screening",
   ic_date_var = "ICDAT"
 )
 }
