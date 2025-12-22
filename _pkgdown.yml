@@ -1,3 +1,4 @@
+---
 url: https://insightsengineering.github.io/r.pkg.template
 
 template:
@@ -5,14 +6,14 @@ template:
   bootswatch: cerulean
   includes:
     in_header: |
-       <!-- Global site tag (gtag.js) - Google Analytics -->
-       <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125641273-1"></script>
-       <script>
-         window.dataLayer = window.dataLayer || [];
-         function gtag(){dataLayer.push(arguments);}
-         gtag('js', new Date());
-         gtag('config', 'UA-125641273-1');
-       </script>
+      <!-- Global site tag (gtag.js) - Google Analytics -->
+      <script async src="https://www.googletagmanager.com/gtag/js?id=UA-125641273-1"></script>
+      <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'UA-125641273-1');
+      </script>
 
 navbar:
   right:

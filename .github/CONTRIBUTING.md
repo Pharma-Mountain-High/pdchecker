@@ -52,10 +52,10 @@ This repository uses the [GitHub Flow](https://docs.github.com/en/get-started/qu
 
 2. Make changes
 
-    Make sure your code
-    * passes all checks imposed by GitHub Actions
-    * is well documented
-    * is well tested with unit tests sufficiently covering the changes introduced
+   Make sure your code
+   - passes all checks imposed by GitHub Actions
+   - is well documented
+   - is well tested with unit tests sufficiently covering the changes introduced
 
 3. Create a pull request (PR)
 
@@ -118,10 +118,10 @@ Pre-commit hooks are already available in this repository's `.pre-commit-config.
 
 As mentioned previously, all contributions are deeply valued and appreciated. While all contribution data is available as part of the [repository insights][insights], to recognize a _significant_ contribution and hence add the contributor to the package authors list, the following rules are enforced:
 
-* Minimum 5% of lines of code authored* (determined by `git blame` query) OR
-* Being at the top 5 contributors in terms of number of commits OR lines added OR lines removed*
+- Minimum 5% of lines of code authored\* (determined by `git blame` query) OR
+- Being at the top 5 contributors in terms of number of commits OR lines added OR lines removed\*
 
-*Excluding auto-generated code, including but not limited to `roxygen` comments or `renv.lock` files.
+\*Excluding auto-generated code, including but not limited to `roxygen` comments or `renv.lock` files.
 
 The package maintainer also reserves the right to adjust the criteria to recognize contributions.
 
@@ -130,6 +130,7 @@ The package maintainer also reserves the right to adjust the criteria to recogni
 If you have further questions regarding the contribution guidelines, please contact the package/repository maintainer.
 
 <!-- urls -->
+
 [docs]: https://insightsengineering.github.io/r.pkg.template/index.html
 [articles]: https://insightsengineering.github.io/r.pkg.template/main/articles/index.html
 [license]: https://insightsengineering.github.io/r.pkg.template/main/LICENSE-text.html

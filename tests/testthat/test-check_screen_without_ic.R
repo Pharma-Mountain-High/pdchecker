@@ -9,7 +9,7 @@ test_that("无偏离：所有筛选受试者都有知情同意", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002", "003"),
-      VISIT = c("筛选访视", "Screening", "筛选"),
+      VISIT = c("Screening", "Screening", "screening"),
       VISITNUM = c(1, 1, 1)
     ),
     IC = data.frame(
@@ -30,7 +30,7 @@ test_that("有偏离：存在未签署知情同意的筛选受试者", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002", "003"),
-      VISIT = c("筛选访视", "Screening", "筛选"),
+      VISIT = c("Screening", "Screening", "screening"),
       VISITNUM = c(1, 1, 1)
     ),
     IC = data.frame(
@@ -51,7 +51,7 @@ test_that("有偏离：多个受试者未签署知情同意", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002", "003", "004", "005"),
-      VISIT = c("筛选访视", "Screening", "筛选", "screening", "SCREENING"),
+      VISIT = c("Screening", "Screening", "Screening", "screening", "SCREENING"),
       VISITNUM = c(1, 1, 1, 1, 1)
     ),
     IC = data.frame(
@@ -76,7 +76,7 @@ test_that("IC日期为NA视为未签署", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002", "003"),
-      VISIT = c("筛选访视", "筛选访视", "筛选访视")
+      VISIT = c("Screening", "Screening", "Screening")
     ),
     IC = data.frame(
       SUBJID = c("001", "002", "003"),
@@ -95,7 +95,7 @@ test_that("混合情况：部分有日期，部分NA，部分不在IC中", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002", "003", "004"),
-      VISIT = c("筛选", "筛选", "筛选", "筛选")
+      VISIT = c("Screening", "Screening", "Screening", "Screening")
     ),
     IC = data.frame(
       SUBJID = c("001", "002", "003"),
@@ -114,7 +114,7 @@ test_that("空字符串日期不等于NA（应该被grepl正常处理）", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001"),
-      VISIT = c("筛选访视")
+      VISIT = c("Screening")
     ),
     IC = data.frame(
       SUBJID = c("001"),
@@ -134,7 +134,7 @@ test_that("visit_pattern正确匹配中文筛选访视", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002", "003", "004"),
-      VISIT = c("筛选访视", "筛选期", "基线访视", "随访")
+      VISIT = c("Screening", "Screening", "C1D1", "SF")
     ),
     IC = data.frame(
       SUBJID = character(0),
@@ -192,7 +192,7 @@ test_that("自定义sv_dataset名称", {
   data <- list(
     VISIT_DATA = data.frame(
       SUBJID = c("001", "002"),
-      VISIT = c("筛选", "筛选")
+      VISIT = c("Screening", "Screening")
     ),
     IC = data.frame(
       SUBJID = c("001"),
@@ -211,7 +211,7 @@ test_that("自定义ic_dataset名称", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002"),
-      VISIT = c("筛选", "筛选")
+      VISIT = c("Screening", "Screening")
     ),
     CONSENT = data.frame(
       SUBJID = c("001"),
@@ -230,7 +230,7 @@ test_that("自定义visit_var变量名", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002"),
-      VISITNAME = c("筛选访视", "筛选访视")
+      VISITNAME = c("Screening", "Screening")
     ),
     IC = data.frame(
       SUBJID = c("001"),
@@ -248,7 +248,7 @@ test_that("自定义ic_date_var变量名", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002"),
-      VISIT = c("筛选", "筛选")
+      VISIT = c("Screening", "Screening")
     ),
     IC = data.frame(
       SUBJID = c("001", "002"),
@@ -306,7 +306,7 @@ test_that("缺失sv_dataset时抛出错误", {
 
 test_that("缺失ic_dataset时抛出错误", {
   data <- list(
-    SV = data.frame(SUBJID = c("001"), VISIT = c("筛选"))
+    SV = data.frame(SUBJID = c("001"), VISIT = c("Screening"))
   )
 
   expect_error(
@@ -328,7 +328,7 @@ test_that("缺失多个数据集时抛出错误", {
 
 test_that("visit_var不存在时抛出错误", {
   data <- list(
-    SV = data.frame(SUBJID = c("001"), VISIT = c("筛选")),
+    SV = data.frame(SUBJID = c("001"), VISIT = c("Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
   )
 
@@ -340,7 +340,7 @@ test_that("visit_var不存在时抛出错误", {
 
 test_that("ic_date_var不存在时抛出错误", {
   data <- list(
-    SV = data.frame(SUBJID = c("001"), VISIT = c("筛选")),
+    SV = data.frame(SUBJID = c("001"), VISIT = c("Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
   )
 
@@ -376,7 +376,7 @@ test_that("空IC数据集时所有筛选受试者都为偏离", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002"),
-      VISIT = c("筛选", "筛选")
+      VISIT = c("Screening", "Screening")
     ),
     IC = data.frame(
       SUBJID = character(0),
@@ -394,7 +394,7 @@ test_that("SV中没有匹配的筛选访视返回无偏离", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002"),
-      VISIT = c("基线访视", "随访")
+      VISIT = c("C1D1", "SF")
     ),
     IC = data.frame(
       SUBJID = character(0),
@@ -412,7 +412,7 @@ test_that("SV中有重复SUBJID时正确去重", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "001", "002", "002"),
-      VISIT = c("筛选", "筛选", "筛选", "筛选")
+      VISIT = c("Screening", "Screening", "Screening", "Screening")
     ),
     IC = data.frame(
       SUBJID = c("001"),
@@ -431,7 +431,7 @@ test_that("IC中有重复SUBJID时正确去重", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002"),
-      VISIT = c("筛选", "筛选")
+      VISIT = c("Screening", "Screening")
     ),
     IC = data.frame(
       SUBJID = c("001", "001"),
@@ -450,7 +450,7 @@ test_that("所有筛选受试者都未签IC", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002", "003"),
-      VISIT = c("筛选", "筛选", "筛选")
+      VISIT = c("Screening", "Screening", "Screening")
     ),
     IC = data.frame(
       SUBJID = character(0),
@@ -471,7 +471,7 @@ test_that("所有筛选受试者都未签IC", {
 
 test_that("返回值包含所有必需元素", {
   data <- list(
-    SV = data.frame(SUBJID = c("001"), VISIT = c("筛选")),
+    SV = data.frame(SUBJID = c("001"), VISIT = c("Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
   )
 
@@ -486,7 +486,7 @@ test_that("返回值包含所有必需元素", {
 
 test_that("has_deviation是逻辑值", {
   data <- list(
-    SV = data.frame(SUBJID = c("001"), VISIT = c("筛选")),
+    SV = data.frame(SUBJID = c("001"), VISIT = c("Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
   )
 
@@ -498,7 +498,7 @@ test_that("has_deviation是逻辑值", {
 
 test_that("messages是字符向量", {
   data <- list(
-    SV = data.frame(SUBJID = c("001"), VISIT = c("筛选")),
+    SV = data.frame(SUBJID = c("001"), VISIT = c("Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
   )
 
@@ -509,7 +509,7 @@ test_that("messages是字符向量", {
 
 test_that("details是数据框", {
   data <- list(
-    SV = data.frame(SUBJID = c("001"), VISIT = c("筛选")),
+    SV = data.frame(SUBJID = c("001"), VISIT = c("Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
   )
 
@@ -524,7 +524,7 @@ test_that("details是数据框", {
 
 test_that("print方法正常工作 - 无偏离", {
   data <- list(
-    SV = data.frame(SUBJID = c("001"), VISIT = c("筛选")),
+    SV = data.frame(SUBJID = c("001"), VISIT = c("Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
   )
 
@@ -536,7 +536,7 @@ test_that("print方法正常工作 - 无偏离", {
 
 test_that("print方法正常工作 - 有偏离", {
   data <- list(
-    SV = data.frame(SUBJID = c("001", "002"), VISIT = c("筛选", "筛选")),
+    SV = data.frame(SUBJID = c("001", "002"), VISIT = c("Screening", "Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
   )
 

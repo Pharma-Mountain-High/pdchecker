@@ -1,218 +1,109 @@
-#' 准备检查项数据用于缺失检查
+#' Prepare Test Data for Missing Test Checks
 #'
 #' @description
-#' 从包含所有数据的 list 中提取指定的检查项数据集，将其与访视数据集进行合并，
-#' 并创建标准化的列名（TBNAME、TESTCAT、TESTDE、TESTDAT、TESTYN、ORRES）用于后续的缺失检查。
+#' Extract specified test dataset from a list of all data, merge with visit dataset,
+#' and create standardized column names (TBNAME, TESTCAT, TESTDE, TESTDAT, TESTYN, ORRES)
+#' for subsequent missing test checks.
 #'
 #' @details
-#' ## 使用流程
+#' ## Usage Workflow
 #'
-#' 该函数用于 \code{\link{check_missing_test}} 之前的数据准备：
+#' This function is used for data preparation before \code{\link{check_missing_test}}:
 #'
 #' ```r
-#' # 步骤1：准备检查项数据
+#' # Step 1: Prepare test data
 #' prepared_data <- prepare_test_data(
 #'   data = list(LB = lb_data, SV = sv_data),
 #'   test_dataset = "LB"
 #' )
 #'
-#' # 步骤2：检查缺失
+#' # Step 2: Check missing
 #' result <- check_missing_test(
 #'   data = prepared_data,
 #'   sv_data = sv_data,
 #'   test_var = "LBTEST",
-#'   test = "血常规"
+#'   test = "CBC"
 #' )
 #' ```
 #'
-#' ## 数据处理逻辑
+#' ## Data Processing Logic
 #'
-#' 1. 从 data list 中提取指定的检查项数据集（如 "LB"）
-#' 2. 从 data list 中提取访视数据集（默认 "SV"），只保留必要的列：
-#'    SUBJID、VISIT、VISITNUM、SVDAT
-#' 3. 将检查项数据集通过 SUBJID、VISIT、VISITNUM left_join 到访视数据集
-#' 4. 创建标准化列名：
-#'    - TBNAME：数据集名称（映射自原始数据集名称列，或使用 test_dataset）
-#'    - TESTCAT：检查分类（映射自原始检查分类列）
-#'    - TESTDE：检查项目名称（映射自原始检查项目列），如"红细胞计数"等
-#'    - TESTDAT：检查日期（映射自原始检查日期列）
-#'    - TESTYN：是否进行检查（映射自原始是否检查列）
-#'    - ORRES：检查结果（映射自原始检查结果列）
-#' 5. 返回包含检查项数据集原始列和衍生列的数据集，列顺序为：
-#'    SUBJID, VISIT, VISITNUM, TBNAME, TESTCAT, TESTDE, TESTYN, TESTDAT, ORRES, 检查项数据集的其他原始列
+#' 1. Extract specified test dataset (e.g., "LB") from data list
+#' 2. Extract visit dataset (default "SV") from data list, keeping only:
+#'    SUBJID, VISIT, VISITNUM, SVDAT
+#' 3. Left join test dataset to visit dataset by SUBJID, VISIT, VISITNUM
+#' 4. Create standardized column names:
+#'    - TBNAME: Dataset name (mapped from original column or uses test_dataset)
+#'    - TESTCAT: Test category (mapped from original category column)
+#'    - TESTDE: Test name (mapped from original test column), e.g., "RBC Count"
+#'    - TESTDAT: Test date (mapped from original date column)
+#'    - TESTYN: Test performed flag (mapped from original flag column)
+#'    - ORRES: Test result (mapped from original result column)
+#' 5. Return dataset with original test columns and derived columns in order:
+#'    SUBJID, VISIT, VISITNUM, TBNAME, TESTCAT, TESTDE, TESTYN, TESTDAT, ORRES, other original columns
 #'
-#' ## 注意事项
+#' ## Notes
 #'
-#' - 如果原始数据集中不存在某个映射列（如 test_yn_var），则对应的衍生列将为 NA
-#' - left_join 基于访视数据集，因此返回的记录以访视记录为准
-#' - SV 数据集只保留 SUBJID、VISIT、VISITNUM、SVDAT 列，其他列不会出现在返回结果中
-#' - 检查项数据集的所有原始列都会保留在返回结果中
-#' - 衍生列会按指定顺序排在前面，便于查看
+#' - If a mapped column doesn't exist (e.g., test_yn_var), the derived column will be NA
+#' - Left join is based on visit dataset, so records follow visit records
+#' - SV dataset only keeps SUBJID, VISIT, VISITNUM, SVDAT; other columns excluded
+#' - All original columns from test dataset are preserved
+#' - Derived columns are placed first for easy viewing
 #'
-#' @param data List 类型，包含所有临床试验数据集的列表
-#' @param test_dataset Character string，要提取的检查项数据集名称（如 "LB"）
-#' @param test_date_var Character string，原始检查日期变量名（默认: "LBDAT"）
-#' @param test_yn_var Character string，原始是否进行检查变量名（默认: "YN"）
-#' @param test_result_var Character string，原始检查结果变量名（默认: "ORRES"）
-#' @param test_cat_var Character string，原始检查分类变量名（默认: "LBCAT"）。
-#'   如果为 NULL 或空字符串，则 TESTCAT 列将为 NA
-#' @param test_de_var Character string，原始检查项目名称变量名（默认: NULL）。
-#'   如果为 NULL 或空字符串，则 TESTDE 列将为 NA。用于表示具体的检查项目，如"红细胞计数"等
-#' @param tb_name_var Character string，原始数据集名称标识变量名（默认: NULL）。
-#'   如果为 NULL 或空字符串，则 TBNAME 列将使用 test_dataset 参数的值（如 "LB"）。
-#'   用于标识检查数据集的名称
-#' @param sv_dataset Character string，访视数据集名称（默认: "SV"）
-#' @param sv_visit_var Character string，访视数据集中访视名称变量名（默认: "VISIT"）
-#' @param sv_visitnum_var Character string，访视数据集中访视编号变量名（默认: "VISITNUM"）
-#' @param sv_date_var Character string，访视数据集中访视日期变量名（默认: "SVDAT"）
-#' @param config Character string 或 Data frame，检查项访视配置（默认: NULL）。
-#'   如果为字符串，表示Excel配置文件路径；如果为数据框，则直接使用。
-#'   配置文件需包含列：TESTCAT（检查分类）、VISITNUM（逗号分隔的访视编号）。
-#'   如果提供配置，将根据配置预先生成应该存在的访视-检查项组合骨架，
-#'   即使原始检查数据中没有相应记录，也会在输出中体现为空记录（TESTDAT=NA等）
-#' @param config_cat Character vector，从配置文件中筛选的检查分类范围（默认: NULL）。
-#'   如果为NULL，使用配置文件中的所有TESTCAT；
-#'   如果提供值（如 c("血常规", "血生化")），则只使用配置中这些TESTCAT的记录。
-#'   注意：只有在提供 config 参数时，此参数才有效
-#' @param enrl_dataset Character string，入组信息数据集名称（默认: "ENROL"）。
-#'   用于筛选入组受试者
-#' @param enrl_yn_var Character string，入组数据集中是否入组变量名（默认: "ENRYN"）。
-#'   只保留该变量值为"是"的受试者记录
-#' @param filter_cond Character string，自定义筛选条件（默认: NULL）。
-#'   格式为 "数据集名|筛选条件"，支持多个筛选条件用分号分隔，例如：
-#'   - "SUBJECT|SEX=='男'" - 从SUBJECT数据集中筛选性别为男的受试者
-#'   - "SUBJECT|AGE>=18" - 从SUBJECT数据集中筛选年龄大于等于18的受试者
-#'   - "SUBJECT|SEX=='男' & AGE>=18" - 同一数据集的多个条件
-#'   - "SUBJECT|SEX=='男';DM|AGE>18" - 从多个数据集筛选（取交集）
-#'   如果为NULL，则不进行自定义筛选
+#' @param data List containing all clinical trial datasets
+#' @param test_dataset Character string, test dataset name to extract (e.g., "LB")
+#' @param test_date_var Character string, original test date variable (default: "LBDAT")
+#' @param test_yn_var Character string, original test performed variable (default: "YN")
+#' @param test_result_var Character string, original test result variable (default: "ORRES")
+#' @param test_cat_var Character string, original test category variable (default: "LBCAT").
+#'   If NULL or empty, TESTCAT column will be NA
+#' @param test_de_var Character string, original test name variable (default: NULL).
+#'   If NULL or empty, TESTDE column will be NA. Used for specific test names
+#' @param tb_name_var Character string, original dataset name variable (default: NULL).
+#'   If NULL or empty, TBNAME column uses test_dataset value (e.g., "LB")
+#' @param sv_dataset Character string, visit dataset name (default: "SV")
+#' @param sv_visit_var Character string, visit name variable in visit dataset (default: "VISIT")
+#' @param sv_visitnum_var Character string, visit number variable in visit dataset (default: "VISITNUM")
+#' @param sv_date_var Character string, visit date variable in visit dataset (default: "SVDAT")
+#' @param config Character string or Data frame, test-visit configuration (default: NULL).
+#'   If string, represents Excel config file path; if data frame, used directly.
+#'   Config must contain: TESTCAT (test category), VISITNUM (comma-separated visit numbers).
+#'   If provided, generates expected visit-test combinations as skeleton,
+#'   showing empty records (TESTDAT=NA) even when original data has no records
+#' @param config_cat Character vector, test categories to filter from config (default: NULL).
+#'   If NULL, uses all TESTCAT in config;
+#'   If provided (e.g., c("CBC", "Chemistry")), only uses those TESTCAT records.
+#'   Note: Only effective when config parameter is provided
+#' @param enrl_dataset Character string, enrollment dataset name (default: "ENROL").
+#'   Used to filter enrolled subjects
+#' @param enrl_yn_var Character string, enrollment flag variable (default: "ENRYN").
+#'   Only keeps records where this variable equals "Yes"
+#' @param filter_cond Character string, custom filter condition (default: NULL).
+#'   Format: "dataset|condition", multiple conditions separated by semicolons:
+#'   - "SUBJECT|SEX=='M'" - Filter males from SUBJECT dataset
+#'   - "SUBJECT|AGE>=18" - Filter age >= 18 from SUBJECT
+#'   - "SUBJECT|SEX=='M' & AGE>=18" - Multiple conditions on same dataset
+#'   - "SUBJECT|SEX=='M';DM|AGE>18" - Filter from multiple datasets (intersection)
+#'   If NULL, no custom filtering
 #'
-#' @return Data frame，列顺序为：
+#' @return Data frame with column order:
 #'   \describe{
-#'     \item{SUBJID}{受试者ID（来自 SV 数据集）}
-#'     \item{VISIT}{访视名称（来自 SV 数据集）}
-#'     \item{VISITNUM}{访视编号（来自 SV 数据集）}
-#'     \item{TBNAME}{数据集名称（衍生列，映射自 tb_name_var 或使用 test_dataset）}
-#'     \item{TESTCAT}{检查分类（衍生列，映射自 test_cat_var）}
-#'     \item{TESTDE}{检查项目名称（衍生列，映射自 test_de_var），如"红细胞计数"等}
-#'     \item{TESTYN}{是否进行检查（衍生列，映射自 test_yn_var）}
-#'     \item{TESTDAT}{检查日期（衍生列，映射自 test_date_var）}
-#'     \item{ORRES}{检查结果（衍生列，映射自 test_result_var）}
-#'     \item{...}{检查项数据集的其他所有原始列}
+#'     \item{SUBJID}{Subject ID (from SV dataset)}
+#'     \item{VISIT}{Visit name (from SV dataset)}
+#'     \item{VISITNUM}{Visit number (from SV dataset)}
+#'     \item{TBNAME}{Dataset name (derived, mapped from tb_name_var or test_dataset)}
+#'     \item{TESTCAT}{Test category (derived, mapped from test_cat_var)}
+#'     \item{TESTDE}{Test name (derived, mapped from test_de_var)}
+#'     \item{TESTYN}{Test performed flag (derived, mapped from test_yn_var)}
+#'     \item{TESTDAT}{Test date (derived, mapped from test_date_var)}
+#'     \item{ORRES}{Test result (derived, mapped from test_result_var)}
+#'     \item{...}{All other original columns from test dataset}
 #'   }
-#'   注：SV 数据集只保留 SUBJID、VISIT、VISITNUM、SVDAT 列，其他列不会包含在返回结果中
+#'   Note: SV dataset only keeps SUBJID, VISIT, VISITNUM, SVDAT in output
 #'
 #' @importFrom dplyr left_join select mutate sym all_of bind_rows rename inner_join filter pull
 #' @importFrom magrittr %>%
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' # 准备血常规检查数据
-#' lb_prepared <- prepare_test_data(
-#'   data = list(LB = lb_data, SV = sv_data),
-#'   test_dataset = "LB",
-#'   test_date_var = "LBDAT",
-#'   test_result_var = "ORRES",
-#'   test_cat_var = "LBCAT",
-#'   test_de_var = "LBTEST", # 检查项目名称，如"红细胞计数"
-#'   tb_name_var = NULL # 使用 test_dataset "LB" 作为数据集名称
-#' )
-#'
-#' # 准备生命体征检查数据，使用原始数据中的数据集名称列
-#' vs_prepared <- prepare_test_data(
-#'   data = list(VS = vs_data, SV = sv_data),
-#'   test_dataset = "VS",
-#'   test_date_var = "VSDAT",
-#'   test_result_var = "VSORRES",
-#'   test_cat_var = NULL, # 如果没有分类变量
-#'   test_de_var = "VSTEST", # 检查项目名称
-#'   tb_name_var = "VSTB" # 如果原始数据中有数据集名称列
-#' )
-#'
-#' # 使用配置文件预先生成应该存在的检查记录骨架
-#' # 配置文件指定哪些检查项应该在哪些访视进行
-#' config_df <- data.frame(
-#'   TESTCAT = c("血常规", "血生化", "尿常规"),
-#'   VISITNUM = c("2,3,5", "2,4", "2,5,10")
-#' )
-#' lb_prepared_with_config <- prepare_test_data(
-#'   data = list(LB = lb_data, SV = sv_data),
-#'   test_dataset = "LB",
-#'   test_date_var = "LBDAT",
-#'   test_result_var = "ORRES",
-#'   test_cat_var = "LBCAT",
-#'   test_de_var = "LBTEST",
-#'   config = config_df # 或使用文件路径: config = "test_config.xlsx"
-#' )
-#' # 输出将包含所有应该存在的访视-检查项组合
-#' # 即使原始数据中没有相应记录，也会显示为空记录（TESTDAT=NA等）
-#'
-#' # 只准备配置文件中特定的检查分类
-#' lb_prepared_partial <- prepare_test_data(
-#'   data = list(LB = lb_data, SV = sv_data),
-#'   test_dataset = "LB",
-#'   test_date_var = "LBDAT",
-#'   test_result_var = "ORRES",
-#'   test_cat_var = "LBCAT",
-#'   test_de_var = "LBTEST",
-#'   config = config_df,
-#'   config_cat = c("血常规", "血生化") # 只使用血常规和血生化，忽略尿常规
-#' )
-#'
-#' # 只保留入组受试者的记录
-#' lb_prepared_enrolled <- prepare_test_data(
-#'   data = list(LB = lb_data, SV = sv_data, ENROL = enrol_data),
-#'   test_dataset = "LB",
-#'   test_date_var = "LBDAT",
-#'   test_result_var = "ORRES",
-#'   test_cat_var = "LBCAT",
-#'   enrl_dataset = "ENROL", # 入组数据集
-#'   enrl_yn_var = "ENRYN" # 是否入组变量
-#' )
-#' # 只保留 ENRYN="是" 的受试者记录
-#'
-#' # 使用自定义筛选条件筛选特定受试者
-#' lb_prepared_male <- prepare_test_data(
-#'   data = list(LB = lb_data, SV = sv_data, SUBJECT = subject_data),
-#'   test_dataset = "LB",
-#'   test_date_var = "LBDAT",
-#'   test_result_var = "ORRES",
-#'   test_cat_var = "LBCAT",
-#'   filter_cond = "SUBJECT|SEX=='男'" # 只保留男性受试者
-#' )
-#'
-#' # 同一数据集的多个条件
-#' lb_prepared_filtered <- prepare_test_data(
-#'   data = list(LB = lb_data, SV = sv_data, SUBJECT = subject_data),
-#'   test_dataset = "LB",
-#'   test_date_var = "LBDAT",
-#'   test_result_var = "ORRES",
-#'   test_cat_var = "LBCAT",
-#'   filter_cond = "SUBJECT|SEX=='男' & AGE>=18 & AGE<=65"
-#' )
-#'
-#' # 从多个数据集筛选（取交集）
-#' lb_prepared_multi <- prepare_test_data(
-#'   data = list(LB = lb_data, SV = sv_data, SUBJECT = subject_data, DM = dm_data),
-#'   test_dataset = "LB",
-#'   test_date_var = "LBDAT",
-#'   test_result_var = "ORRES",
-#'   test_cat_var = "LBCAT",
-#'   filter_cond = "SUBJECT|SEX=='男';DM|AGE>18" # 从SUBJECT筛选男性，从DM筛选年龄>18，取交集
-#' )
-#'
-#' # 同时使用入组筛选和自定义筛选（取交集）
-#' lb_prepared_both <- prepare_test_data(
-#'   data = list(LB = lb_data, SV = sv_data, SUBJECT = subject_data, ENROL = enrol_data),
-#'   test_dataset = "LB",
-#'   test_date_var = "LBDAT",
-#'   test_result_var = "ORRES",
-#'   test_cat_var = "LBCAT",
-#'   enrl_dataset = "ENROL",
-#'   enrl_yn_var = "ENRYN",
-#'   filter_cond = "SUBJECT|SEX=='男'" # 只保留既入组又是男性的受试者
-#' )
-#' }
 #'
 prepare_test_data <- function(data,
                               test_dataset,
@@ -267,7 +158,6 @@ prepare_test_data <- function(data,
     for (i in seq_along(filter_conditions)) {
       filter_item <- filter_conditions[i]
 
-      # 解析单个筛选条件: "数据集名|筛选条件"
       filter_parts <- strsplit(filter_item, "\\|", fixed = FALSE)[[1]]
 
       if (length(filter_parts) != 2) {

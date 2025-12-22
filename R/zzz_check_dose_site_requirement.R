@@ -2,7 +2,7 @@
 #'
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
-#' @importFrom dplyr filter select mutate case_when group_by summarise ungroup left_join n_distinct
+#' @importFrom dplyr filter select mutate case_when group_by summarise ungroup left_join n_distinct rowwise
 #' @export
 check_dose_site_requirement <- function(data) {
   # Initialize results

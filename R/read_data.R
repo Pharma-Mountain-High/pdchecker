@@ -2,18 +2,21 @@
 #'
 #' Scan specified directory and read all SAS format files
 #' @param folder Path to data directory containing SAS files
-#' @param iwrs_file Path to IWRS CSV file. Defaults to NULL (no IWRS file).
-#'   If provided, the CSV file should have 2 header rows that will be skipped during import.
-#'   If NULL or if the file does not exist, IWRS data will be skipped with a message/warning.
+#' @param iwrs_file Path to iwrs CSV file. Defaults to NULL (no iwrs file).
+#'   If provided, the CSV file should have 2 header rows that will be skipped
+#'   during import. If NULL or if the file does not exist, iwrs data will be
+#'   skipped with a message/warning.
 #' @param format_file Optional path to Excel format mapping file (.xlsx).
-#'   If provided, will be used to map coded values to labels. The Excel file should contain
-#'   columns: "表" (table name), "变量" (variable name), "编码值" (coded value),
-#'   "编码说明" (label), and "匹配状态" (match status, should be "完全匹配").
+#'   If provided, will be used to map coded values to labels. The Excel file
+#'   should contain columns: (table name), (variable name),
+#'   (coded value),  (label), and (match status).
 #' @return A named list of data.frames with the following structure:
 #'   \describe{
-#'     \item{IWRS}{IWRS data frame with randomization information. Present as the first element only if iwrs_file is provided and successfully read.}
-#'     \item{<DATASET_NAME>}{Additional datasets read from SAS files (e.g., DM, AE, LB, VS, etc.).
-#'       Dataset names are converted to uppercase and derived from the SAS filename without the .sas7bdat extension.}
+#'     \item{iwrs}{iwrs data frame with randomization information. Present as
+#'       the first element only if iwrs_file is provided and successfully read.}
+#'     \item{<DATASET_NAME>}{Additional datasets read from SAS files
+#'       (e.g., DM, AE, LB, VS, etc.). Dataset names are converted to uppercase
+#'       and derived from the SAS filename without the .sas7bdat extension.}
 #'   }
 #'   All column names within each data frame are converted to uppercase.
 #'   Format mapping is applied if format files are available.
@@ -43,8 +46,8 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
   }
 
   # Initialize format variables
-  FMT_DF <- NULL
-  FMT_TBL <- NULL
+  fmt_df <- NULL
+  fmt_tbl <- NULL
 
   # Process format files only if SAS files exist
   if (length(sas_files) > 0) {
@@ -61,7 +64,7 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
       }
 
       # Read SAS format files with error handling
-      FMT_DF <- tryCatch(
+      fmt_df <- tryCatch(
         {
           haven::read_sas(fmt_file)
         },
@@ -73,7 +76,7 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
     }
 
     if (!is.null(format_file) && file.exists(format_file)) {
-      FMT_TBL <- readxl::read_excel(format_file) %>%
+      fmt_tbl <- readxl::read_excel(format_file) %>%
         filter(.data[["匹配状态"]] == "完全匹配") %>%
         select(
           TABLE = .data[["表"]],
@@ -84,35 +87,35 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
         unique()
 
       # Filter out formats that are in the additional format file
-      if (!is.null(FMT_DF)) {
-        FMT_DF <- FMT_DF %>%
-          filter(!.data[["FMTNAME"]] %in% FMT_TBL$FMTNAME) %>%
+      if (!is.null(fmt_df)) {
+        fmt_df <- fmt_df %>%
+          filter(!.data[["FMTNAME"]] %in% fmt_tbl$FMTNAME) %>%
           unique()
       }
     }
   }
 
 
-  # Read IWRS data from CSV file
-  IWRS <- NULL
+  # Read iwrs data from CSV file
+  iwrs <- NULL
   if (is.null(iwrs_file)) {
-    message("No IWRS file specified. Skipping IWRS data.")
+    message("No iwrs file specified. Skipping iwrs data.")
   } else if (!file.exists(iwrs_file)) {
-    warning("IWRS file does not exist: ", iwrs_file, ". Skipping IWRS data.")
+    warning("iwrs file does not exist: ", iwrs_file, ". Skipping iwrs data.")
   } else {
-    IWRS <- tryCatch(
+    iwrs <- tryCatch(
       {
         df <- readr::read_csv(iwrs_file,
           skip = 2, # Skip first 2 rows to start reading from row 3
           show_col_types = FALSE
         )
         if (nrow(df) == 0) {
-          warning("IWRS file is empty: ", iwrs_file)
+          warning("iwrs file is empty: ", iwrs_file)
         }
         df
       },
       error = function(e) {
-        warning("Failed to read IWRS file: ", iwrs_file, "\nError: ", e$message)
+        warning("Failed to read iwrs file: ", iwrs_file, "\nError: ", e$message)
         NULL
       }
     )
@@ -126,13 +129,13 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
       {
         # Read SAS file and convert to data.frame
         df <- as.data.frame(haven::read_sas(file))
-        if (!is.null(FMT_TBL)) {
-          # Use local variable to avoid modifying FMT_TBL in the outer scope
-          FMT_TBL_filtered <- FMT_TBL %>% filter(.data[["TABLE"]] == toupper(tools::file_path_sans_ext(basename(file))))
-          df <- apply_format_mapping(df, FMT_TBL_filtered)
+        if (!is.null(fmt_tbl)) {
+          # Use local variable to avoid modifying fmt_tbl in the outer scope
+          fmt_tbl_filtered <- fmt_tbl %>% filter(.data[["TABLE"]] == toupper(tools::file_path_sans_ext(basename(file))))
+          df <- apply_format_mapping(df, fmt_tbl_filtered)
         }
 
-        df <- apply_format_mapping(df, FMT_DF)
+        df <- apply_format_mapping(df, fmt_df)
 
         # Standardize column names to uppercase
         df %>% rename_with(toupper)
@@ -144,13 +147,13 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
     )
   })
 
-  # Combine IWRS data with other datasets
-  if (!is.null(IWRS)) {
-    data_list <- c(list(IWRS = IWRS), data_list)
+  # Combine iwrs data with other datasets
+  if (!is.null(iwrs)) {
+    data_list <- c(list(iwrs = iwrs), data_list)
     # Name the list with dataset names
-    names(data_list) <- toupper(c("IWRS", gsub("\\.sas7bdat$", "", basename(sas_files))))
+    names(data_list) <- toupper(c("iwrs", gsub("\\.sas7bdat$", "", basename(sas_files))))
   } else {
-    # Name the list with dataset names (without IWRS)
+    # Name the list with dataset names (without iwrs)
     names(data_list) <- toupper(gsub("\\.sas7bdat$", "", basename(sas_files)))
   }
 
@@ -185,16 +188,18 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
 #' @param data_dir Directory containing SAS data files (.sas7bdat)
 #' @param catalog_file Path to SAS format catalog file (.sas7bcat). This file contains
 #'   the format definitions that will be applied to the data.
-#' @param iwrs_file Path to IWRS CSV file. Defaults to NULL (no IWRS file).
+#' @param iwrs_file Path to iwrs CSV file. Defaults to NULL (no iwrs file).
 #'   If provided, the CSV file should have 2 header rows that will be skipped during import.
-#'   If NULL or if the file does not exist, IWRS data will be skipped with a message/warning.
+#'   If NULL or if the file does not exist, iwrs data will be skipped with a message/warning.
 #' @param encoding Character encoding to use when reading SAS files and catalog file.
 #'   Defaults to "UTF-8". Common alternatives include "latin1", "GBK", etc.
 #' @return A named list of data.frames with the following structure:
 #'   \describe{
-#'     \item{IWRS}{IWRS data frame with randomization information. Present as the first element only if iwrs_file is provided and successfully read.}
-#'     \item{<DATASET_NAME>}{Additional datasets read from SAS files (e.g., DM, AE, LB, VS, etc.).
-#'       Dataset names are converted to uppercase and derived from the SAS filename without the .sas7bdat extension.}
+#'     \item{iwrs}{iwrs data frame with randomization information. Present as
+#'       the first element only if iwrs_file is provided and successfully read.}
+#'     \item{<DATASET_NAME>}{Additional datasets read from SAS files
+#'       (e.g., DM, AE, LB, VS, etc.). Dataset names are converted to uppercase
+#'       and derived from the SAS filename without the .sas7bdat extension.}
 #'   }
 #'   All column names within each data frame are converted to uppercase.
 #'   Columns with SAS format labels (labelled data) are automatically converted to factors,
@@ -230,26 +235,26 @@ read_raw_data_with_formats <- function(data_dir, catalog_file, iwrs_file = NULL,
     warning("No SAS data files found in directory: ", data_dir)
   }
 
-  # Read IWRS data from CSV file
-  IWRS <- NULL
+  # Read iwrs data from CSV file
+  iwrs <- NULL
   if (is.null(iwrs_file)) {
-    message("No IWRS file specified. Skipping IWRS data.")
+    message("No iwrs file specified. Skipping iwrs data.")
   } else if (!file.exists(iwrs_file)) {
-    warning("IWRS file does not exist: ", iwrs_file, ". Skipping IWRS data.")
+    warning("iwrs file does not exist: ", iwrs_file, ". Skipping iwrs data.")
   } else {
-    IWRS <- tryCatch(
+    iwrs <- tryCatch(
       {
         df <- readr::read_csv(iwrs_file,
           skip = 2, # Skip first 2 rows to start reading from row 3
           show_col_types = FALSE
         )
         if (nrow(df) == 0) {
-          warning("IWRS file is empty: ", iwrs_file)
+          warning("iwrs file is empty: ", iwrs_file)
         }
         df
       },
       error = function(e) {
-        warning("Failed to read IWRS file: ", iwrs_file, "\nError: ", e$message)
+        warning("Failed to read iwrs file: ", iwrs_file, "\nError: ", e$message)
         NULL
       }
     )
@@ -274,7 +279,7 @@ read_raw_data_with_formats <- function(data_dir, catalog_file, iwrs_file = NULL,
         for (col_name in names(df)) {
           if (haven::is.labelled(df[[col_name]])) {
             # Using as_factor to apply labels.
-            # If character vectors are preferred over factors, one could use as.character(haven::as_factor(df[[col_name]]))
+            # To get character vectors instead of factors
             df[[col_name]] <- haven::as_factor(df[[col_name]])
           }
         }
@@ -289,13 +294,13 @@ read_raw_data_with_formats <- function(data_dir, catalog_file, iwrs_file = NULL,
     )
   })
 
-  # Combine IWRS data with other datasets
-  if (!is.null(IWRS)) {
-    data_list <- c(list(IWRS = IWRS), data_list)
+  # Combine iwrs data with other datasets
+  if (!is.null(iwrs)) {
+    data_list <- c(list(iwrs = iwrs), data_list)
     # Name the list with dataset names
-    names(data_list) <- toupper(c("IWRS", gsub("\\.sas7bdat$", "", basename(sas_files))))
+    names(data_list) <- toupper(c("iwrs", gsub("\\.sas7bdat$", "", basename(sas_files))))
   } else {
-    # Name the list with dataset names (without IWRS)
+    # Name the list with dataset names (without iwrs)
     names(data_list) <- toupper(gsub("\\.sas7bdat$", "", basename(sas_files)))
   }
 

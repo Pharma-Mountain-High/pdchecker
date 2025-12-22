@@ -615,7 +615,8 @@ test_that("filter_cond 未匹配到任何受试者时给出警告", {
       test_result_var = "ORRES",
       test_cat_var = "LBCAT",
       test_de_var = "LBTEST",
-      filter_cond = "SUBJECT|AGE>100" # 没有受试者年龄>100
+      # 没有受试者年龄大于100
+      filter_cond = "SUBJECT|AGE>100"
     ),
     "未匹配到任何受试者"
   )

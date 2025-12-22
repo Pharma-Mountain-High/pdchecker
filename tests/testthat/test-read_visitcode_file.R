@@ -3,15 +3,17 @@ library(tibble)
 library(readxl)
 
 # 辅助函数：创建临时Excel文件
-create_temp_excel_file <- function(data, filename) {
-  temp_file <- file.path(tempdir(), filename)
+create_temp_excel_file <- function(data, filename, dir = NULL) {
+  if (is.null(dir)) dir <- withr::local_tempdir(.local_envir = parent.frame())
+  temp_file <- file.path(dir, filename)
   writexl::write_xlsx(data, temp_file)
   temp_file
 }
 
 # 辅助函数：创建临时CSV文件
-create_temp_csv_file <- function(data, filename) {
-  temp_file <- file.path(tempdir(), filename)
+create_temp_csv_file <- function(data, filename, dir = NULL) {
+  if (is.null(dir)) dir <- withr::local_tempdir(.local_envir = parent.frame())
+  temp_file <- file.path(dir, filename)
   write.csv(data, temp_file, row.names = FALSE)
   temp_file
 }
@@ -384,16 +386,14 @@ test_that("read_visitcode_file 文件不存在时报错", {
 
 test_that("read_visitcode_file 不支持的文件格式时报错", {
   # 创建一个txt文件
-  temp_file <- file.path(tempdir(), "test.txt")
+  temp_dir <- withr::local_tempdir()
+  temp_file <- file.path(temp_dir, "test.txt")
   writeLines("test", temp_file)
 
   expect_error(
     read_visitcode_file(temp_file),
     "不支持的文件格式"
   )
-
-  # 清理临时文件
-  unlink(temp_file)
 })
 
 test_that("read_visitcode_file 缺少窗口期列时报错", {

@@ -2,52 +2,52 @@
 % Please edit documentation in R/check_missing_test.R
 \name{check_missing_test}
 \alias{check_missing_test}
-\title{检查检查项缺失}
+\title{Check Missing Tests}
 \usage{
 check_missing_test(data, test_var = NULL, test = NULL, missing_de = TRUE)
 }
 \arguments{
-\item{data}{Data frame，要检查的检查项数据集。
-必须使用 \code{\link{prepare_test_data}} 准备的数据，包含标准化的列名}
+\item{data}{Data frame, test data to check.
+Must be prepared by \code{\link{prepare_test_data}} with standardized column names}
 
-\item{test_var}{Character string，筛选具体检查项目的变量名（默认: NULL）。
-如果为NULL，则检查所有检查项。通常使用 "TESTDE"（检查项目名称）或 "TESTCAT"（检查分类）}
+\item{test_var}{Character string, variable name for filtering specific tests (default: NULL).
+If NULL, checks all tests. Typically use "TESTDE" (test name) or "TESTCAT" (test category)}
 
-\item{test}{Character string，test_var对应的具体值（默认: NULL）。
-例如："红细胞计数"、"白细胞计数"等。如果test_var为NULL，则此参数无效}
+\item{test}{Character string, specific value for test_var (default: NULL).
+E.g., "RBC Count", "WBC Count". Ignored if test_var is NULL}
 
-\item{missing_de}{Logical，是否检查单个指标TESTDE的缺失（默认: TRUE）。
-如果为TRUE，会检查三种缺失情况（TESTCAT为空、整个TESTCAT缺失、单个TESTDE指标缺失）；
-如果为FALSE，只检查前两种缺失情况（TESTCAT为空、整个TESTCAT缺失）}
+\item{missing_de}{Logical, whether to check individual TESTDE missing (default: TRUE).
+If TRUE, checks all three missing types;
+If FALSE, only checks first two types (TESTCAT empty, entire TESTCAT missing)}
 }
 \value{
-List，包含以下组件：
+List with the following components:
 \describe{
-\item{has_deviation}{逻辑值。TRUE表示有缺失检查，FALSE表示无缺失检查}
-\item{messages}{字符向量。偏差描述信息}
-\item{details}{Data frame。缺失检查详细信息，每个缺失检查一条记录，包含以下列：
+\item{has_deviation}{Logical. TRUE if there are missing tests}
+\item{messages}{Character vector. Deviation description messages}
+\item{details}{Data frame. Missing test details with columns:
 \itemize{
-\item SUBJID: 受试者ID
-\item VISIT: 访视名称
-\item VISITNUM: 访视编号
-\item visit_date: 实际访视日期
-\item test_name: 检查项名称
-\item missing_reason: 缺失原因（未进行\link{TBNAME}检查/整个检查项目未进行/检查结果为空）
-\item missing_type: 缺失类型（TESTCAT为空/TESTCAT缺失/TESTDE缺失）
+\item SUBJID: Subject ID
+\item VISIT: Visit name
+\item VISITNUM: Visit number
+\item visit_date: Actual visit date
+\item test_name: Test name
+\item missing_reason: Missing reason
+\item missing_type: Missing type
 }
 }
 }
 }
 \description{
-对每个受试者进行了实际访视的访视记录，检查某一项检查项是否进行了检查。
+For each subject's completed visit records, check if a specific test item was performed.
 }
 \details{
-\subsection{使用流程}{
+\subsection{Usage Workflow}{
 
-该函数检查在实际发生访视的记录中，是否完成了相应的检查项。
-建议先使用 \code{\link{prepare_test_data}} 准备数据：
+This function checks if corresponding tests were completed in actual visit records.
+It is recommended to first prepare data using \code{\link{prepare_test_data}}:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{# 步骤1：准备检查项数据
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Step 1: Prepare test data
 prepared_data <- prepare_test_data(
   data = list(LB = lb_data, SV = sv_data),
   test_dataset = "LB",
@@ -55,62 +55,62 @@ prepared_data <- prepare_test_data(
   test_result_var = "ORRES"
 )
 
-# 步骤2：检查所有检查项（包括整体缺失和单个指标缺失）
+# Step 2: Check all tests (including overall missing and individual missing)
 result <- check_missing_test(data = prepared_data)
 
-# 或者检查特定检查项（如红细胞计数）
+# Or check specific tests (e.g., RBC count)
 result <- check_missing_test(
   data = prepared_data,
-  test_var = "TESTDE",  # 使用 TESTDE 列筛选具体检查项
-  test = "红细胞计数"
+  test_var = "TESTDE",
+  test = "RBC Count"
 )
 
-# 只检查整体检查项缺失，不检查单个指标缺失
+# Only check overall test missing, not individual indicators
 result <- check_missing_test(
   data = prepared_data,
   missing_de = FALSE
 )
 
-# 如果需要限定检查范围，应在 prepare_test_data 阶段使用配置文件
+# If limiting check scope, use config file in prepare_test_data
 prepared_data_with_config <- prepare_test_data(
   data = list(LB = lb_data, SV = sv_data),
   test_dataset = "LB",
-  config = "config/test_config.xlsx"  # 在数据准备阶段使用配置
+  config = "config/test_config.xlsx"
 )
 result <- check_missing_test(data = prepared_data_with_config)
 }\if{html}{\out{</div>}}
 }
 
-\subsection{未查的判断逻辑}{
+\subsection{Missing Test Logic}{
 
-本函数区分三种缺失情况：
+This function distinguishes three types of missing:
 
-\strong{1. TESTCAT为空}（访视没有对应的检查记录）
+\strong{1. TESTCAT is empty} (visit has no test records)
 \itemize{
-\item 判断条件：TESTCAT为空或NA
-\item 输出：同一受试者、同一访视、同一TBNAME只输出一条记录
-\item 格式：如"LB缺失"
-\item 缺失原因："未进行\link{TBNAME}检查"
+\item Condition: TESTCAT is empty or NA
+\item Output: One record per subject/visit/TBNAME combination
+\item Format: e.g., "LB missing"
+\item Reason: "TBNAME test not performed"
 }
 
-\strong{2. TESTCAT不为空，但整个TESTCAT缺失}（例如整个"血常规"检查都未做）
+\strong{2. TESTCAT not empty, but entire TESTCAT missing} (e.g., entire CBC not done)
 \itemize{
-\item 判断条件：TESTCAT不为空，且TESTDAT为空 或 TESTYN不等于"是"
-\item 输出：同一受试者、同一访视、同一TESTCAT只输出一条记录
-\item 格式：如"血常规缺失"
-\item 缺失原因："整个检查项目未进行"
+\item Condition: TESTCAT not empty, but TESTDAT is empty or TESTYN != "Yes"
+\item Output: One record per subject/visit/TESTCAT combination
+\item Format: e.g., "CBC missing"
+\item Reason: "Entire test category not performed"
 }
 
-\strong{3. TESTCAT不为空，但单个TESTDE指标缺失}（例如"白细胞计数"缺失）
+\strong{3. TESTCAT not empty, but individual TESTDE missing} (e.g., WBC count missing)
 \itemize{
-\item 判断条件：TESTCAT不为空，TESTDAT不为空，且ORRES为空
-\item 输出：同一受试者、同一访视、同一TESTCAT，每个缺失的TESTDE输出一条记录
-\item 格式：如"血常规-白细胞计数缺失"
-\item 缺失原因："检查结果为空"
+\item Condition: TESTCAT not empty, TESTDAT not empty, but ORRES is empty
+\item Output: One record for each missing TESTDE per subject/visit/TESTCAT
+\item Format: e.g., "CBC-WBC Count missing"
+\item Reason: "Test result is empty"
 }
 
-注意：本函数要求输入数据由 \code{\link{prepare_test_data}} 准备，
-该函数已将列名标准化为 SUBJID、VISIT、VISITNUM、SVDAT、TESTCAT、TESTDE、
-TESTYN、TESTDAT、ORRES 等。
+Note: Input data must be prepared by \code{\link{prepare_test_data}},
+which standardizes column names to SUBJID, VISIT, VISITNUM, SVDAT, TESTCAT,
+TESTDE, TESTYN, TESTDAT, ORRES, etc.
 }
 }

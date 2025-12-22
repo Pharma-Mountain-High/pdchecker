@@ -1,7 +1,7 @@
-#' 解析窗口期字符串
+#' Parse Visit Window Period String
 #'
-#' @param window_str 窗口期字符串 (如: "±3d", "≤24h", "+2天", "-1d")
-#' @return 包含窗口期类型和数值的列表
+#' @param window_str Window period string (e.g., "+/-3d", "<=24h", "+2d", "-1d")
+#' @return List containing window type and value
 #' @noRd
 parse_window_period <- function(window_str) {
   # 处理缺失值
@@ -72,42 +72,43 @@ parse_window_period <- function(window_str) {
   }
 }
 
-#' 读取访视编码数据并解析窗口期
+#' Read Visit Schedule Data and Parse Window Periods
 #'
 #' @description
-#' 读取访视编码Excel或CSV文件，解析窗口期列为两个新变量：
-#' - type：区分 ≤、±、+、-、固定、范围等类型
-#' - wpvalue：具体的窗口时间数值（自动转换h为天数）
+#' Read visit schedule Excel or CSV file and parse window period column into two new variables:
+#' - type: Distinguishes window types (<=, +/-, +, -, fixed, range, etc.)
+#' - wpvalue: Specific window time value (automatically converts hours to days)
 #'
-#' 支持的窗口期格式示例：
-#' - "±3d" → 类型: ±, 数值: 3
-#' - "≤24h" → 类型: ≤, 数值: 1
-#' - "+2天" → 类型: +, 数值: 2
-#' - "-1d" → 类型: -, 数值: 1
-#' - "1w" → 类型: +, 数值: 7 （1周 = 7天）
-#' - "±2周" → 类型: ±, 数值: 14 （2周 = 14天）
+#' Supported window period format examples:
+#' - "+/-3d" -> type: +/-, value: 3
+#' - "<=24h" -> type: <=, value: 1
+#' - "+2d" -> type: +, value: 2
+#' - "-1d" -> type: -, value: 1
+#' - "1w" -> type: +, value: 7 (1 week = 7 days)
+#' - "+/-2w" -> type: +/-, value: 14 (2 weeks = 14 days)
 #'
 #' @details
-#' ## 窗口期列识别
-#' 函数会自动查找以下列名（按顺序）：窗口期、访视窗口、窗口、window、Window。
+#' ## Window Period Column Detection
+#' Function automatically searches for column names (in order): window, Window, WINDOW.
 #'
-#' ## 时间单位转换
-#' 所有时间单位统一转换为天数：
-#' - 小时（h、小时）：除以 24
-#' - 天（d、天、日）：保持不变
-#' - 周（w、周）：乘以 7
+#' ## Time Unit Conversion
+#' All time units are converted to days:
+#' - Hours (h): divided by 24
+#' - Days (d): unchanged
+#' - Weeks (w): multiplied by 7
 #'
-#' ## 编码支持
-#' CSV 文件默认使用 UTF-8 编码读取，支持中文列名和内容。
+#' ## Encoding Support
+#' CSV files default to UTF-8 encoding, with fallback to system default.
 #'
-#' ## 列名冲突处理
-#' 如果数据中已存在 type 或 wpvalue 列，将被覆盖并提示消息。
+#' ## Column Name Conflicts
+#' If type or wpvalue columns already exist, they will be overwritten with a message.
 #'
-#' @param file_path 文件路径（.xlsx, .xls 或 .csv）
-#' @param sheet_name Excel工作表名称（默认: "Sheet1"）。注意：CSV文件会忽略此参数。
-#' @return 一个 tibble 对象，包含输入文件的所有列，并新增（或覆盖）两列：
-#'   \item{type}{窗口期类型（字符型），可能的值：±、≤、≥、+、-、范围、其他、NA}
-#'   \item{wpvalue}{窗口期数值（字符型），以天为单位。无法解析时为 "NA"}
+#' @param file_path File path (.xlsx, .xls, or .csv)
+#' @param sheet_name Excel sheet name (default: "Sheet1"). Ignored for CSV files.
+#' @return A tibble with all columns from input file, plus two new (or overwritten) columns:
+#'   \item{type}{Window type (character): +/-, <=, >=, +, -, range, other, or NA}
+#'   \item{wpvalue}{Window value (character) in days. "NA" if unparseable}
+#' @importFrom utils read.csv
 #' @export
 read_visitcode_file <- function(file_path, sheet_name = "Sheet1") {
   # 检查文件是否存在
@@ -140,7 +141,7 @@ read_visitcode_file <- function(file_path, sheet_name = "Sheet1") {
   }
 
   # 查找窗口期列（支持多种可能的列名）
-  window_col_names <- c("窗口期", "访视窗口", "窗口", "window", "Window")
+  window_col_names <- c("窗口期", "访视窗口", "窗口", "window", "Window", "WINDOW")
   window_col <- NULL
 
   for (col_name in window_col_names) {

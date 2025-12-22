@@ -1,189 +1,167 @@
-#' 生成各访视的计划进行日期
+#' Generate Planned Visit Dates
 #'
 #' @description
-#' 根据访视编码数据和临床试验数据，为每个受试者的每次访视计算计划日期、窗口期范围。
-#' 支持筛选期、治疗期、治疗结束期和随访期访视的计划日期计算。
+#' Calculate planned visit dates and visit window ranges for each subject based on
+#' visit schedule data and clinical trial data. Supports screening, treatment,
+#' end of treatment, and follow-up visit date calculations.
 #'
 #' @details
-#' ## 访视计划日期计算规则
+#' ## Planned Visit Date Calculation Rules
 #'
-#' 该函数根据访视类型采用不同的计算逻辑：
+#' This function uses different calculation logic based on visit type:
 #'
-#' ### 1. 筛选期访视（Screening）
-#' 计划日期 = 首次给药日期
+#' ### 1. Screening Visits
+#' Planned date = First dose date
 #'
-#' **示例**：如果首次给药日期为 2024-01-01，则筛选访视的计划日期为 2024-01-01
+#' **Example**: If first dose date is 2024-01-01, screening visit planned date is 2024-01-01
 #'
-#' ### 2. 治疗期访视（Treatment）
+#' ### 2. Treatment Visits
 #'
-#' #### **D1访视（访视日=1）**
+#' #### **D1 Visits (visit day = 1)**
 #'
-#' **C1D1（第1周期D1）**：
-#' - 如有实际访视记录：计划日期 = 实际访视日期
-#' - 无实际访视记录：计划日期 = 首次给药日期
+#' **C1D1 (Cycle 1 Day 1)**:
+#' - If actual visit exists: Planned date = Actual visit date
+#' - If no actual visit: Planned date = First dose date
 #'
-#' **CnD1（后续周期D1，n>1）**：
-#' - 计划日期 = 上一周期D1的基准日期 + 周期天数（cycle_days，默认28天）
-#' - **基准日期选择规则**：
-#'   1. 优先使用上一周期D1的**实际访视日期**（如果存在）
-#'   2. 否则使用上一周期D1的**计划日期**
+#' **CnD1 (Subsequent cycles, n > 1)**:
+#' - Planned date = Previous cycle D1 reference date + cycle_days (default 28 days)
+#' - **Reference date selection rule**:
+#'   1. Prefer previous cycle D1 **actual visit date** (if exists)
+#'   2. Otherwise use previous cycle D1 **planned date**
 #'
-#' **关键特性**：
-#' - C2D1、C3D1等访视的计划日期按规则递推，不直接使用其自身的实际访视日期
-#' - 如果C2D1有实际访视，该实际日期会影响C3D1的计划日期计算
+#' **Key features**:
+#' - C2D1, C3D1 planned dates are calculated iteratively, not using their own actual dates
+#' - If C2D1 has an actual visit, that date affects C3D1 planned date calculation
 #'
-#' **示例**：
+#' **Example**:
 #' ```
-#' 首次给药日期：2024-01-01
-#' C1D1计划日期：2024-01-01（无实际访视）
-#' C2D1计划日期：2024-01-01 + 28天 = 2024-01-29
-#' C2D1实际日期：2024-02-02（延后访视）
-#' C3D1计划日期：2024-02-02 + 28天 = 2024-03-01（基于C2D1实际日期）
-#' ```
-#'
-#' #### **非D1访视（如D8, D15, D21）**
-#'
-#' 计划日期 = 该周期D1的基准日期 + (访视日 - 1)
-#'
-#' **基准日期选择规则**：
-#' 1. 优先使用该周期D1的**实际访视日期**（如果存在）
-#' 2. 否则使用该周期D1的**计划日期**
-#'
-#' **示例**：
-#' ```
-#' C2D1计划日期：2024-01-29
-#' C2D1实际日期：2024-02-02
-#'
-#' C2D8计划日期：2024-02-02 + 7天 = 2024-02-09（基于D1实际日期）
-#' C2D15计划日期：2024-02-02 + 14天 = 2024-02-16（基于D1实际日期）
+#' First dose date: 2024-01-01
+#' C1D1 planned: 2024-01-01 (no actual visit)
+#' C2D1 planned: 2024-01-01 + 28 days = 2024-01-29
+#' C2D1 actual: 2024-02-02 (delayed visit)
+#' C3D1 planned: 2024-02-02 + 28 days = 2024-03-01 (based on C2D1 actual)
 #' ```
 #'
-#' ### 3. 治疗结束访视（End of Treatment）
+#' #### **Non-D1 Visits (e.g., D8, D15, D21)**
 #'
-#' - **EOT**：计划日期 = 治疗结束日期（eot_date）
-#' - **EOT+数字**：计划日期 = 治疗结束日期 + 天数
-#'   - 例如：EOT+7 = eot_date + 7天
-#' - **EOS**：计划日期 = 研究结束日期（eos_date）
+#' Planned date = Current cycle D1 reference date + (visit day - 1)
 #'
-#' ### 4. 随访访视（Follow-up）
+#' **Reference date selection rule**:
+#' 1. Prefer current cycle D1 **actual visit date** (if exists)
+#' 2. Otherwise use current cycle D1 **planned date**
 #'
-#' - **EOT+数字**：计划日期 = 治疗结束日期 + 天数
-#'   - 例如：EOT+30 = eot_date + 30天
-#' - **Last Dose+数字** 或 **LD+数字**：计划日期 = 末次用药日期 + 天数
-#'   - 例如：LD+30 = last_dose_date + 30天
-#'   - 例如：Last Dose+60 = last_dose_date + 60天
+#' **Example**:
+#' ```
+#' C2D1 planned: 2024-01-29
+#' C2D1 actual: 2024-02-02
 #'
-#' ## 窗口期计算
+#' C2D8 planned: 2024-02-02 + 7 days = 2024-02-09 (based on D1 actual)
+#' C2D15 planned: 2024-02-02 + 14 days = 2024-02-16 (based on D1 actual)
+#' ```
 #'
-#' 根据访视编码数据中的窗口期类型计算窗口期范围：
+#' ### 3. End of Treatment Visits
 #'
-#' | 窗口期类型 | 窗口开始 | 窗口结束 | 说明 | 示例 |
-#' |-----------|---------|---------|------|------|
-#' | `±3d` | 计划日期-3 | 计划日期+3 | 前后各3天 | 计划2024-01-10，窗口2024-01-07至2024-01-13 |
-#' | `+2d` | 计划日期 | 计划日期+2 | 只能延后 | 计划2024-01-10，窗口2024-01-10至2024-01-12 |
-#' | `-2d` | 计划日期-2 | 计划日期 | 只能提前 | 计划2024-01-10，窗口2024-01-08至2024-01-10 |
-#' | `≤2d` | 计划日期-2 | 计划日期 | 最多提前2天 | 计划2024-01-10，窗口2024-01-08至2024-01-10 |
-#' | `≥2d` | 计划日期 | 计划日期+2 | 最多延后2天 | 计划2024-01-10，窗口2024-01-10至2024-01-12 |
+#' - **EOT**: Planned date = End of treatment date (eot_date)
+#' - **EOT+number**: Planned date = End of treatment date + days
+#'   - Example: EOT+7 = eot_date + 7 days
+#' - **EOS**: Planned date = End of study date (eos_date)
 #'
-#' **窗口期用途**：用于判断实际访视是否在允许的时间范围内，超出窗口期视为方案偏离。
+#' ### 4. Follow-up Visits
 #'
-#' ## 首次和末次给药日期计算
+#' - **EOT+number**: Planned date = End of treatment date + days
+#'   - Example: EOT+30 = eot_date + 30 days
+#' - **Last Dose+number** or **LD+number**: Planned date = Last dose date + days
+#'   - Example: LD+30 = last_dose_date + 30 days
+#'   - Example: Last Dose+60 = last_dose_date + 60 days
 #'
-#' ### **首次给药日期（first_dose_date）**
-#' - 从所有指定的试验用药数据集（ex_datasets）中提取每个受试者的**最早**用药开始日期
-#' - 始终使用**给药开始日期**变量（ex_date_var）
-#' - 支持多个用药数据集，会自动合并并取最小值
+#' ## Visit Window Calculation
 #'
-#' **示例**：
+#' Calculate visit window range based on window type in visit schedule data:
+#'
+#' | Window Type | Window Start | Window End | Description | Example |
+#' |-------------|--------------|------------|-------------|---------|
+#' | +/-3d | planned-3 | planned+3 | 3 days before/after | planned 2024-01-10, window 2024-01-07 to 2024-01-13 |
+#' | +2d | planned | planned+2 | delay only | planned 2024-01-10, window 2024-01-10 to 2024-01-12 |
+#' | -2d | planned-2 | planned | early only | planned 2024-01-10, window 2024-01-08 to 2024-01-10 |
+#'
+#' **Window purpose**: Used to determine if actual visit is within allowed time range.
+#' Visits outside window are considered protocol deviations.
+#'
+#' ## First and Last Dose Date Calculation
+#'
+#' ### **First Dose Date**
+#' - Extract earliest dosing start date from all specified exposure datasets (ex_datasets)
+#' - Always uses **dosing start date** variable (ex_date_var)
+#' - Supports multiple datasets, automatically merges and takes minimum
+#'
+#' **Example**:
 #' ```r
-#' EX1数据：受试者001，用药日期 2024-01-01、2024-01-29
-#' EX2数据：受试者001，用药日期 2024-01-03
-#' 首次给药日期 = min(2024-01-01, 2024-01-29, 2024-01-03) = 2024-01-01
+#' EX1 data: Subject 001, dose dates 2024-01-01, 2024-01-29
+#' EX2 data: Subject 001, dose date 2024-01-03
+#' First dose date = min(2024-01-01, 2024-01-29, 2024-01-03) = 2024-01-01
 #' ```
 #'
-#' ### **末次给药日期（last_dose_date）**
-#' - 根据是否指定给药结束日期变量（ex_end_date_var）采用不同逻辑：
+#' ### **Last Dose Date**
+#' - Uses different logic based on whether ex_end_date_var is specified:
 #'
-#' **情况1：未指定 ex_end_date_var（默认）**
-#' - 使用给药开始日期（ex_date_var）
-#' - 从所有用药记录中取**最晚**的给药开始日期
+#' **Case 1: ex_end_date_var not specified (default)**
+#' - Uses dosing start date (ex_date_var)
+#' - Takes **latest** dosing start date from all records
 #'
-#' **情况2：指定了 ex_end_date_var**
-#' - 使用给药结束日期（ex_end_date_var）
-#' - 从所有用药记录中取**最晚**的给药结束日期
-#' - 适用于有明确给药开始和结束日期的研究
+#' **Case 2: ex_end_date_var specified**
+#' - Uses dosing end date (ex_end_date_var)
+#' - Takes **latest** dosing end date from all records
+#' - Suitable for studies with explicit start and end dates
 #'
-#' **示例**：
-#' ```r
-#' # 情况1：只有开始日期
-#' EX数据：受试者001
-#'   - 2024-01-01（开始）
-#'   - 2024-01-29（开始）
-#' 末次给药日期 = max(2024-01-01, 2024-01-29) = 2024-01-29
+#' @param data List containing all clinical trial datasets
+#' @param visit_schedule_data Data frame, visit schedule data from \code{\link{read_visitcode_file}}.
+#'   Must contain columns: visit_name, visit_code, window, cycle, visit_day, type, wpvalue
+#' @param ex_datasets Character vector, exposure dataset names (default: "EX").
+#'   Multiple datasets can be specified, e.g., c("EX1", "EX2")
+#' @param ex_date_var Character vector, dosing start date variable names (default: "EXSTDAT").
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{ex_datasets}, corresponds one-to-one with datasets
+#'   - Example: c("EXSTDAT1", "EXSTDAT2") corresponds to c("EX1", "EX2")
+#' @param ex_end_date_var Character vector, dosing end date variable names (default: NULL).
+#'   - If NULL or empty, last dose date uses \code{ex_date_var} (dosing start date)
+#'   - If specified, last dose date uses dosing end date
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{ex_datasets}, corresponds one-to-one with datasets
+#' @param sv_dataset Character string, visit dataset name (default: "SV")
+#' @param sv_visit_var Character string, visit name variable in visit dataset (default: "VISIT")
+#' @param sv_visitnum_var Character string, visit number variable in visit dataset (default: "VISITNUM")
+#' @param sv_date_var Character string, visit date variable in visit dataset (default: "SVDAT")
+#' @param eot_dataset Character string, end of treatment dataset name (default: "EOT").
+#'   If dataset doesn't exist, EOT-related planned dates will be NA
+#' @param eot_date_var Character string, end of treatment date variable (default: "EOTDAT")
+#' @param ds_dataset Character string, disposition dataset name (default: "DS").
+#'   If dataset doesn't exist, EOS-related planned dates will be NA
+#' @param ds_date_var Character string, end of study date variable (default: "DSDAT")
+#' @param cycle_days Numeric, treatment cycle length in days (default: 28).
+#'   Used to calculate subsequent cycle D1 planned dates
 #'
-#' # 情况2：有开始和结束日期
-#' EX数据：受试者001
-#'   - 2024-01-01（开始）→ 2024-01-03（结束）
-#'   - 2024-01-29（开始）→ 2024-02-01（结束）
-#' 末次给药日期 = max(2024-01-03, 2024-02-01) = 2024-02-01
-#' ```
-#'
-#' **参数配置**：
-#' - 支持多个数据集：`ex_datasets = c("EX1", "EX2")`
-#' - 可为每个数据集指定不同的列名：
-#'   ```r
-#'   ex_date_var = c("EXSTDAT1", "EXSTDAT2")
-#'   ex_end_date_var = c("EXENDAT1", "EXENDAT2")
-#'   ```
-#'
-#' @param data List 类型，包含所有临床试验数据集的列表
-#' @param visit_schedule_data Data frame，访视编码数据，应为 \code{\link{read_visitcode_file}} 函数的输出结果。
-#'   必须包含以下列：访视名称、访视编码、窗口期、周期、访视日、type、wpvalue
-#' @param ex_datasets Character vector，试验用药数据集名称向量（默认: "EX"）。
-#'   可指定多个数据集，如 c("EX1", "EX2")
-#' @param ex_date_var Character vector，用药开始日期变量名向量（默认: "EXSTDAT"）。
-#'   - 如果长度为1，则所有数据集使用同一列名
-#'   - 如果长度等于 \code{ex_datasets} 的长度，则与数据集一一对应
-#'   - 例如：c("EXSTDAT1", "EXSTDAT2") 分别对应 c("EX1", "EX2")
-#' @param ex_end_date_var Character vector，用药结束日期变量名向量（默认: NULL）。
-#'   - 如果为 NULL 或空向量，则末次给药日期使用 \code{ex_date_var}（给药开始日期）
-#'   - 如果指定，则末次给药日期使用给药结束日期
-#'   - 如果长度为1，则所有数据集使用同一列名
-#'   - 如果长度等于 \code{ex_datasets} 的长度，则与数据集一一对应
-#'   - 例如：c("EXENDAT1", "EXENDAT2") 分别对应 c("EX1", "EX2")
-#' @param sv_dataset Character string，访视数据集名称（默认: "SV"）
-#' @param sv_visit_var Character string，访视数据集中访视名称变量名（默认: "VISIT"）
-#' @param sv_visitnum_var Character string，访视数据集中访视编号变量名（默认: "VISITNUM"）
-#' @param sv_date_var Character string，访视数据集中访视日期变量名（默认: "SVDAT"）
-#' @param eot_dataset Character string，治疗结束数据集名称（默认: "EOT"）。
-#'   如数据中不存在该数据集，则治疗结束相关访视的计划日期为NA
-#' @param eot_date_var Character string，治疗结束日期变量名（默认: "EOTDAT"）
-#' @param ds_dataset Character string，研究结束数据集名称（默认: "DS"）。
-#'   如数据中不存在该数据集，则研究结束相关访视的计划日期为NA
-#' @param ds_date_var Character string，研究结束日期变量名（默认: "DSDAT"）
-#' @param cycle_days Numeric，治疗周期天数（默认: 28）。用于计算后续周期D1访视的计划日期
-#'
-#' @return Data frame，包含以下列：
+#' @return Data frame with the following columns:
 #'   \describe{
-#'     \item{SUBJID}{受试者ID}
-#'     \item{VISIT}{访视名称}
-#'     \item{VISITNUM}{访视编号}
-#'     \item{visittype}{访视类型（周期信息）}
-#'     \item{visitday}{访视日}
-#'     \item{planned_date}{计划访视日期}
-#'     \item{wp_start}{窗口期开始日期}
-#'     \item{wp_end}{窗口期结束日期}
-#'     \item{wp_type}{窗口期类型（±、+、-、≤、≥等）}
-#'     \item{wp_value}{窗口期数值（天数）}
-#'     \item{actual_date}{实际访视日期（如有）}
-#'     \item{status}{访视状态（completed=已完成，missing=未完成）}
-#'     \item{first_dose_date}{受试者首次用药日期}
-#'     \item{last_dose_date}{受试者末次用药日期}
-#'     \item{eot_date}{受试者治疗结束日期}
-#'     \item{eos_date}{受试者研究结束日期}
+#'     \item{SUBJID}{Subject ID}
+#'     \item{VISIT}{Visit name}
+#'     \item{VISITNUM}{Visit number}
+#'     \item{visittype}{Visit type (cycle information)}
+#'     \item{visitday}{Visit day}
+#'     \item{planned_date}{Planned visit date}
+#'     \item{wp_start}{Visit window start date}
+#'     \item{wp_end}{Visit window end date}
+#'     \item{wp_type}{Window type (+/-, +, -, etc.)}
+#'     \item{wp_value}{Window value in days}
+#'     \item{actual_date}{Actual visit date (if available)}
+#'     \item{status}{Visit status (completed or missing)}
+#'     \item{first_dose_date}{Subject's first dose date}
+#'     \item{last_dose_date}{Subject's last dose date}
+#'     \item{eot_date}{Subject's end of treatment date}
+#'     \item{eos_date}{Subject's end of study date}
 #'   }
 #'
-#' @importFrom dplyr filter select mutate arrange group_by ungroup left_join case_when if_else sym distinct bind_rows slice
+#' @importFrom dplyr filter select mutate arrange group_by ungroup left_join
+#' @importFrom dplyr case_when if_else sym distinct bind_rows slice
 #' @importFrom magrittr %>%
 #' @export
 generate_planned_visit_dates <- function(data,

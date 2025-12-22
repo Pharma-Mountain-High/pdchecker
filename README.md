@@ -19,6 +19,7 @@ Protocol Deviation Checker for Clinical Trials
 Batch read SAS format files from specified directory with support for format mapping and IWRS data integration.
 
 **Key Features:**
+
 - Automatically scan and read all `.sas7bdat` files in the directory
 - Support SAS format files with automatic code mapping
 - Optional Excel format mapping file for additional format conversion
@@ -53,6 +54,7 @@ str(data$DM) # View DM dataset structure
 ```
 
 **Parameters:**
+
 - `folder`: Path to directory containing SAS data files (required)
 - `iwrs_file`: Path to IWRS CSV file (optional, default: NULL)
   - First 2 rows of CSV file will be skipped
@@ -60,6 +62,7 @@ str(data$DM) # View DM dataset structure
   - Must contain columns: 表 (table), 变量 (variable), 编码值 (coded value), 编码说明 (label), 匹配状态 (match status)
 
 **Return Value:**
+
 - Returns a named list containing all successfully loaded datasets
 - If IWRS file is provided, `IWRS` will be the first element
 - Other datasets are named by filename (without extension), all converted to uppercase
@@ -81,12 +84,14 @@ data <- read_raw_data_with_formats(
 ```
 
 **Parameters:**
+
 - `data_dir`: Directory containing SAS data files (required)
 - `catalog_file`: Path to SAS format catalog file (required, `.sas7bcat` file)
 - `iwrs_file`: Path to IWRS CSV file (optional)
 - `encoding`: Character encoding, default: "UTF-8"
 
 **Features:**
+
 - Automatically convert labelled data to factor types
 - Format definitions from SAS catalog file
 - Support custom character encoding (e.g., "GBK", "latin1", etc.)
@@ -94,17 +99,21 @@ data <- read_raw_data_with_formats(
 ## Data Requirements
 
 ### SAS Datasets
+
 - Support standard `.sas7bdat` format files
 - Format file name must contain "formats"
 
 ### IWRS Data
+
 - CSV format
 - First 2 rows are header rows (automatically skipped during reading)
 
 ### Excel Format Mapping File (Optional)
+
 Must contain the following columns:
+
 - **表** (Table): Dataset name
-- **变量** (Variable): Variable name  
+- **变量** (Variable): Variable name
 - **编码值** (Coded Value): Original coded value
 - **编码说明** (Label): Label description
 - **匹配状态** (Match Status): Must be "完全匹配" (exact match)
@@ -119,7 +128,6 @@ The following features are under development:
 - 🚧 Laboratory test missing and window deviation checks
 - 🚧 Inclusion criteria checks (age, laboratory parameters, etc.)
 - 🚧 Exclusion criteria checks (pregnancy, liver function, virology, etc.)
-
 
 ## Installation
 

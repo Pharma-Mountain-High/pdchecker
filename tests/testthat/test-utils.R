@@ -158,26 +158,28 @@ test_that("combine_check_results() handles NULL results", {
 
 
 # =============================================================================
-# 测试 parse_check_output() 函数 - SUBJID 提取
+# 测试 parse_check_output() 函数 - subjid 提取
 # =============================================================================
 
-test_that("parse_check_output() correctly extracts SUBJID from various formats", {
+test_that("parse_check_output() correctly extracts subjid from various formats", {
   # 测试不同格式的输出
+  header <- "8.4 访视超窗检查\n====================================\n"
+  body <- "Has deviation: YES\n\nFindings:\n- 发现问题\n\nDeviation Details:\n"
   test_cases <- list(
     list(
-      text = "8.4 访视超窗检查\n====================================\nHas deviation: YES\n\nFindings:\n- 发现问题\n\nDeviation Details:\n受试者12345访视超窗",
+      text = paste0(header, body, "受试者12345访视超窗"),
       expected_subjid = "12345"
     ),
     list(
-      text = "8.4 访视超窗检查\n====================================\nHas deviation: YES\n\nFindings:\n- 发现问题\n\nDeviation Details:\n受试者 00123 访视超窗",
+      text = paste0(header, body, "受试者 00123 访视超窗"),
       expected_subjid = "00123"
     ),
     list(
-      text = "8.4 访视超窗检查\n====================================\nHas deviation: YES\n\nFindings:\n- 发现问题\n\nDeviation Details:\n受试者：001访视超窗",
+      text = paste0(header, body, "受试者：001访视超窗"),
       expected_subjid = "001"
     ),
     list(
-      text = "8.4 访视超窗检查\n====================================\nHas deviation: YES\n\nFindings:\n- 发现问题\n\nDeviation Details:\n受试者 0000567 访视超窗",
+      text = paste0(header, body, "受试者 0000567 访视超窗"),
       expected_subjid = "0000567"
     )
   )
@@ -221,7 +223,11 @@ test_that("parse_check_output() handles empty or invalid input", {
 })
 
 test_that("parse_check_output() extracts multiple subjects", {
-  text <- "8.4 访视超窗检查\n====================================\nHas deviation: YES\n\nFindings:\n- 发现多个问题\n\nDeviation Details:\n受试者001访视超窗\n受试者002访视超窗\n受试者003访视超窗"
+  text <- paste0(
+    "8.4 访视超窗检查\n====================================\n",
+    "Has deviation: YES\n\nFindings:\n- 发现多个问题\n\nDeviation Details:\n",
+    "受试者001访视超窗\n受试者002访视超窗\n受试者003访视超窗"
+  )
 
   result <- parse_check_output(text = text)
 
