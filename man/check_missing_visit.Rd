@@ -2,55 +2,56 @@
 % Please edit documentation in R/check_missing_visit.R
 \name{check_missing_visit}
 \alias{check_missing_visit}
-\title{检查缺失访视}
+\title{Check Missing Visits}
 \usage{
 check_missing_visit(planned_dates, cutoffdt = Sys.Date())
 }
 \arguments{
-\item{planned_dates}{Data frame，由 \code{\link{generate_planned_visit_dates}} 函数生成的计划访视数据。
-必须包含以下列：SUBJID, VISIT, VISITNUM, visittype, planned_date, status, eot_date, eos_date}
+\item{planned_dates}{Data frame from \code{\link{generate_planned_visit_dates}}.
+Must contain: SUBJID, VISIT, VISITNUM, visittype, planned_date, status, eot_date, eos_date}
 
-\item{cutoffdt}{Date 类型，数据截止日期（默认: 当前日期）。用于判断访视是否应该完成}
+\item{cutoffdt}{Date, data cutoff date (default: current date). Used to determine if visit should be completed}
 }
 \value{
-List，包含以下组件：
+List with the following components:
 \describe{
-\item{has_deviation}{逻辑值。TRUE表示有缺失访视，FALSE表示无缺失访视}
-\item{messages}{字符向量。偏差描述信息}
-\item{details}{Data frame。缺失访视详细信息，每个缺失访视一条记录，包含以下列：
+\item{has_deviation}{Logical. TRUE if there are missing visits}
+\item{messages}{Character vector. Deviation description messages}
+\item{details}{Data frame. Missing visit details with columns:
 \itemize{
-\item SUBJID: 受试者ID
-\item first_dose_date: 受试者的首次用药日期
-\item VISIT: 缺失的访视名称
-\item VISITNUM: 访视编号
-\item planned_date: 计划访视日期
-\item visittype: 访视类型
-\item eot_date: 受试者的治疗结束日期
-\item eos_date: 受试者的研究结束日期
-\item cutoffdt: 数据截止日期
-\item valid_visits_count: 应该完成的访视总数
-\item completed_visits_count: 实际完成的访视数
+\item SUBJID: Subject ID
+\item first_dose_date: Subject's first dose date
+\item VISIT: Missing visit name
+\item VISITNUM: Visit number
+\item planned_date: Planned visit date
+\item visittype: Visit type
+\item eot_date: Subject's end of treatment date
+\item eos_date: Subject's end of study date
+\item cutoffdt: Data cutoff date
+\item valid_visits_count: Total visits that should be completed
+\item completed_visits_count: Actual completed visits
 }
 }
-\item{planned_visits}{Data frame。输入的完整计划访视信息}
+\item{planned_visits}{Data frame. Complete input planned visit information}
 }
 }
 \description{
-基于计划访视日期检查缺失访视。接收 \code{\link{generate_planned_visit_dates}} 函数生成的
-计划访视数据，根据不同访视类型使用不同的截止日期标准判断访视是否应该完成。
+Check for missing visits based on planned visit dates. Receives planned visit data
+from \code{\link{generate_planned_visit_dates}} and uses different cutoff date
+criteria based on visit type to determine if a visit should have been completed.
 }
 \details{
-\subsection{使用流程}{
+\subsection{Usage Workflow}{
 
-该函数设计为与 \code{generate_planned_visit_dates} 配合使用：
+This function is designed to work with \code{generate_planned_visit_dates}:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{# 步骤1：生成计划访视日期
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Step 1: Generate planned visit dates
 planned_dates <- generate_planned_visit_dates(
   data = study_data,
   visit_schedule_data = visit_codes
 )
 
-# 步骤2：检查缺失访视
+# Step 2: Check missing visits
 result <- check_missing_visit(
   planned_dates = planned_dates,
   cutoffdt = as.Date("2024-12-31")
@@ -58,29 +59,29 @@ result <- check_missing_visit(
 }\if{html}{\out{</div>}}
 }
 
-\subsection{访视完成判断标准}{
+\subsection{Visit Completion Criteria}{
 
-不同类型的访视使用不同的终止日期判断标准：
-\subsection{筛选期和治疗期访视}{
+Different visit types use different termination date criteria:
+\subsection{Screening and Treatment Visits}{
 
-计划日期必须 < min(治疗结束日期, 研究结束日期, 数据截止日期)
+Planned date must be < min(end of treatment date, end of study date, cutoff date)
 }
 
-\subsection{治疗结束和随访期访视}{
+\subsection{End of Treatment and Follow-up Visits}{
 
-计划日期必须 <= min(研究结束日期, 数据截止日期)
+Planned date must be <= min(end of study date, cutoff date)
 }
 
 }
 
-\subsection{访视类型识别}{
+\subsection{Visit Type Classification}{
 
-访视类型由 \code{generate_planned_visit_dates} 函数自动识别和分类：
+Visit types are automatically identified by \code{generate_planned_visit_dates}:
 \itemize{
-\item screening: 筛选期访视
-\item treatment: 治疗期访视
-\item end_of_treatment: 治疗结束访视
-\item follow_up: 随访访视
+\item screening: Screening visits
+\item treatment: Treatment visits
+\item end_of_treatment: End of treatment visits
+\item follow_up: Follow-up visits
 }
 }
 }

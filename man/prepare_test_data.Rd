@@ -2,7 +2,7 @@
 % Please edit documentation in R/prepare_test_data.R
 \name{prepare_test_data}
 \alias{prepare_test_data}
-\title{准备检查项数据用于缺失检查}
+\title{Prepare Test Data for Missing Test Checks}
 \usage{
 prepare_test_data(
   data,
@@ -25,160 +25,160 @@ prepare_test_data(
 )
 }
 \arguments{
-\item{data}{List 类型，包含所有临床试验数据集的列表}
+\item{data}{List containing all clinical trial datasets}
 
-\item{test_dataset}{Character string，要提取的检查项数据集名称（如 "LB"）}
+\item{test_dataset}{Character string, test dataset name to extract (e.g., "LB")}
 
-\item{test_date_var}{Character string，原始检查日期变量名（默认: "LBDAT"）}
+\item{test_date_var}{Character string, original test date variable (default: "LBDAT")}
 
-\item{test_yn_var}{Character string，原始是否进行检查变量名（默认: "YN"）}
+\item{test_yn_var}{Character string, original test performed variable (default: "YN")}
 
-\item{test_result_var}{Character string，原始检查结果变量名（默认: "ORRES"）}
+\item{test_result_var}{Character string, original test result variable (default: "ORRES")}
 
-\item{test_cat_var}{Character string，原始检查分类变量名（默认: "LBCAT"）。
-如果为 NULL 或空字符串，则 TESTCAT 列将为 NA}
+\item{test_cat_var}{Character string, original test category variable (default: "LBCAT").
+If NULL or empty, TESTCAT column will be NA}
 
-\item{test_de_var}{Character string，原始检查项目名称变量名（默认: NULL）。
-如果为 NULL 或空字符串，则 TESTDE 列将为 NA。用于表示具体的检查项目，如"红细胞计数"等}
+\item{test_de_var}{Character string, original test name variable (default: NULL).
+If NULL or empty, TESTDE column will be NA. Used for specific test names}
 
-\item{tb_name_var}{Character string，原始数据集名称标识变量名（默认: NULL）。
-如果为 NULL 或空字符串，则 TBNAME 列将使用 test_dataset 参数的值（如 "LB"）。
-用于标识检查数据集的名称}
+\item{tb_name_var}{Character string, original dataset name variable (default: NULL).
+If NULL or empty, TBNAME column uses test_dataset value (e.g., "LB")}
 
-\item{sv_dataset}{Character string，访视数据集名称（默认: "SV"）}
+\item{sv_dataset}{Character string, visit dataset name (default: "SV")}
 
-\item{sv_visit_var}{Character string，访视数据集中访视名称变量名（默认: "VISIT"）}
+\item{sv_visit_var}{Character string, visit name variable in visit dataset (default: "VISIT")}
 
-\item{sv_visitnum_var}{Character string，访视数据集中访视编号变量名（默认: "VISITNUM"）}
+\item{sv_visitnum_var}{Character string, visit number variable in visit dataset (default: "VISITNUM")}
 
-\item{sv_date_var}{Character string，访视数据集中访视日期变量名（默认: "SVDAT"）}
+\item{sv_date_var}{Character string, visit date variable in visit dataset (default: "SVDAT")}
 
-\item{config}{Character string 或 Data frame，检查项访视配置（默认: NULL）。
-如果为字符串，表示Excel配置文件路径；如果为数据框，则直接使用。
-配置文件需包含列：TESTCAT（检查分类）、VISITNUM（逗号分隔的访视编号）。
-如果提供配置，将根据配置预先生成应该存在的访视-检查项组合骨架，
-即使原始检查数据中没有相应记录，也会在输出中体现为空记录（TESTDAT=NA等）}
+\item{config}{Character string or Data frame, test-visit configuration (default: NULL).
+If string, represents Excel config file path; if data frame, used directly.
+Config must contain: TESTCAT (test category), VISITNUM (comma-separated visit numbers).
+If provided, generates expected visit-test combinations as skeleton,
+showing empty records (TESTDAT=NA) even when original data has no records}
 
-\item{config_cat}{Character vector，从配置文件中筛选的检查分类范围（默认: NULL）。
-如果为NULL，使用配置文件中的所有TESTCAT；
-如果提供值（如 c("血常规", "血生化")），则只使用配置中这些TESTCAT的记录。
-注意：只有在提供 config 参数时，此参数才有效}
+\item{config_cat}{Character vector, test categories to filter from config (default: NULL).
+If NULL, uses all TESTCAT in config;
+If provided (e.g., c("CBC", "Chemistry")), only uses those TESTCAT records.
+Note: Only effective when config parameter is provided}
 
-\item{enrl_dataset}{Character string，入组信息数据集名称（默认: "ENROL"）。
-用于筛选入组受试者}
+\item{enrl_dataset}{Character string, enrollment dataset name (default: "ENROL").
+Used to filter enrolled subjects}
 
-\item{enrl_yn_var}{Character string，入组数据集中是否入组变量名（默认: "ENRYN"）。
-只保留该变量值为"是"的受试者记录}
+\item{enrl_yn_var}{Character string, enrollment flag variable (default: "ENRYN").
+Only keeps records where this variable equals "Yes"}
 
-\item{filter_cond}{Character string，自定义筛选条件（默认: NULL）。
-格式为 "数据集名|筛选条件"，支持多个筛选条件用分号分隔，例如：
+\item{filter_cond}{Character string, custom filter condition (default: NULL).
+Format: "dataset|condition", multiple conditions separated by semicolons:
 \itemize{
-\item "SUBJECT|SEX=='男'" - 从SUBJECT数据集中筛选性别为男的受试者
-\item "SUBJECT|AGE>=18" - 从SUBJECT数据集中筛选年龄大于等于18的受试者
-\item "SUBJECT|SEX=='男' & AGE>=18" - 同一数据集的多个条件
-\item "SUBJECT|SEX=='男';DM|AGE>18" - 从多个数据集筛选（取交集）
-如果为NULL，则不进行自定义筛选
+\item "SUBJECT|SEX=='M'" - Filter males from SUBJECT dataset
+\item "SUBJECT|AGE>=18" - Filter age >= 18 from SUBJECT
+\item "SUBJECT|SEX=='M' & AGE>=18" - Multiple conditions on same dataset
+\item "SUBJECT|SEX=='M';DM|AGE>18" - Filter from multiple datasets (intersection)
+If NULL, no custom filtering
 }}
 }
 \value{
-Data frame，列顺序为：
+Data frame with column order:
 \describe{
-\item{SUBJID}{受试者ID（来自 SV 数据集）}
-\item{VISIT}{访视名称（来自 SV 数据集）}
-\item{VISITNUM}{访视编号（来自 SV 数据集）}
-\item{TBNAME}{数据集名称（衍生列，映射自 tb_name_var 或使用 test_dataset）}
-\item{TESTCAT}{检查分类（衍生列，映射自 test_cat_var）}
-\item{TESTDE}{检查项目名称（衍生列，映射自 test_de_var），如"红细胞计数"等}
-\item{TESTYN}{是否进行检查（衍生列，映射自 test_yn_var）}
-\item{TESTDAT}{检查日期（衍生列，映射自 test_date_var）}
-\item{ORRES}{检查结果（衍生列，映射自 test_result_var）}
-\item{...}{检查项数据集的其他所有原始列}
+\item{SUBJID}{Subject ID (from SV dataset)}
+\item{VISIT}{Visit name (from SV dataset)}
+\item{VISITNUM}{Visit number (from SV dataset)}
+\item{TBNAME}{Dataset name (derived, mapped from tb_name_var or test_dataset)}
+\item{TESTCAT}{Test category (derived, mapped from test_cat_var)}
+\item{TESTDE}{Test name (derived, mapped from test_de_var)}
+\item{TESTYN}{Test performed flag (derived, mapped from test_yn_var)}
+\item{TESTDAT}{Test date (derived, mapped from test_date_var)}
+\item{ORRES}{Test result (derived, mapped from test_result_var)}
+\item{...}{All other original columns from test dataset}
 }
-注：SV 数据集只保留 SUBJID、VISIT、VISITNUM、SVDAT 列，其他列不会包含在返回结果中
+Note: SV dataset only keeps SUBJID, VISIT, VISITNUM, SVDAT in output
 }
 \description{
-从包含所有数据的 list 中提取指定的检查项数据集，将其与访视数据集进行合并，
-并创建标准化的列名（TBNAME、TESTCAT、TESTDE、TESTDAT、TESTYN、ORRES）用于后续的缺失检查。
+Extract specified test dataset from a list of all data, merge with visit dataset,
+and create standardized column names (TBNAME, TESTCAT, TESTDE, TESTDAT, TESTYN, ORRES)
+for subsequent missing test checks.
 }
 \details{
-\subsection{使用流程}{
+\subsection{Usage Workflow}{
 
-该函数用于 \code{\link{check_missing_test}} 之前的数据准备：
+This function is used for data preparation before \code{\link{check_missing_test}}:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{# 步骤1：准备检查项数据
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Step 1: Prepare test data
 prepared_data <- prepare_test_data(
   data = list(LB = lb_data, SV = sv_data),
   test_dataset = "LB"
 )
 
-# 步骤2：检查缺失
+# Step 2: Check missing
 result <- check_missing_test(
   data = prepared_data,
   sv_data = sv_data,
   test_var = "LBTEST",
-  test = "血常规"
+  test = "CBC"
 )
 }\if{html}{\out{</div>}}
 }
 
-\subsection{数据处理逻辑}{
+\subsection{Data Processing Logic}{
 \enumerate{
-\item 从 data list 中提取指定的检查项数据集（如 "LB"）
-\item 从 data list 中提取访视数据集（默认 "SV"），只保留必要的列：
-SUBJID、VISIT、VISITNUM、SVDAT
-\item 将检查项数据集通过 SUBJID、VISIT、VISITNUM left_join 到访视数据集
-\item 创建标准化列名：
+\item Extract specified test dataset (e.g., "LB") from data list
+\item Extract visit dataset (default "SV") from data list, keeping only:
+SUBJID, VISIT, VISITNUM, SVDAT
+\item Left join test dataset to visit dataset by SUBJID, VISIT, VISITNUM
+\item Create standardized column names:
 \itemize{
-\item TBNAME：数据集名称（映射自原始数据集名称列，或使用 test_dataset）
-\item TESTCAT：检查分类（映射自原始检查分类列）
-\item TESTDE：检查项目名称（映射自原始检查项目列），如"红细胞计数"等
-\item TESTDAT：检查日期（映射自原始检查日期列）
-\item TESTYN：是否进行检查（映射自原始是否检查列）
-\item ORRES：检查结果（映射自原始检查结果列）
+\item TBNAME: Dataset name (mapped from original column or uses test_dataset)
+\item TESTCAT: Test category (mapped from original category column)
+\item TESTDE: Test name (mapped from original test column), e.g., "RBC Count"
+\item TESTDAT: Test date (mapped from original date column)
+\item TESTYN: Test performed flag (mapped from original flag column)
+\item ORRES: Test result (mapped from original result column)
 }
-\item 返回包含检查项数据集原始列和衍生列的数据集，列顺序为：
-SUBJID, VISIT, VISITNUM, TBNAME, TESTCAT, TESTDE, TESTYN, TESTDAT, ORRES, 检查项数据集的其他原始列
+\item Return dataset with original test columns and derived columns in order:
+SUBJID, VISIT, VISITNUM, TBNAME, TESTCAT, TESTDE, TESTYN, TESTDAT, ORRES, other original columns
 }
 }
 
-\subsection{注意事项}{
+\subsection{Notes}{
 \itemize{
-\item 如果原始数据集中不存在某个映射列（如 test_yn_var），则对应的衍生列将为 NA
-\item left_join 基于访视数据集，因此返回的记录以访视记录为准
-\item SV 数据集只保留 SUBJID、VISIT、VISITNUM、SVDAT 列，其他列不会出现在返回结果中
-\item 检查项数据集的所有原始列都会保留在返回结果中
-\item 衍生列会按指定顺序排在前面，便于查看
+\item If a mapped column doesn't exist (e.g., test_yn_var), the derived column will be NA
+\item Left join is based on visit dataset, so records follow visit records
+\item SV dataset only keeps SUBJID, VISIT, VISITNUM, SVDAT; other columns excluded
+\item All original columns from test dataset are preserved
+\item Derived columns are placed first for easy viewing
 }
 }
 }
 \examples{
 \dontrun{
-# 准备血常规检查数据
+# Prepare CBC (Complete Blood Count) test data
 lb_prepared <- prepare_test_data(
   data = list(LB = lb_data, SV = sv_data),
   test_dataset = "LB",
   test_date_var = "LBDAT",
   test_result_var = "ORRES",
   test_cat_var = "LBCAT",
-  test_de_var = "LBTEST", # 检查项目名称，如"红细胞计数"
-  tb_name_var = NULL # 使用 test_dataset "LB" 作为数据集名称
+  test_de_var = "LBTEST", # Test name, e.g., "RBC Count"
+  tb_name_var = NULL # Use test_dataset "LB" as dataset name
 )
 
-# 准备生命体征检查数据，使用原始数据中的数据集名称列
+# Prepare vital signs data, using dataset name column from original data
 vs_prepared <- prepare_test_data(
   data = list(VS = vs_data, SV = sv_data),
   test_dataset = "VS",
   test_date_var = "VSDAT",
   test_result_var = "VSORRES",
-  test_cat_var = NULL, # 如果没有分类变量
-  test_de_var = "VSTEST", # 检查项目名称
-  tb_name_var = "VSTB" # 如果原始数据中有数据集名称列
+  test_cat_var = NULL, # If no category variable
+  test_de_var = "VSTEST", # Test name
+  tb_name_var = "VSTB" # If original data has dataset name column
 )
 
-# 使用配置文件预先生成应该存在的检查记录骨架
-# 配置文件指定哪些检查项应该在哪些访视进行
+# Use config file to pre-generate expected test record skeleton
+# Config specifies which tests should be done at which visits
 config_df <- data.frame(
-  TESTCAT = c("血常规", "血生化", "尿常规"),
+  TESTCAT = c("CBC", "Chemistry", "Urinalysis"),
   VISITNUM = c("2,3,5", "2,4", "2,5,10")
 )
 lb_prepared_with_config <- prepare_test_data(
@@ -188,12 +188,12 @@ lb_prepared_with_config <- prepare_test_data(
   test_result_var = "ORRES",
   test_cat_var = "LBCAT",
   test_de_var = "LBTEST",
-  config = config_df # 或使用文件路径: config = "test_config.xlsx"
+  config = config_df # Or use file path: config = "test_config.xlsx"
 )
-# 输出将包含所有应该存在的访视-检查项组合
-# 即使原始数据中没有相应记录，也会显示为空记录（TESTDAT=NA等）
+# Output will contain all expected visit-test combinations
+# Even without original records, shows empty records (TESTDAT=NA)
 
-# 只准备配置文件中特定的检查分类
+# Only prepare specific test categories from config
 lb_prepared_partial <- prepare_test_data(
   data = list(LB = lb_data, SV = sv_data),
   test_dataset = "LB",

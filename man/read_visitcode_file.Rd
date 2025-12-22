@@ -2,60 +2,60 @@
 % Please edit documentation in R/read_visitcode_file.R
 \name{read_visitcode_file}
 \alias{read_visitcode_file}
-\title{读取访视编码数据并解析窗口期}
+\title{Read Visit Schedule Data and Parse Window Periods}
 \usage{
 read_visitcode_file(file_path, sheet_name = "Sheet1")
 }
 \arguments{
-\item{file_path}{文件路径（.xlsx, .xls 或 .csv）}
+\item{file_path}{File path (.xlsx, .xls, or .csv)}
 
-\item{sheet_name}{Excel工作表名称（默认: "Sheet1"）。注意：CSV文件会忽略此参数。}
+\item{sheet_name}{Excel sheet name (default: "Sheet1"). Ignored for CSV files.}
 }
 \value{
-一个 tibble 对象，包含输入文件的所有列，并新增（或覆盖）两列：
-\item{type}{窗口期类型（字符型），可能的值：±、≤、≥、+、-、范围、其他、NA}
-\item{wpvalue}{窗口期数值（字符型），以天为单位。无法解析时为 "NA"}
+A tibble with all columns from input file, plus two new (or overwritten) columns:
+\item{type}{Window type (character): +/-, <=, >=, +, -, range, other, or NA}
+\item{wpvalue}{Window value (character) in days. "NA" if unparseable}
 }
 \description{
-读取访视编码Excel或CSV文件，解析窗口期列为两个新变量：
+Read visit schedule Excel or CSV file and parse window period column into two new variables:
 \itemize{
-\item type：区分 ≤、±、+、-、固定、范围等类型
-\item wpvalue：具体的窗口时间数值（自动转换h为天数）
+\item type: Distinguishes window types (<=, +/-, +, -, fixed, range, etc.)
+\item wpvalue: Specific window time value (automatically converts hours to days)
 }
 
-支持的窗口期格式示例：
+Supported window period format examples:
 \itemize{
-\item "±3d" → 类型: ±, 数值: 3
-\item "≤24h" → 类型: ≤, 数值: 1
-\item "+2天" → 类型: +, 数值: 2
-\item "-1d" → 类型: -, 数值: 1
-\item "1w" → 类型: +, 数值: 7 （1周 = 7天）
-\item "±2周" → 类型: ±, 数值: 14 （2周 = 14天）
+\item "+/-3d" -> type: +/-, value: 3
+\item "<=24h" -> type: <=, value: 1
+\item "+2d" -> type: +, value: 2
+\item "-1d" -> type: -, value: 1
+\item "1w" -> type: +, value: 7 (1 week = 7 days)
+\item "+/-2w" -> type: +/-, value: 14 (2 weeks = 14 days)
 }
 }
 \details{
-\subsection{窗口期列识别}{
+\subsection{Window Period Column Detection}{
 
-函数会自动查找以下列名（按顺序）：窗口期、访视窗口、窗口、window、Window。
+Function automatically searches for column names (in order): window, Window, WINDOW.
 }
 
-\subsection{时间单位转换}{
+\subsection{Time Unit Conversion}{
 
-所有时间单位统一转换为天数：
+All time units are converted to days:
 \itemize{
-\item 小时（h、小时）：除以 24
-\item 天（d、天、日）：保持不变
-\item 周（w、周）：乘以 7
+\item Hours (h): divided by 24
+\item Days (d): unchanged
+\item Weeks (w): multiplied by 7
 }
 }
 
-\subsection{编码支持}{
+\subsection{Encoding Support}{
 
-CSV 文件默认使用 UTF-8 编码读取，支持中文列名和内容。
+CSV files default to UTF-8 encoding, with fallback to system default.
 }
 
-\subsection{列名冲突处理}{
+\subsection{Column Name Conflicts}{
 
-如果数据中已存在 type 或 wpvalue 列，将被覆盖并提示消息。
+If type or wpvalue columns already exist, they will be overwritten with a message.
 }
 }
