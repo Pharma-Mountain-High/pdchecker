@@ -4,14 +4,16 @@ library(dplyr)
 library(readr)
 
 # Mock data and helper functions for testing
-create_temp_sas_file <- function(data, filename) {
-  temp_file <- file.path(tempdir(), filename)
+create_temp_sas_file <- function(data, filename, dir = NULL) {
+  if (is.null(dir)) dir <- withr::local_tempdir(.local_envir = parent.frame())
+  temp_file <- file.path(dir, filename)
   # Since we can't easily create SAS files in tests, we'll mock the haven::read_sas function
   temp_file
 }
 
-create_temp_csv_file <- function(data, filename) {
-  temp_file <- file.path(tempdir(), filename)
+create_temp_csv_file <- function(data, filename, dir = NULL) {
+  if (is.null(dir)) dir <- withr::local_tempdir(.local_envir = parent.frame())
+  temp_file <- file.path(dir, filename)
   write_csv(data, temp_file)
   temp_file
 }
@@ -25,10 +27,10 @@ test_that("read_raw_data validates directory existence", {
 })
 
 test_that("read_raw_data handles empty directory", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
   # Create IWRS file
   iwrs_data <- data.frame(SUBJID = "001")
-  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
+  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv", temp_dir)
 
   expect_warning(
     result <- read_raw_data(temp_dir, iwrs_file = iwrs_file),
@@ -38,7 +40,7 @@ test_that("read_raw_data handles empty directory", {
 
 
 test_that("read_raw_data warns when IWRS file does not exist", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create a format file so we don't fail on format file check
   with_mock(
@@ -68,7 +70,7 @@ test_that("read_raw_data warns when IWRS file does not exist", {
 })
 
 test_that("read_raw_data works without IWRS file when iwrs_file is NULL", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Mock to return SAS files
   with_mock(
@@ -99,7 +101,7 @@ test_that("read_raw_data works without IWRS file when iwrs_file is NULL", {
 })
 
 test_that("read_raw_data warns when IWRS file is empty", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create empty IWRS file
   iwrs_content <- c(
@@ -143,11 +145,11 @@ test_that("read_raw_data warns when IWRS file is empty", {
 })
 
 test_that("read_raw_data handles no format file error", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_data <- data.frame(SUBJID = "001")
-  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
+  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv", temp_dir)
 
   # Mock to return no format file
   with_mock(
@@ -170,11 +172,11 @@ test_that("read_raw_data handles no format file error", {
 })
 
 test_that("read_raw_data handles multiple format files", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_data <- data.frame(SUBJID = "001")
-  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
+  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv", temp_dir)
 
   # Mock to return multiple format files
   with_mock(
@@ -206,11 +208,11 @@ test_that("read_raw_data handles multiple format files", {
 })
 
 test_that("read_raw_data handles format file read error", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_data <- data.frame(SUBJID = "001")
-  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
+  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv", temp_dir)
 
   # Mock to simulate format file read error
   with_mock(
@@ -239,7 +241,7 @@ test_that("read_raw_data handles format file read error", {
 })
 
 test_that("read_raw_data warns on IWRS file read error", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create a malformed IWRS file
   iwrs_file <- file.path(temp_dir, "malformed_iwrs.csv")
@@ -280,7 +282,7 @@ test_that("read_raw_data warns on IWRS file read error", {
 
 
 test_that("read_raw_data processes IWRS file correctly", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create test IWRS data with header rows
   iwrs_content <- c(
@@ -318,11 +320,11 @@ test_that("read_raw_data processes IWRS file correctly", {
 })
 
 test_that("read_raw_data handles file reading errors gracefully", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_data <- data.frame(SUBJID = "001")
-  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
+  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv", temp_dir)
 
   # Mock to simulate SAS files and reading errors
   with_mock(
@@ -354,7 +356,7 @@ test_that("read_raw_data handles file reading errors gracefully", {
 })
 
 test_that("read_raw_data applies format mapping correctly without modifying FMT_TBL", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -420,7 +422,7 @@ test_that("read_raw_data applies format mapping correctly without modifying FMT_
 
 
 test_that("read_raw_data warns about empty datasets", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -462,7 +464,7 @@ test_that("read_raw_data warns about empty datasets", {
 })
 
 test_that("read_raw_data warns about multiple empty datasets with summary", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -539,11 +541,11 @@ test_that("read_raw_data warns about multiple empty datasets with summary", {
 })
 
 test_that("read_raw_data reports multiple failed file reads", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_data <- data.frame(SUBJID = "001")
-  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
+  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv", temp_dir)
 
   # Mock to simulate multiple SAS files with errors
   with_mock(
@@ -582,7 +584,7 @@ test_that("read_raw_data reports multiple failed file reads", {
 })
 
 test_that("read_raw_data handles case-insensitive file pattern matching", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -631,7 +633,7 @@ test_that("read_raw_data handles case-insensitive file pattern matching", {
 
 
 test_that("read_raw_data handles non-existent format_file gracefully", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -673,7 +675,7 @@ test_that("read_raw_data handles non-existent format_file gracefully", {
 })
 
 test_that("read_raw_data correctly filters FMT_DF when FMT_TBL exists", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -744,7 +746,7 @@ test_that("read_raw_data correctly filters FMT_DF when FMT_TBL exists", {
 })
 
 test_that("read_raw_data successfully reads and formats data end-to-end", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -816,7 +818,7 @@ test_that("read_raw_data successfully reads and formats data end-to-end", {
 })
 
 test_that("read_raw_data applies format mapping to actual data values", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -871,7 +873,7 @@ test_that("read_raw_data applies format mapping to actual data values", {
 })
 
 test_that("read_raw_data handles unmapped values in format mapping", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -930,7 +932,7 @@ test_that("read_raw_data_with_formats validates inputs (data_dir and catalog_fil
     "Data directory does not exist: nonexistent_dir"
   )
 
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
   expect_error(
     read_raw_data_with_formats(temp_dir, "nonexistent_catalog.sas7bcat"),
     "Format catalog file does not exist: nonexistent_catalog.sas7bcat"
@@ -948,7 +950,7 @@ test_that("read_raw_data_with_formats validates inputs (data_dir and catalog_fil
 })
 
 test_that("read_raw_data_with_formats works without IWRS file when iwrs_file is NULL", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
@@ -984,7 +986,7 @@ test_that("read_raw_data_with_formats works without IWRS file when iwrs_file is 
 })
 
 test_that("read_raw_data_with_formats warns when IWRS file is empty", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create empty IWRS file
   iwrs_content <- c(
@@ -1031,7 +1033,7 @@ test_that("read_raw_data_with_formats warns when IWRS file is empty", {
 })
 
 test_that("read_raw_data_with_formats handles empty directory", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
   # Create IWRS file
   iwrs_content <- c(
     "Header line 1",
@@ -1053,7 +1055,7 @@ test_that("read_raw_data_with_formats handles empty directory", {
 })
 
 test_that("read_raw_data_with_formats warns when IWRS file does not exist", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
@@ -1092,7 +1094,7 @@ test_that("read_raw_data_with_formats warns when IWRS file does not exist", {
 })
 
 test_that("read_raw_data_with_formats warns on IWRS file read error", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
@@ -1136,7 +1138,7 @@ test_that("read_raw_data_with_formats warns on IWRS file read error", {
 
 
 test_that("read_raw_data_with_formats processes files with catalog", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
@@ -1198,7 +1200,7 @@ test_that("read_raw_data_with_formats processes files with catalog", {
 })
 
 test_that("read_raw_data_with_formats handles reading errors", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
@@ -1206,7 +1208,7 @@ test_that("read_raw_data_with_formats handles reading errors", {
 
   # Create IWRS file
   iwrs_data <- data.frame(SUBJID = "001")
-  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
+  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv", temp_dir)
 
   # Mock to simulate reading errors
   with_mock(
@@ -1236,7 +1238,7 @@ test_that("read_raw_data_with_formats handles reading errors", {
 })
 
 test_that("read_raw_data correctly names datasets with regex fix", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create IWRS file
   iwrs_content <- c(
@@ -1280,7 +1282,7 @@ test_that("read_raw_data correctly names datasets with regex fix", {
 
 
 test_that("read_raw_data_with_formats warns about empty datasets", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
@@ -1288,7 +1290,7 @@ test_that("read_raw_data_with_formats warns about empty datasets", {
 
   # Create IWRS file
   iwrs_data <- data.frame(SUBJID = character(0)) # Empty data
-  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
+  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv", temp_dir)
 
   # Mock to return empty dataset
   with_mock(
@@ -1316,7 +1318,7 @@ test_that("read_raw_data_with_formats warns about empty datasets", {
 })
 
 test_that("read_raw_data_with_formats warns about multiple empty datasets with summary", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
@@ -1412,7 +1414,7 @@ test_that("read_raw_data_with_formats warns about multiple empty datasets with s
 
 
 test_that("read_raw_data_with_formats handles multiple failed file reads", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
@@ -1420,7 +1422,7 @@ test_that("read_raw_data_with_formats handles multiple failed file reads", {
 
   # Create IWRS file
   iwrs_data <- data.frame(SUBJID = "001")
-  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv")
+  iwrs_file <- create_temp_csv_file(iwrs_data, "test_iwrs.csv", temp_dir)
 
   with_mock(
     `list.files` = function(path, pattern, ...) {
@@ -1468,7 +1470,7 @@ test_that("read_raw_data_with_formats handles multiple failed file reads", {
 
 
 test_that("read_raw_data_with_formats uses custom encoding", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
@@ -1519,7 +1521,7 @@ test_that("read_raw_data_with_formats uses custom encoding", {
 
 
 test_that("read_raw_data_with_formats successfully processes labelled data", {
-  temp_dir <- tempdir()
+  temp_dir <- withr::local_tempdir()
 
   # Create mock catalog file
   catalog_file <- file.path(temp_dir, "test_catalog.sas7bcat")
