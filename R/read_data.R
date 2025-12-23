@@ -22,15 +22,64 @@
 #'   Format mapping is applied if format files are available.
 #'   Datasets that failed to read are excluded from the returned list (with a warning message).
 #'   Empty datasets (0 rows) are included but reported via warning.
+#' @examples
+#' \dontrun{
+#' # Read SAS data files from a directory
+#' data <- read_raw_data(
+#'   folder = "path/to/sas/files",
+#'   iwrs_file = "path/to/iwrs.csv"
+#' )
+#'
+#' # Read with additional Excel format mapping file
+#' data <- read_raw_data(
+#'   folder = "path/to/sas/files",
+#'   iwrs_file = "path/to/iwrs.csv",
+#'   format_file = "path/to/formats.xlsx"
+#' )
+#'
+#' # Access individual datasets
+#' dm <- data$DM
+#' ae <- data$AE
+#' }
+#'
+#' @note
+#' - Column names in all returned data frames are converted to uppercase.
+#' - The FORMATS file (if found) is excluded from the returned data list.
+#' - IWRS CSV file is expected to have 2 header rows that will be skipped.
+#' - Format mapping priority: Excel format file > SAS format file.
+#'
+#' @seealso [read_raw_data_with_formats()] for reading data with SAS catalog file
+#' @family data reading functions
+#'
 #' @importFrom haven read_sas
 #' @importFrom dplyr rename_with filter select
 #' @importFrom rlang .data
 #' @importFrom magrittr %>%
+#' @importFrom readr read_csv
+#' @importFrom readxl read_excel
 #' @export
 read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
+  # Validate parameter types
+  if (!is.character(folder) || length(folder) != 1) {
+    stop("'folder' must be a single character string")
+  }
+  if (!is.null(iwrs_file) && (!is.character(iwrs_file) || length(iwrs_file) != 1)) {
+    stop("'iwrs_file' must be NULL or a single character string")
+  }
+  if (!is.null(format_file) && (!is.character(format_file) || length(format_file) != 1)) {
+    stop("'format_file' must be NULL or a single character string")
+  }
+
   # Validate directory existence
   if (!dir.exists(folder)) {
     stop("Specified directory does not exist: ", folder)
+  }
+
+  # Validate format_file extension if provided
+  if (!is.null(format_file) && file.exists(format_file)) {
+    if (!grepl("\\.xlsx$", format_file, ignore.case = TRUE)) {
+      warning("format_file should be an Excel file (.xlsx), got: ", basename(format_file))
+    }
   }
 
   # Find all SAS files
@@ -206,11 +255,57 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
 #'   with factor levels corresponding to the format labels from the catalog file.
 #'   Datasets that failed to read are excluded from the returned list (with a warning message).
 #'   Empty datasets (0 rows) are included but reported via warning.
+#' @examples
+#' \dontrun{
+#' # Read SAS data files with format catalog
+#' data <- read_raw_data_with_formats(
+#'   data_dir = "path/to/sas/files",
+#'   catalog_file = "path/to/formats.sas7bcat",
+#'   iwrs_file = "path/to/iwrs.csv"
+#' )
+#'
+#' # Read with custom encoding (e.g., for Chinese characters)
+#' data <- read_raw_data_with_formats(
+#'   data_dir = "path/to/sas/files",
+#'   catalog_file = "path/to/formats.sas7bcat",
+#'   iwrs_file = "path/to/iwrs.csv",
+#'   encoding = "GBK"
+#' )
+#'
+#' # Access individual datasets
+#' dm <- data$DM
+#' ae <- data$AE
+#' }
+#'
+#' @note
+#' - Column names in all returned data frames are converted to uppercase.
+#' - Labelled columns from SAS are automatically converted to factors.
+#' - IWRS CSV file is expected to have 2 header rows that will be skipped.
+#' - The same encoding is applied to both data files and catalog file.
+#'
+#' @seealso [read_raw_data()] for reading data with SAS format data file
+#' @family data reading functions
+#'
 #' @importFrom haven read_sas as_factor is.labelled
 #' @importFrom dplyr rename_with
 #' @importFrom magrittr %>%
+#' @importFrom readr read_csv
 #' @export
 read_raw_data_with_formats <- function(data_dir, catalog_file, iwrs_file = NULL, encoding = "UTF-8") {
+  # Validate parameter types
+  if (!is.character(data_dir) || length(data_dir) != 1) {
+    stop("'data_dir' must be a single character string")
+  }
+  if (!is.character(catalog_file) || length(catalog_file) != 1) {
+    stop("'catalog_file' must be a single character string")
+  }
+  if (!is.null(iwrs_file) && (!is.character(iwrs_file) || length(iwrs_file) != 1)) {
+    stop("'iwrs_file' must be NULL or a single character string")
+  }
+  if (!is.character(encoding) || length(encoding) != 1) {
+    stop("'encoding' must be a single character string")
+  }
+
   # Validate inputs
   if (!dir.exists(data_dir)) {
     stop("Data directory does not exist: ", data_dir)
@@ -220,7 +315,7 @@ read_raw_data_with_formats <- function(data_dir, catalog_file, iwrs_file = NULL,
     stop("Format catalog file does not exist: ", catalog_file)
   }
 
-  if (!grepl("\\.sas7bcat$", catalog_file)) {
+  if (!grepl("\\.sas7bcat$", catalog_file, ignore.case = TRUE)) {
     stop("Format catalog file must be a .sas7bcat file")
   }
 

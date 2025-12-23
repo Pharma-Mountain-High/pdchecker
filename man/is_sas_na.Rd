@@ -16,3 +16,26 @@ Logical vector indicating which elements are SAS missing values
 Missing data from sas7bdat imported datasets could be imported in different
 ways. This function checks for 'NA', NA, '.', and '' (empty string).
 }
+\note{
+The following values are considered SAS missing:
+\itemize{
+\item R's NA values
+\item The string "NA"
+\item A single period "."
+\item Empty strings "" (after trimming whitespace)
+}
+}
+\examples{
+\dontrun{
+# Check for SAS missing values
+x <- c("1", ".", "", NA, "NA", "valid")
+is_sas_na(x)
+# Returns: FALSE, TRUE, TRUE, TRUE, TRUE, FALSE
+}
+
+}
+\seealso{
+Other format utilities: 
+\code{\link{apply_format_mapping}()}
+}
+\concept{format utilities}

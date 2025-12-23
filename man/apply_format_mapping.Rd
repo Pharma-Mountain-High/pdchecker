@@ -20,4 +20,32 @@ Map values in data frames based on format information, similar to SAS formats.
 This function applies value mappings defined in a format data frame to corresponding
 columns in the input data.
 }
+\note{
+\itemize{
+\item Column name matching is case-insensitive (converted to uppercase).
+\item If format_df is NULL or empty, the original data is returned unchanged.
+\item Unmapped values are preserved as-is.
+}
+}
+\examples{
+\dontrun{
+# Create sample format mapping
+format_df <- data.frame(
+  FMTNAME = c("SEX", "SEX"),
+  START = c("1", "2"),
+  LABEL = c("Male", "Female")
+)
+
+# Apply format mapping to data
+data <- data.frame(SUBJID = c("001", "002"), SEX = c("1", "2"))
+result <- apply_format_mapping(data, format_df)
+}
+
+}
+\seealso{
+\code{\link[=read_raw_data]{read_raw_data()}} which uses this function internally
+
+Other format utilities: 
+\code{\link{is_sas_na}()}
+}
 \concept{format utilities}

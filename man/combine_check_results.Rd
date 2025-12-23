@@ -23,6 +23,15 @@ This is a convenience function for aggregating results from multiple data qualit
 checks. Each check result is converted to a standardized data frame format before
 combining, ensuring consistent structure in the output.
 }
+\examples{
+\dontrun{
+# Combine multiple check results
+result1 <- list(has_deviation = TRUE, messages = "Issue A", details = NULL)
+result2 <- list(has_deviation = FALSE, messages = "No issues", details = NULL)
+combined <- combine_check_results(result1, result2)
+}
+
+}
 \seealso{
 \code{\link{as_check_df}} for converting individual check results
 

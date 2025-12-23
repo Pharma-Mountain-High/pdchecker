@@ -11,9 +11,51 @@
 #'
 #' @return Data frame or list of data frames with values mapped according to format_df
 #'
+#' @note
+#' - Column name matching is case-insensitive (converted to uppercase).
+#' - If format_df is NULL or empty, the original data is returned unchanged.
+#' - Unmapped values are preserved as-is.
+#'
+#' @examples
+#' \dontrun{
+#' # Create sample format mapping
+#' format_df <- data.frame(
+#'   FMTNAME = c("SEX", "SEX"),
+#'   START = c("1", "2"),
+#'   LABEL = c("Male", "Female")
+#' )
+#'
+#' # Apply format mapping to data
+#' data <- data.frame(SUBJID = c("001", "002"), SEX = c("1", "2"))
+#' result <- apply_format_mapping(data, format_df)
+#' }
+#'
+#' @seealso [read_raw_data()] which uses this function internally
 #' @family format utilities
 #' @export
 apply_format_mapping <- function(data, format_df) {
+  # Validate parameter types
+  if (!is.data.frame(data)) {
+    stop("'data' must be a data frame")
+  }
+
+  # Return early if format_df is NULL or empty
+  if (is.null(format_df) || nrow(format_df) == 0) {
+    return(data)
+  }
+
+  if (!is.data.frame(format_df)) {
+    stop("'format_df' must be a data frame or NULL")
+  }
+
+  # Check required columns in format_df
+
+  required_cols <- c("FMTNAME", "START", "LABEL")
+  missing_cols <- setdiff(required_cols, names(format_df))
+  if (length(missing_cols) > 0) {
+    stop("'format_df' is missing required columns: ", paste(missing_cols, collapse = ", "))
+  }
+
   # Convert format_df START column to character to ensure matching
   format_df$START <- as.character(format_df$START)
 
@@ -63,6 +105,22 @@ apply_format_mapping <- function(data, format_df) {
 #'
 #' @return Logical vector indicating which elements are SAS missing values
 #'
+#' @note
+#' The following values are considered SAS missing:
+#' - R's NA values
+#' - The string "NA"
+#' - A single period "."
+#' - Empty strings "" (after trimming whitespace)
+#'
+#' @examples
+#' \dontrun{
+#' # Check for SAS missing values
+#' x <- c("1", ".", "", NA, "NA", "valid")
+#' is_sas_na(x)
+#' # Returns: FALSE, TRUE, TRUE, TRUE, TRUE, FALSE
+#' }
+#'
+#' @family format utilities
 #' @export
 is_sas_na <- function(x) {
   x <- trimws(x)
@@ -103,8 +161,18 @@ is_sas_na <- function(x) {
 #'   \item{...}{Additional columns from details if present}
 #' }
 #'
+#' @examples
+#' \dontrun{
+#' # Convert a check result to data frame
+#' check_result <- list(
+#'   has_deviation = TRUE,
+#'   messages = c("Found 2 deviations"),
+#'   details = data.frame(SUBJID = c("001", "002"), issue = c("A", "B"))
+#' )
+#' df <- as_check_df(check_result, check_name = "my_check")
+#' }
+#'
 #' @family check result utilities
-#' @importFrom dplyr bind_rows
 #' @export
 as_check_df <- function(check_result, check_name = NULL) {
   # Extract check name from class if not provided
@@ -175,6 +243,14 @@ as_check_df <- function(check_result, check_name = NULL) {
 #' @return Data frame with combined check results. Each row represents either a check
 #'   summary or a detailed deviation record, depending on the input check results
 #'
+#' @examples
+#' \dontrun{
+#' # Combine multiple check results
+#' result1 <- list(has_deviation = TRUE, messages = "Issue A", details = NULL)
+#' result2 <- list(has_deviation = FALSE, messages = "No issues", details = NULL)
+#' combined <- combine_check_results(result1, result2)
+#' }
+#'
 #' @seealso \code{\link{as_check_df}} for converting individual check results
 #'
 #' @family check result utilities
@@ -236,6 +312,18 @@ combine_check_results <- function(...) {
 #'   \item{message}{Character. Summary findings message}
 #'   \item{details}{Character. Detailed deviation information}
 #' }
+#'
+#' @examples
+#' \dontrun{
+#' # Parse check output text
+#' output_text <- "8.4 Visit Window Check\n====================\nHas deviation: YES\nFindings:\n- Found 1 issue"
+#' result <- parse_check_output(text = output_text)
+#'
+#' # Capture and parse output from a function
+#' result <- parse_check_output(capture_output = TRUE, check_fn = my_check_function, data = my_data)
+#' }
+#'
+#' @seealso \code{\link{capture_check_results}} for batch processing multiple checks
 #'
 #' @family check result utilities
 #' @importFrom utils capture.output
@@ -439,10 +527,30 @@ parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = N
 #' @return Data frame with combined check results from all functions, with columns
 #'   depending on the parsed output structure
 #'
+#' @examples
+#' \dontrun{
+#' # Define check functions
+#' check_age <- function(data) {
+#'   print("Age check passed")
+#' }
+#' check_gender <- function(data) {
+#'   print("Gender check passed")
+#' }
+#'
+#' # Capture results from multiple checks
+#' results <- capture_check_results(
+#'   age_check = check_age,
+#'   gender_check = check_gender,
+#'   data = my_data
+#' )
+#' }
+#'
 #' @seealso \code{\link{parse_check_output}}, \code{\link{as_check_df}},
 #'   \code{\link{combine_check_results}}
 #'
 #' @family check result utilities
+#' @importFrom dplyr bind_rows
+#' @importFrom utils capture.output
 #' @export
 capture_check_results <- function(..., data = NULL) {
   check_fns <- list(...)

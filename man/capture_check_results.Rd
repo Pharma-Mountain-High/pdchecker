@@ -32,6 +32,25 @@ If a function produces no output, the function attempts to use the return value
 directly via \code{\link{as_check_df}}. If the check name cannot be extracted
 from the output, the parameter name is used as the check name.
 }
+\examples{
+\dontrun{
+# Define check functions
+check_age <- function(data) {
+  print("Age check passed")
+}
+check_gender <- function(data) {
+  print("Gender check passed")
+}
+
+# Capture results from multiple checks
+results <- capture_check_results(
+  age_check = check_age,
+  gender_check = check_gender,
+  data = my_data
+)
+}
+
+}
 \seealso{
 \code{\link{parse_check_output}}, \code{\link{as_check_df}},
 \code{\link{combine_check_results}}
