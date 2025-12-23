@@ -45,7 +45,20 @@ When parsing deviation details, the function attempts to extract subject IDs (SU
 from lines containing the Chinese character "Subject" followed by numeric IDs. If multiple
 subjects are found, each gets a separate row in the output.
 }
+\examples{
+\dontrun{
+# Parse check output text
+output_text <- "8.4 Visit Window Check\n====================\nHas deviation: YES\nFindings:\n- Found 1 issue"
+result <- parse_check_output(text = output_text)
+
+# Capture and parse output from a function
+result <- parse_check_output(capture_output = TRUE, check_fn = my_check_function, data = my_data)
+}
+
+}
 \seealso{
+\code{\link{capture_check_results}} for batch processing multiple checks
+
 Other check result utilities: 
 \code{\link{as_check_df}()},
 \code{\link{capture_check_results}()},

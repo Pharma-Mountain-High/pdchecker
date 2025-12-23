@@ -38,6 +38,18 @@ If details are present and non-empty, the function returns the detailed data fra
 with added check_name and has_deviation columns. Otherwise, it returns a summary
 data frame with one row.
 }
+\examples{
+\dontrun{
+# Convert a check result to data frame
+check_result <- list(
+  has_deviation = TRUE,
+  messages = c("Found 2 deviations"),
+  details = data.frame(SUBJID = c("001", "002"), issue = c("A", "B"))
+)
+df <- as_check_df(check_result, check_name = "my_check")
+}
+
+}
 \seealso{
 Other check result utilities: 
 \code{\link{capture_check_results}()},

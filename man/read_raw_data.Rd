@@ -36,3 +36,39 @@ Empty datasets (0 rows) are included but reported via warning.
 \description{
 Scan specified directory and read all SAS format files
 }
+\note{
+\itemize{
+\item Column names in all returned data frames are converted to uppercase.
+\item The FORMATS file (if found) is excluded from the returned data list.
+\item IWRS CSV file is expected to have 2 header rows that will be skipped.
+\item Format mapping priority: Excel format file > SAS format file.
+}
+}
+\examples{
+\dontrun{
+# Read SAS data files from a directory
+data <- read_raw_data(
+  folder = "path/to/sas/files",
+  iwrs_file = "path/to/iwrs.csv"
+)
+
+# Read with additional Excel format mapping file
+data <- read_raw_data(
+  folder = "path/to/sas/files",
+  iwrs_file = "path/to/iwrs.csv",
+  format_file = "path/to/formats.xlsx"
+)
+
+# Access individual datasets
+dm <- data$DM
+ae <- data$AE
+}
+
+}
+\seealso{
+\code{\link[=read_raw_data_with_formats]{read_raw_data_with_formats()}} for reading data with SAS catalog file
+
+Other data reading functions: 
+\code{\link{read_raw_data_with_formats}()}
+}
+\concept{data reading functions}

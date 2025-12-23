@@ -43,3 +43,41 @@ Empty datasets (0 rows) are included but reported via warning.
 This function reads raw SAS datasets using a format catalog file to apply formats.
 Formats are applied by converting labelled columns to factors using the catalog labels.
 }
+\note{
+\itemize{
+\item Column names in all returned data frames are converted to uppercase.
+\item Labelled columns from SAS are automatically converted to factors.
+\item IWRS CSV file is expected to have 2 header rows that will be skipped.
+\item The same encoding is applied to both data files and catalog file.
+}
+}
+\examples{
+\dontrun{
+# Read SAS data files with format catalog
+data <- read_raw_data_with_formats(
+  data_dir = "path/to/sas/files",
+  catalog_file = "path/to/formats.sas7bcat",
+  iwrs_file = "path/to/iwrs.csv"
+)
+
+# Read with custom encoding (e.g., for Chinese characters)
+data <- read_raw_data_with_formats(
+  data_dir = "path/to/sas/files",
+  catalog_file = "path/to/formats.sas7bcat",
+  iwrs_file = "path/to/iwrs.csv",
+  encoding = "GBK"
+)
+
+# Access individual datasets
+dm <- data$DM
+ae <- data$AE
+}
+
+}
+\seealso{
+\code{\link[=read_raw_data]{read_raw_data()}} for reading data with SAS format data file
+
+Other data reading functions: 
+\code{\link{read_raw_data}()}
+}
+\concept{data reading functions}
