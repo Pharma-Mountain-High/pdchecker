@@ -44,3 +44,59 @@ A list of class "icf_time_deviation" with the following components:
 \description{
 Check if any time variables occur before informed consent time
 }
+\note{
+Date variables in other datasets are identified by variable names ending with "DAT"
+(e.g., LBDAT, VSDAT, AEENDAT). Variables not following this naming convention will not be checked.
+}
+\examples{
+\dontrun{
+# Example 1: Basic usage with default parameters
+data <- list(
+  IC = data.frame(
+    SUBJID = c("001", "002", "003"),
+    ICDAT = c("2024-01-15", "2024-02-01", "2024-03-01")
+  ),
+  LB = data.frame(
+    SUBJID = c("001", "002", "003"),
+    LBDAT = c("2024-01-10", "2024-02-05", "2024-03-05")
+  )
+)
+result <- check_icf_time_deviation(data)
+print(result)
+
+# Example 2: Exclude specific datasets from check
+result <- check_icf_time_deviation(
+  data,
+  exclude_datasets = c("DM", "DS")
+)
+
+# Example 3: Ignore additional date variables
+result <- check_icf_time_deviation(
+  data,
+  ignore_vars = c("BRTHDAT", "MHSTDAT", "DSSTDAT")
+)
+
+# Example 4: Use custom IC dataset and variable names
+data_custom <- list(
+  ICF = data.frame(
+    SUBJID = c("001", "002"),
+    ICFDAT = c("2024-01-15", "2024-02-01")
+  ),
+  VS = data.frame(
+    SUBJID = c("001", "002"),
+    VSDAT = c("2024-01-10", "2024-02-05")
+  )
+)
+result <- check_icf_time_deviation(
+  data_custom,
+  ic_dataset = "ICF",
+  ic_date_var = "ICFDAT"
+)
+}
+
+}
+\seealso{
+Other deviation checks: 
+\code{\link{check_screen_without_ic}()}
+}
+\concept{deviation checks}

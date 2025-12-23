@@ -43,3 +43,63 @@ Returns empty data frame if no deviations found.}
 \description{
 Check for screened subjects without informed consent
 }
+\examples{
+\dontrun{
+# Example 1: Basic usage with default parameters
+data <- list(
+  SV = data.frame(
+    SUBJID = c("001", "002", "003"),
+    VISIT = c("Screening", "Screening", "C1D1")
+  ),
+  IC = data.frame(
+    SUBJID = c("001", "002"),
+    ICDAT = c("2024-01-01", "2024-01-02")
+  )
+)
+result <- check_screen_without_ic(data)
+print(result)
+
+# Example 2: Using custom dataset names
+data2 <- list(
+  VIS = data.frame(
+    SUBJID = c("001", "002"),
+    VISIT = c("Screening", "Screening")
+  ),
+  ICF = data.frame(
+    SUBJID = c("001"),
+    ICDAT = c("2024-01-01")
+  )
+)
+result2 <- check_screen_without_ic(
+  data2,
+  sv_dataset = "VIS",
+  ic_dataset = "ICF"
+)
+
+# Example 3: Using custom variable names and visit pattern
+data3 <- list(
+  SV = data.frame(
+    SUBJID = c("001", "002", "003"),
+    VISITNAME = c("Scr", "Scr", "Treatment")
+  ),
+  IC = data.frame(
+    SUBJID = c("001", "002"),
+    ICFDAT = c("2024-01-01", "2024-01-02")
+  )
+)
+result3 <- check_screen_without_ic(
+  data3,
+  visit_var = "VISITNAME",
+  visit_pattern = "Scr",
+  ic_date_var = "ICFDAT"
+)
+}
+
+}
+\seealso{
+\code{\link[=check_icf_time_deviation]{check_icf_time_deviation()}} for checking events before informed consent
+
+Other deviation checks: 
+\code{\link{check_icf_time_deviation}()}
+}
+\concept{deviation checks}

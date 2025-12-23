@@ -1,6 +1,3 @@
-# Global variables
-utils::globalVariables(c("SUBJID"))
-
 #' Check for screened subjects without informed consent
 #'
 #' @param data List of data frames containing study data
@@ -21,6 +18,62 @@ utils::globalVariables(c("SUBJID"))
 #'     but no informed consent date (or date is NA).
 #'     Returns empty data frame if no deviations found.}
 #' }
+#'
+#' @examples
+#' \dontrun{
+#' # Example 1: Basic usage with default parameters
+#' data <- list(
+#'   SV = data.frame(
+#'     SUBJID = c("001", "002", "003"),
+#'     VISIT = c("Screening", "Screening", "C1D1")
+#'   ),
+#'   IC = data.frame(
+#'     SUBJID = c("001", "002"),
+#'     ICDAT = c("2024-01-01", "2024-01-02")
+#'   )
+#' )
+#' result <- check_screen_without_ic(data)
+#' print(result)
+#'
+#' # Example 2: Using custom dataset names
+#' data2 <- list(
+#'   VIS = data.frame(
+#'     SUBJID = c("001", "002"),
+#'     VISIT = c("Screening", "Screening")
+#'   ),
+#'   ICF = data.frame(
+#'     SUBJID = c("001"),
+#'     ICDAT = c("2024-01-01")
+#'   )
+#' )
+#' result2 <- check_screen_without_ic(
+#'   data2,
+#'   sv_dataset = "VIS",
+#'   ic_dataset = "ICF"
+#' )
+#'
+#' # Example 3: Using custom variable names and visit pattern
+#' data3 <- list(
+#'   SV = data.frame(
+#'     SUBJID = c("001", "002", "003"),
+#'     VISITNAME = c("Scr", "Scr", "Treatment")
+#'   ),
+#'   IC = data.frame(
+#'     SUBJID = c("001", "002"),
+#'     ICFDAT = c("2024-01-01", "2024-01-02")
+#'   )
+#' )
+#' result3 <- check_screen_without_ic(
+#'   data3,
+#'   visit_var = "VISITNAME",
+#'   visit_pattern = "Scr",
+#'   ic_date_var = "ICFDAT"
+#' )
+#' }
+#'
+#' @family deviation checks
+#' @seealso [check_icf_time_deviation()] for checking events before informed consent
+#'
 #' @importFrom dplyr anti_join select distinct filter %>%
 #' @importFrom rlang .data
 #' @export
@@ -30,6 +83,26 @@ check_screen_without_ic <- function(data,
                                     visit_var = "VISIT",
                                     visit_pattern = "Screening|screening",
                                     ic_date_var = "ICDAT") {
+  # Validate parameter types
+  if (!is.list(data)) {
+    stop("'data' must be a list of data frames")
+  }
+  if (!is.character(sv_dataset) || length(sv_dataset) != 1) {
+    stop("'sv_dataset' must be a single character string")
+  }
+  if (!is.character(ic_dataset) || length(ic_dataset) != 1) {
+    stop("'ic_dataset' must be a single character string")
+  }
+  if (!is.character(visit_var) || length(visit_var) != 1) {
+    stop("'visit_var' must be a single character string")
+  }
+  if (!is.character(visit_pattern) || length(visit_pattern) < 1) {
+    stop("'visit_pattern' must be a character string")
+  }
+  if (!is.character(ic_date_var) || length(ic_date_var) != 1) {
+    stop("'ic_date_var' must be a single character string")
+  }
+
   # Initialize results
   results <- list(
     has_deviation = FALSE,

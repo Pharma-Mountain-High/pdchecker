@@ -21,24 +21,103 @@
 #'       }
 #'     }
 #'   }
+#'
+#' @note Date variables in other datasets are identified by variable names ending with "DAT"
+#' (e.g., LBDAT, VSDAT, AEENDAT). Variables not following this naming convention will not be checked.
+#'
+#' @examples
+#' \dontrun{
+#' # Example 1: Basic usage with default parameters
+#' data <- list(
+#'   IC = data.frame(
+#'     SUBJID = c("001", "002", "003"),
+#'     ICDAT = c("2024-01-15", "2024-02-01", "2024-03-01")
+#'   ),
+#'   LB = data.frame(
+#'     SUBJID = c("001", "002", "003"),
+#'     LBDAT = c("2024-01-10", "2024-02-05", "2024-03-05")
+#'   )
+#' )
+#' result <- check_icf_time_deviation(data)
+#' print(result)
+#'
+#' # Example 2: Exclude specific datasets from check
+#' result <- check_icf_time_deviation(
+#'   data,
+#'   exclude_datasets = c("DM", "DS")
+#' )
+#'
+#' # Example 3: Ignore additional date variables
+#' result <- check_icf_time_deviation(
+#'   data,
+#'   ignore_vars = c("BRTHDAT", "MHSTDAT", "DSSTDAT")
+#' )
+#'
+#' # Example 4: Use custom IC dataset and variable names
+#' data_custom <- list(
+#'   ICF = data.frame(
+#'     SUBJID = c("001", "002"),
+#'     ICFDAT = c("2024-01-15", "2024-02-01")
+#'   ),
+#'   VS = data.frame(
+#'     SUBJID = c("001", "002"),
+#'     VSDAT = c("2024-01-10", "2024-02-05")
+#'   )
+#' )
+#' result <- check_icf_time_deviation(
+#'   data_custom,
+#'   ic_dataset = "ICF",
+#'   ic_date_var = "ICFDAT"
+#' )
+#' }
+#'
+#' @family deviation checks
 #' @importFrom dplyr filter mutate select left_join all_of arrange group_by slice ungroup bind_rows
+#' @importFrom rlang .data
 #' @export
 check_icf_time_deviation <- function(data,
                                      ic_dataset = "IC",
                                      ic_date_var = "ICDAT",
                                      ignore_vars = "BRTHDAT",
                                      exclude_datasets = NULL) {
+  # Validate parameter types
+  if (!is.list(data)) {
+    stop("'data' must be a list of data frames")
+  }
+  if (!is.character(ic_dataset) || length(ic_dataset) != 1) {
+    stop("'ic_dataset' must be a single character string")
+  }
+  if (!is.character(ic_date_var) || length(ic_date_var) != 1) {
+    stop("'ic_date_var' must be a single character string")
+  }
+  if (!is.character(ignore_vars)) {
+    stop("'ignore_vars' must be a character vector")
+  }
+  if (!is.null(exclude_datasets) && !is.character(exclude_datasets)) {
+    stop("'exclude_datasets' must be NULL or a character vector")
+  }
+
+  # Validate required datasets
+  if (!ic_dataset %in% names(data)) {
+    stop(paste0("Missing IC dataset: ", ic_dataset))
+  }
+
+  # Validate that ic_date_var exists in ic_dataset
+  if (!ic_date_var %in% names(data[[ic_dataset]])) {
+    stop(sprintf("Variable '%s' not found in dataset '%s'", ic_date_var, ic_dataset))
+  }
+
+  # Validate that SUBJID exists in ic_dataset
+  if (!"SUBJID" %in% names(data[[ic_dataset]])) {
+    stop(sprintf("'SUBJID' column not found in dataset '%s'", ic_dataset))
+  }
+
   # Initialize results
   results <- list(
     has_deviation = FALSE,
     messages = character(),
     details = data.frame()
   )
-
-  # Get ICF date/time
-  if (!ic_dataset %in% names(data)) {
-    stop(paste0("Missing IC dataset: ", ic_dataset))
-  }
 
   icf_times <- data[[ic_dataset]] %>%
     select(SUBJID, all_of(ic_date_var)) %>%
