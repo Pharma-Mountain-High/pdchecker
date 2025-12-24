@@ -25,10 +25,10 @@
 #' @keywords internal
 #' @noRd
 calc_planned_dates <- function(subj_id,
-                                            visit_info,
-                                            actual_visits,
-                                            subject_dates,
-                                            cycle_days) {
+                               visit_info,
+                               actual_visits,
+                               subject_dates,
+                               cycle_days) {
   # Get actual visit records for this subject
 
   subj_actual <- actual_visits %>%

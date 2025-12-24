@@ -206,7 +206,7 @@ test_that("check_visit_window 处理缺少必需列的情况", {
 
   expect_error(
     check_visit_window(planned_dates),
-    "planned_dates 缺少必要的列.*wp_start"
+    "'planned_dates' is missing required columns: wp_start"
   )
 })
 
@@ -215,12 +215,12 @@ test_that("check_visit_window 处理缺少必需列的情况", {
 test_that("check_visit_window 验证 planned_dates 是 data frame", {
   expect_error(
     check_visit_window("not a data frame"),
-    "planned_dates 必须是 data frame 类型"
+    "'planned_dates' must be a data frame"
   )
 
   expect_error(
     check_visit_window(list(a = 1, b = 2)),
-    "planned_dates 必须是 data frame 类型"
+    "'planned_dates' must be a data frame"
   )
 })
 
@@ -342,3 +342,4 @@ test_that("print.visit_window_check 在无偏差时正常工作", {
 
   expect_true(any(grepl("Has deviation: NO", output)))
 })
+
