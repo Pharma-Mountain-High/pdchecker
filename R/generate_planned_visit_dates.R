@@ -343,7 +343,7 @@ generate_planned_visit_dates <- function(data,
   # ============================================================================
 
   planned_dates <- map_dfr(subjects, function(subj_id) {
-    calculate_subject_planned_dates(
+    calc_planned_dates(
       subj_id = subj_id,
       visit_info = visit_info,
       actual_visits = actual_visits,

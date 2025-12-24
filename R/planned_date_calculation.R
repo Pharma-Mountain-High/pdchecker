@@ -24,7 +24,7 @@
 #'
 #' @keywords internal
 #' @noRd
-calculate_subject_planned_dates <- function(subj_id,
+calc_planned_dates <- function(subj_id,
                                             visit_info,
                                             actual_visits,
                                             subject_dates,

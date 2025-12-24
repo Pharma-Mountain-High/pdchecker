@@ -18,8 +18,10 @@ Imports:
     tibble,
     purrr
 Suggests:
+    knitr,
     mockery,
     openxlsx,
+    rmarkdown,
     testthat (>= 3.0.0),
     withr,
     writexl
