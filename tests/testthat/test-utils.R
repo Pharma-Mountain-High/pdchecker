@@ -338,3 +338,137 @@ test_that("capture_check_results() captures and parses output", {
   expect_s3_class(result, "data.frame")
   expect_true("check_name" %in% names(result))
 })
+
+
+# =============================================================================
+# 测试 is_d1_visit() 函数 (internal function)
+# =============================================================================
+
+test_that("is_d1_visit() 正确识别D1访视", {
+  is_d1_visit <- pdchecker:::is_d1_visit
+
+  # D1访视（visitday = 1）
+
+  expect_true(is_d1_visit("C1D1", "1"))
+  expect_true(is_d1_visit("C2D1", "1"))
+  expect_true(is_d1_visit("Cycle 1 Day 1", "1"))
+  expect_true(is_d1_visit("治疗周期1第1天", 1)) # 数值类型也应该工作
+
+  # 非D1访视
+  expect_false(is_d1_visit("C1D8", "8"))
+  expect_false(is_d1_visit("C1D15", "15"))
+  expect_false(is_d1_visit("C2D8", "8"))
+  expect_false(is_d1_visit("EOT", "EOT"))
+  expect_false(is_d1_visit("Follow-up", "EOT+30"))
+
+  # 边界情况
+  expect_false(is_d1_visit("C1D1", NA))
+  expect_false(is_d1_visit("C1D1", ""))
+  expect_false(is_d1_visit(NA, NA))
+})
+
+test_that("is_d1_visit() 处理非数字visitday", {
+  is_d1_visit <- pdchecker:::is_d1_visit
+
+  # 非数字的visitday应返回FALSE
+  expect_false(is_d1_visit("EOT Visit", "EOT"))
+  expect_false(is_d1_visit("Follow-up", "EOT+30"))
+  expect_false(is_d1_visit("Follow-up", "LD+30"))
+})
+
+
+# =============================================================================
+# 测试 calculate_window_range() 函数 (internal function)
+# =============================================================================
+
+test_that("calculate_window_range() 正确计算 ± 类型窗口", {
+  calculate_window_range <- pdchecker:::calculate_window_range
+
+  planned_date <- as.Date("2024-01-15")
+  result <- calculate_window_range(planned_date, "±", 3)
+
+  expect_equal(result$window_start, as.Date("2024-01-12"))
+  expect_equal(result$window_end, as.Date("2024-01-18"))
+})
+
+test_that("calculate_window_range() 正确计算 + 类型窗口", {
+  calculate_window_range <- pdchecker:::calculate_window_range
+
+  planned_date <- as.Date("2024-01-15")
+  result <- calculate_window_range(planned_date, "+", 7)
+
+  expect_equal(result$window_start, as.Date("2024-01-15"))
+  expect_equal(result$window_end, as.Date("2024-01-22"))
+})
+
+test_that("calculate_window_range() 正确计算 - 类型窗口", {
+  calculate_window_range <- pdchecker:::calculate_window_range
+
+  planned_date <- as.Date("2024-01-15")
+  result <- calculate_window_range(planned_date, "-", 5)
+
+  expect_equal(result$window_start, as.Date("2024-01-10"))
+  expect_equal(result$window_end, as.Date("2024-01-15"))
+})
+
+test_that("calculate_window_range() 正确计算 ≤ 类型窗口", {
+  calculate_window_range <- pdchecker:::calculate_window_range
+
+  planned_date <- as.Date("2024-01-15")
+  result <- calculate_window_range(planned_date, "≤", 5)
+
+  expect_equal(result$window_start, as.Date("2024-01-10"))
+  expect_equal(result$window_end, as.Date("2024-01-15"))
+})
+
+test_that("calculate_window_range() 正确计算 ≥ 类型窗口", {
+  calculate_window_range <- pdchecker:::calculate_window_range
+
+  planned_date <- as.Date("2024-01-15")
+  result <- calculate_window_range(planned_date, "≥", 5)
+
+  expect_equal(result$window_start, as.Date("2024-01-15"))
+  expect_equal(result$window_end, as.Date("2024-01-20"))
+})
+
+test_that("calculate_window_range() 未知窗口类型使用默认±1d", {
+  calculate_window_range <- pdchecker:::calculate_window_range
+
+  planned_date <- as.Date("2024-01-15")
+  result <- calculate_window_range(planned_date, "unknown", 10)
+
+  # 默认使用 ±1d
+  expect_equal(result$window_start, as.Date("2024-01-14"))
+  expect_equal(result$window_end, as.Date("2024-01-16"))
+})
+
+test_that("calculate_window_range() 处理NA输入", {
+  calculate_window_range <- pdchecker:::calculate_window_range
+
+  # 计划日期为NA
+  result1 <- calculate_window_range(as.Date(NA), "±", 3)
+  expect_true(is.na(result1$window_start))
+  expect_true(is.na(result1$window_end))
+
+  # 窗口类型为NA
+  result2 <- calculate_window_range(as.Date("2024-01-15"), NA, 3)
+  expect_true(is.na(result2$window_start))
+  expect_true(is.na(result2$window_end))
+
+  # 窗口值为NA
+  result3 <- calculate_window_range(as.Date("2024-01-15"), "±", NA)
+  expect_true(is.na(result3$window_start))
+  expect_true(is.na(result3$window_end))
+})
+
+test_that("calculate_window_range() 返回正确的列表结构", {
+  calculate_window_range <- pdchecker:::calculate_window_range
+
+  result <- calculate_window_range(as.Date("2024-01-15"), "±", 3)
+
+  expect_type(result, "list")
+  expect_true("window_start" %in% names(result))
+  expect_true("window_end" %in% names(result))
+  expect_s3_class(result$window_start, "Date")
+  expect_s3_class(result$window_end, "Date")
+})

@@ -7,19 +7,22 @@
 read_visitcode_file(file_path, sheet_name = "Sheet1")
 }
 \arguments{
-\item{file_path}{File path (.xlsx, .xls, or .csv)}
+\item{file_path}{Character. File path (.xlsx, .xls, or .csv).
+Must be a non-empty string pointing to an existing file.}
 
-\item{sheet_name}{Excel sheet name (default: "Sheet1"). Ignored for CSV files.}
+\item{sheet_name}{Character. Excel sheet name (default: "Sheet1").
+Ignored for CSV files.}
 }
 \value{
 A tibble with all columns from input file, plus two new (or overwritten) columns:
 \item{type}{Window type (character): +/-, <=, >=, +, -, range, other, or NA}
-\item{wpvalue}{Window value (character) in days. "NA" if unparseable}
+\item{wpvalue}{Window value (numeric) in days. NA if unparseable (e.g., range or other types)}
 }
 \description{
-Read visit schedule Excel or CSV file and parse window period column into two new variables:
+Read visit schedule Excel or CSV file and parse window period column (WP)
+into two new variables:
 \itemize{
-\item type: Distinguishes window types (<=, +/-, +, -, fixed, range, etc.)
+\item type: Distinguishes window types (<=, +/-, +, -, range, etc.)
 \item wpvalue: Specific window time value (automatically converts hours to days)
 }
 
@@ -34,9 +37,9 @@ Supported window period format examples:
 }
 }
 \details{
-\subsection{Window Period Column Detection}{
+\subsection{Window Period Column}{
 
-Function automatically searches for column names (in order): window, Window, WINDOW.
+The input file must contain a column named "WP" (case-sensitive).
 }
 
 \subsection{Time Unit Conversion}{
@@ -58,4 +61,25 @@ CSV files default to UTF-8 encoding, with fallback to system default.
 
 If type or wpvalue columns already exist, they will be overwritten with a message.
 }
+}
+\examples{
+\dontrun{
+# Read from Excel file
+data <- read_visitcode_file("visit_schedule.xlsx")
+
+# Read from specific sheet
+data <- read_visitcode_file("visit_schedule.xlsx", sheet_name = "Schedule")
+
+# Read from CSV file
+data <- read_visitcode_file("visit_schedule.csv")
+
+# Example output structure:
+#   visit  WP      type   wpvalue
+#   V1     ±3d     ±      3
+#   V2     <=24h   ≤      1
+#   V3     +2d     +      2
+#   V4     -1d     -      1
+#   V5     1w      +      7
+}
+
 }

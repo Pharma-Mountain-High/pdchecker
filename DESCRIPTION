@@ -15,7 +15,8 @@ Imports:
     readr,
     readxl,
     rlang,
-    tibble
+    tibble,
+    purrr
 Suggests:
     mockery,
     openxlsx,

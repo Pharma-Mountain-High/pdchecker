@@ -638,3 +638,67 @@ match_visit_type <- function(visit_type) {
     return("unknown")
   }
 }
+
+#' Check if a visit is a D1 (Day 1) visit
+#'
+#' @description
+#' Internal helper function to determine if a visit is a D1 visit based on visit day.
+#'
+#' @param visit_name Character string, visit name (currently unused but kept for future extension)
+#' @param visit_day Character or numeric, visit day value
+#'
+#' @return Logical, TRUE if visit is a D1 visit
+#'
+#' @keywords internal
+#' @noRd
+is_d1_visit <- function(visit_name, visit_day) {
+  if (is.na(visit_day)) {
+    return(FALSE)
+  }
+  # 只检查访视日是否为1
+  return(as.character(visit_day) == "1")
+}
+
+#' Calculate visit window range based on window type and value
+#'
+#' @description
+#' Internal helper function to calculate visit window start and end dates
+#' based on planned date, window type, and window value.
+#'
+#' @param planned_date Date, the planned visit date
+#' @param window_type Character, window type symbol: "±", "+", "-", "≤", "≥"
+#' @param window_value Numeric, window value in days
+#'
+#' @return Named list with \code{window_start} and \code{window_end} dates
+#'
+#' @keywords internal
+#' @noRd
+calculate_window_range <- function(planned_date, window_type, window_value) {
+  window_start <- as.Date(NA)
+  window_end <- as.Date(NA)
+
+  if (!is.na(planned_date) && !is.na(window_type) && !is.na(window_value)) {
+    if (window_type == "±") {
+      window_start <- planned_date - window_value
+      window_end <- planned_date + window_value
+    } else if (window_type == "+") {
+      window_start <- planned_date
+      window_end <- planned_date + window_value
+    } else if (window_type == "-") {
+      window_start <- planned_date - window_value
+      window_end <- planned_date
+    } else if (window_type == "≤") {
+      window_start <- planned_date - window_value
+      window_end <- planned_date
+    } else if (window_type == "≥") {
+      window_start <- planned_date
+      window_end <- planned_date + window_value
+    } else {
+      # 默认±1d
+      window_start <- planned_date - 1
+      window_end <- planned_date + 1
+    }
+  }
+
+  return(list(window_start = window_start, window_end = window_end))
+}
