@@ -85,3 +85,40 @@ Visit types are automatically identified by \code{generate_planned_visit_dates}:
 }
 }
 }
+\examples{
+\dontrun{
+# Load data and visit schedule
+data <- read_raw_data("path/to/data")
+visit_codes <- read_visitcode_file("path/to/visitcode.xlsx")
+
+# Generate planned visit dates
+planned_dates <- generate_planned_visit_dates(
+  data = data,
+  visit_schedule_data = visit_codes
+)
+
+# Check missing visits with default cutoff (current date)
+result <- check_missing_visit(planned_dates)
+print(result)
+
+# Check missing visits with specific cutoff date
+result <- check_missing_visit(
+  planned_dates = planned_dates,
+  cutoffdt = as.Date("2024-06-30")
+)
+
+# Access deviation details
+if (result$has_deviation) {
+  missing_details <- result$details
+}
+}
+
+}
+\seealso{
+\code{\link{generate_planned_visit_dates}} for generating planned visit data
+\code{\link{check_visit_window}} for checking visit window deviations
+
+Other visit checks: 
+\code{\link{check_visit_window}()}
+}
+\concept{visit checks}

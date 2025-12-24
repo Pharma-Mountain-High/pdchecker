@@ -91,7 +91,7 @@ utils::globalVariables(c(
   # Deviation Related
   # =========================================================================
   "CRITERION",
-  "has_deviation", "deviation_reason",
+  "has_deviation", "deviation_reason", "deviation_count",
 
   # =========================================================================
   # Window Related

@@ -68,25 +68,62 @@
 #'     \item{planned_visits}{Data frame. Complete input planned visit information}
 #'   }
 #'
-#' @importFrom dplyr filter select mutate group_by ungroup pull distinct
+#' @examples
+#' \dontrun{
+#' # Load data and visit schedule
+#' data <- read_raw_data("path/to/data")
+#' visit_codes <- read_visitcode_file("path/to/visitcode.xlsx")
+#'
+#' # Generate planned visit dates
+#' planned_dates <- generate_planned_visit_dates(
+#'   data = data,
+#'   visit_schedule_data = visit_codes
+#' )
+#'
+#' # Check missing visits with default cutoff (current date)
+#' result <- check_missing_visit(planned_dates)
+#' print(result)
+#'
+#' # Check missing visits with specific cutoff date
+#' result <- check_missing_visit(
+#'   planned_dates = planned_dates,
+#'   cutoffdt = as.Date("2024-06-30")
+#' )
+#'
+#' # Access deviation details
+#' if (result$has_deviation) {
+#'   missing_details <- result$details
+#' }
+#' }
+#'
+#' @seealso
+#' \code{\link{generate_planned_visit_dates}} for generating planned visit data
+#' \code{\link{check_visit_window}} for checking visit window deviations
+#'
+#' @family visit checks
+#'
+#' @importFrom dplyr filter mutate bind_rows
+#' @importFrom purrr map_chr map_dfr
+#' @importFrom rlang .data
 #' @importFrom magrittr %>%
 #' @export
 #'
 check_missing_visit <- function(planned_dates,
                                 cutoffdt = Sys.Date()) {
-  # 验证输入参数
+  # Validate input parameters
   if (!is.data.frame(planned_dates)) {
-    stop("planned_dates 必须是 data frame 类型")
+    stop("'planned_dates' must be a data frame")
   }
 
-  # 检查必要的列
+  # Check required columns
   required_cols <- c(
     "SUBJID", "VISIT", "VISITNUM", "visittype", "planned_date",
     "status", "eot_date", "eos_date"
   )
+
   missing_cols <- setdiff(required_cols, names(planned_dates))
   if (length(missing_cols) > 0) {
-    stop("planned_dates 缺少必要的列: ", paste(missing_cols, collapse = ", "))
+    stop("'planned_dates' is missing required columns: ", paste(missing_cols, collapse = ", "))
   }
 
   # Initialize results
@@ -94,35 +131,35 @@ check_missing_visit <- function(planned_dates,
     has_deviation = FALSE,
     messages = character(),
     details = data.frame(),
-    planned_visits = planned_dates # 存储输入的计划访视信息
+    planned_visits = planned_dates
   )
 
-  # 确保数据截止日期为Date类型
+  # Ensure cutoff date is Date type
   if (!inherits(cutoffdt, "Date")) {
     cutoffdt <- as.Date(cutoffdt)
   }
 
-  # 为计划访视数据添加访视类型分类
-  # 使用 utils.R 中的共享函数 match_visit_type
-  planned_dates$visit_category <- sapply(planned_dates$visittype, match_visit_type)
+  # Add visit type classification using shared function from utils.R
+  planned_dates <- planned_dates %>%
+    mutate(visit_category = map_chr(.data$visittype, match_visit_type))
 
-  # 为每个受试者检查缺失访视
+  # Check missing visits for each subject
   subjects <- unique(planned_dates$SUBJID)
 
-  subject_visits_list <- lapply(subjects, function(subj_id) {
-    # 获取该受试者的计划访视
-    subj_planned <- dplyr::filter(planned_dates, SUBJID == subj_id)
+  subject_visits <- map_dfr(subjects, function(subj_id) {
+    # Get planned visits for this subject
+    subj_planned <- filter(planned_dates, .data$SUBJID == subj_id)
 
-    # 为不同类型的访视计算不同的终止日期
-    # 筛选期和治疗期：min(eotdate, eosdate, cutoffdt)
-    # 治疗结束、退出研究、随访期：min(eosdate, cutoffdt)
+    # Calculate different termination dates for different visit types
+    # Screening and treatment: min(eotdate, eosdate, cutoffdt)
+    # End of treatment, withdrawal, follow-up: min(eosdate, cutoffdt)
 
-    # 获取该受试者的各种日期
+    # Get dates for this subject
     first_dose_date <- unique(subj_planned$first_dose_date)[1]
     eot_date <- unique(subj_planned$eot_date)[1]
     eos_date <- unique(subj_planned$eos_date)[1]
 
-    # 计算筛选期和治疗期访视的终止日期：min(eotdate, eosdate, cutoffdt)
+    # Calculate termination date for screening and treatment visits
     trtmax_dates <- c(cutoffdt)
     if (!is.na(eot_date)) {
       trtmax_dates <- c(trtmax_dates, eot_date)
@@ -130,39 +167,38 @@ check_missing_visit <- function(planned_dates,
     if (!is.na(eos_date)) {
       trtmax_dates <- c(trtmax_dates, eos_date)
     }
-    cutoffdt_trt <- as.Date(min(trtmax_dates, na.rm = TRUE), origin = "1970-01-01")
+    cutoffdt_trt <- min(trtmax_dates, na.rm = TRUE)
 
-    # 计算治疗结束、退出研究、随访期访视的终止日期：min(eosdate, cutoffdt)
+    # Calculate termination date for follow-up visits
     followup_dates <- c(cutoffdt)
     if (!is.na(eos_date)) {
       followup_dates <- c(followup_dates, eos_date)
     }
-    cutoffdt_fu <- as.Date(min(followup_dates, na.rm = TRUE), origin = "1970-01-01")
+    cutoffdt_fu <- min(followup_dates, na.rm = TRUE)
 
-    # 根据访视类型筛选应该检查的访视
-    # 不同类型的访视有不同的终止日期要求
-    valid_planned_visits <- dplyr::filter(
-      subj_planned,
-      !is.na(planned_date) &
-        (
-          # 筛选期和治疗期：计划日期必须 < cutoffdt_trt
-          (visit_category %in% c("screening", "treatment") & planned_date < cutoffdt_trt) |
-            # 治疗结束和随访期：计划日期必须 <= cutoffdt_fu
-            (visit_category %in% c("end_of_treatment", "follow_up") & planned_date <= cutoffdt_fu)
-        )
-    )
+    # Filter visits that should be checked based on visit type
+    valid_planned_visits <- subj_planned %>%
+      filter(
+        !is.na(.data$planned_date) &
+          (
+            # Screening and treatment: planned date must be < cutoffdt_trt
+            (.data$visit_category %in% c("screening", "treatment") & .data$planned_date < cutoffdt_trt) |
+              # End of treatment and follow-up: planned date must be <= cutoffdt_fu
+              (.data$visit_category %in% c("end_of_treatment", "follow_up") & .data$planned_date <= cutoffdt_fu)
+          )
+      )
 
-    # 在有效访视中，找出缺失的访视（应该完成但未完成的）
-    missing_visit_subset <- dplyr::filter(valid_planned_visits, status == "missing")
+    # Find missing visits (should be completed but not completed)
+    missing_visit_subset <- filter(valid_planned_visits, .data$status == "missing")
 
-    # 构建结果 - 报告根据访视类型判断应该完成但未完成的访视
+    # Build result - report visits that should be completed but were not
     if (nrow(missing_visit_subset) > 0) {
-      # 计算完成的访视数（只计算有效计划访视中的）
-      completed_subset <- dplyr::filter(valid_planned_visits, status == "completed")
+      # Calculate completed visits count (only within valid planned visits)
+      completed_subset <- filter(valid_planned_visits, .data$status == "completed")
       completed_count <- nrow(completed_subset)
 
-      # 为每个缺失访视创建一条记录
-      missing_records <- lapply(seq_len(nrow(missing_visit_subset)), function(i) {
+      # Create a record for each missing visit
+      return(map_dfr(seq_len(nrow(missing_visit_subset)), function(i) {
         data.frame(
           SUBJID = subj_id,
           first_dose_date = first_dose_date,
@@ -177,31 +213,15 @@ check_missing_visit <- function(planned_dates,
           completed_visits_count = completed_count,
           stringsAsFactors = FALSE
         )
-      })
-
-      return(do.call(rbind, missing_records))
+      }))
     } else {
       return(data.frame())
     }
   })
 
-  # 合并所有受试者的结果
-  if (length(subject_visits_list) > 0) {
-    # 过滤掉空的数据框
-    non_empty_lists <- subject_visits_list[sapply(subject_visits_list, nrow) > 0]
-    if (length(non_empty_lists) > 0) {
-      subject_visits <- do.call(rbind, non_empty_lists)
-    } else {
-      subject_visits <- data.frame()
-    }
-  } else {
-    subject_visits <- data.frame()
-  }
-
   # Get deviations (subjects with missing visits)
-  # 检查数据框是否为空
   if (nrow(subject_visits) > 0) {
-    deviations <- dplyr::filter(subject_visits, !is.na(VISIT))
+    deviations <- filter(subject_visits, !is.na(.data$VISIT))
   } else {
     deviations <- data.frame()
   }
@@ -237,16 +257,25 @@ print.missing_visit_check <- function(x, ...) {
 
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
-    formatted_details <- apply(x$details, 1, function(row) {
-      visit_info <- sprintf("%s(%s)", row["VISIT"], row["planned_date"])
-      first_dose <- if (!is.na(row["first_dose_date"])) row["first_dose_date"] else "未记录"
-      sprintf(
-        "受试者编号%s，首次用药时间为%s，计划进行的%s访视遗漏。",
-        row["SUBJID"],
-        first_dose,
-        visit_info
-      )
-    })
+    formatted_details <- vapply(
+      seq_len(nrow(x$details)),
+      function(i) {
+        row <- x$details[i, ]
+        visit_info <- sprintf("%s(%s)", row$VISIT, row$planned_date)
+        first_dose <- if (!is.na(row$first_dose_date)) {
+          as.character(row$first_dose_date)
+        } else {
+          "未记录"
+        }
+        sprintf(
+          "受试者编号%s，首次用药时间为%s，计划进行的%s访视遗漏。",
+          row$SUBJID,
+          first_dose,
+          visit_info
+        )
+      },
+      character(1)
+    )
     cat(formatted_details, sep = "\n")
   }
 }

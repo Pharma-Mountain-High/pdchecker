@@ -197,7 +197,7 @@ test_that("check_missing_visit 处理空数据框抛出错误", {
 
   expect_error(
     check_missing_visit(empty_df),
-    "planned_dates 缺少必要的列"
+    "'planned_dates' is missing required columns"
   )
 })
 
@@ -208,7 +208,7 @@ test_that("check_missing_visit 处理缺少必需列的情况", {
 
   expect_error(
     check_missing_visit(planned_dates),
-    "planned_dates 缺少必要的列.*status"
+    "'planned_dates' is missing required columns: status"
   )
 })
 
@@ -217,12 +217,12 @@ test_that("check_missing_visit 处理缺少必需列的情况", {
 test_that("check_missing_visit 验证 planned_dates 是 data frame", {
   expect_error(
     check_missing_visit("not a data frame"),
-    "planned_dates 必须是 data frame 类型"
+    "'planned_dates' must be a data frame"
   )
 
   expect_error(
     check_missing_visit(list(a = 1, b = 2)),
-    "planned_dates 必须是 data frame 类型"
+    "'planned_dates' must be a data frame"
   )
 })
 

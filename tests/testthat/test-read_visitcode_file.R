@@ -2,7 +2,7 @@ library(testthat)
 library(tibble)
 library(readxl)
 
-# 辅助函数：创建临时Excel文件
+# Helper function: create temporary Excel file
 create_temp_excel_file <- function(data, filename, dir = NULL) {
   if (is.null(dir)) dir <- withr::local_tempdir(.local_envir = parent.frame())
   temp_file <- file.path(dir, filename)
@@ -10,7 +10,7 @@ create_temp_excel_file <- function(data, filename, dir = NULL) {
   temp_file
 }
 
-# 辅助函数：创建临时CSV文件
+# Helper function: create temporary CSV file
 create_temp_csv_file <- function(data, filename, dir = NULL) {
   if (is.null(dir)) dir <- withr::local_tempdir(.local_envir = parent.frame())
   temp_file <- file.path(dir, filename)
@@ -19,10 +19,10 @@ create_temp_csv_file <- function(data, filename, dir = NULL) {
 }
 
 # ============================================================================
-# 测试 parse_window_period() 函数
+# Tests for parse_window_period() function
 # ============================================================================
 
-test_that("parse_window_period 处理缺失值", {
+test_that("parse_window_period handles missing values", {
   result <- pdchecker:::parse_window_period(NA)
   expect_true(is.na(result$type))
   expect_true(is.na(result$value))
@@ -36,7 +36,7 @@ test_that("parse_window_period 处理缺失值", {
   expect_true(is.na(result$value))
 })
 
-test_that("parse_window_period 解析 ± 类型", {
+test_that("parse_window_period parses ± type", {
   result <- pdchecker:::parse_window_period("±3d")
   expect_equal(result$type, "±")
   expect_equal(result$value, 3)
@@ -54,7 +54,7 @@ test_that("parse_window_period 解析 ± 类型", {
   expect_equal(result$value, 7)
 })
 
-test_that("parse_window_period 解析 ≤ 类型", {
+test_that("parse_window_period parses ≤ type", {
   result <- pdchecker:::parse_window_period("≤24h")
   expect_equal(result$type, "≤")
   expect_equal(result$value, 1)
@@ -68,7 +68,7 @@ test_that("parse_window_period 解析 ≤ 类型", {
   expect_equal(result$value, 2)
 })
 
-test_that("parse_window_period 解析 ≥ 类型", {
+test_that("parse_window_period parses ≥ type", {
   result <- pdchecker:::parse_window_period("≥1d")
   expect_equal(result$type, "≥")
   expect_equal(result$value, 1)
@@ -78,7 +78,7 @@ test_that("parse_window_period 解析 ≥ 类型", {
   expect_equal(result$value, 3)
 })
 
-test_that("parse_window_period 解析 + 类型", {
+test_that("parse_window_period parses + type", {
   result <- pdchecker:::parse_window_period("+2d")
   expect_equal(result$type, "+")
   expect_equal(result$value, 2)
@@ -92,7 +92,7 @@ test_that("parse_window_period 解析 + 类型", {
   expect_equal(result$value, 2)
 })
 
-test_that("parse_window_period 解析 - 类型", {
+test_that("parse_window_period parses - type", {
   result <- pdchecker:::parse_window_period("-1d")
   expect_equal(result$type, "-")
   expect_equal(result$value, 1)
@@ -102,7 +102,7 @@ test_that("parse_window_period 解析 - 类型", {
   expect_equal(result$value, 2)
 })
 
-test_that("parse_window_period 解析范围类型", {
+test_that("parse_window_period parses range type", {
   result <- pdchecker:::parse_window_period("-2到+4")
   expect_equal(result$type, "范围")
   expect_equal(result$value, "-2到+4")
@@ -112,7 +112,7 @@ test_that("parse_window_period 解析范围类型", {
   expect_equal(result$value, "1至3天")
 })
 
-test_that("parse_window_period 解析数字无前缀类型", {
+test_that("parse_window_period parses numeric without prefix", {
   result <- pdchecker:::parse_window_period("2d")
   expect_equal(result$type, "+")
   expect_equal(result$value, 2)
@@ -126,22 +126,22 @@ test_that("parse_window_period 解析数字无前缀类型", {
   expect_equal(result$value, 7)
 })
 
-test_that("parse_window_period 转换时间单位", {
-  # 小时转天
+test_that("parse_window_period converts time units", {
+  # Hours to days
   result <- pdchecker:::parse_window_period("±24h")
   expect_equal(result$value, 1)
 
   result <- pdchecker:::parse_window_period("±12小时")
   expect_equal(result$value, 0.5)
 
-  # 周转天
+  # Weeks to days
   result <- pdchecker:::parse_window_period("±1w")
   expect_equal(result$value, 7)
 
   result <- pdchecker:::parse_window_period("±2周")
   expect_equal(result$value, 14)
 
-  # 天数
+  # Days
   result <- pdchecker:::parse_window_period("±3d")
   expect_equal(result$value, 3)
 
@@ -152,36 +152,36 @@ test_that("parse_window_period 转换时间单位", {
   expect_equal(result$value, 5)
 })
 
-test_that("parse_window_period 处理其他格式", {
+test_that("parse_window_period handles other formats", {
   result <- pdchecker:::parse_window_period("固定访视")
   expect_equal(result$type, "其他")
   expect_equal(result$value, "固定访视")
 })
 
-test_that("parse_window_period 处理带空格的输入", {
+test_that("parse_window_period handles input with whitespace", {
   result <- pdchecker:::parse_window_period("  ±3d  ")
   expect_equal(result$type, "±")
   expect_equal(result$value, 3)
 })
 
-test_that("parse_window_period 处理小数时间单位", {
-  # 小数天数
+test_that("parse_window_period handles decimal time units", {
+  # Decimal days
   result <- pdchecker:::parse_window_period("±1.5d")
   expect_equal(result$type, "±")
   expect_equal(result$value, 1.5)
 
-  # 小数小时
+  # Decimal hours
   result <- pdchecker:::parse_window_period("±6h")
   expect_equal(result$type, "±")
   expect_equal(result$value, 0.25)
 
-  # 小数周
+  # Decimal weeks
   result <- pdchecker:::parse_window_period("+0.5w")
   expect_equal(result$type, "+")
   expect_equal(result$value, 3.5)
 })
 
-test_that("parse_window_period 处理零值", {
+test_that("parse_window_period handles zero values", {
   result <- pdchecker:::parse_window_period("±0d")
   expect_equal(result$type, "±")
   expect_equal(result$value, 0)
@@ -191,7 +191,7 @@ test_that("parse_window_period 处理零值", {
   expect_equal(result$value, 0)
 })
 
-test_that("parse_window_period 处理大数值", {
+test_that("parse_window_period handles large values", {
   result <- pdchecker:::parse_window_period("±100d")
   expect_equal(result$type, "±")
   expect_equal(result$value, 100)
@@ -201,8 +201,8 @@ test_that("parse_window_period 处理大数值", {
   expect_equal(result$value, 364)
 })
 
-test_that("parse_window_period 处理无效数值", {
-  # 无法解析的数值会返回 NA 并产生警告
+test_that("parse_window_period handles invalid numeric values", {
+  # Invalid values produce NA with warning
   expect_warning(
     result <- pdchecker:::parse_window_period("±abc天"),
     "NAs introduced by coercion"
@@ -218,19 +218,19 @@ test_that("parse_window_period 处理无效数值", {
   expect_true(is.na(result$value))
 })
 
-test_that("parse_window_period 处理不同的日期单位写法", {
-  # 测试"日"作为单位
+test_that("parse_window_period handles different date unit notations", {
+  # Test "日" as unit
   result <- pdchecker:::parse_window_period("±3日")
   expect_equal(result$type, "±")
   expect_equal(result$value, 3)
 
-  # 测试"小时"作为单位
+  # Test "小时" as unit
   result <- pdchecker:::parse_window_period("+6小时")
   expect_equal(result$type, "+")
   expect_equal(result$value, 0.25)
 })
 
-test_that("parse_window_period 处理无单位的纯数字", {
+test_that("parse_window_period handles pure numbers without units", {
   result <- pdchecker:::parse_window_period("7")
   expect_equal(result$type, "+")
   expect_equal(result$value, 7)
@@ -240,8 +240,8 @@ test_that("parse_window_period 处理无单位的纯数字", {
   expect_equal(result$value, 5)
 })
 
-test_that("parse_window_period 处理负号开头但有范围关键字", {
-  # 包含"到"或"至"应识别为范围，而非负号类型
+test_that("parse_window_period handles negative with range keywords", {
+  # Contains "到" or "至" should be identified as range, not negative
   result <- pdchecker:::parse_window_period("-3到+7")
   expect_equal(result$type, "范围")
   expect_equal(result$value, "-3到+7")
@@ -251,7 +251,7 @@ test_that("parse_window_period 处理负号开头但有范围关键字", {
   expect_equal(result$value, "-1至+1")
 })
 
-test_that("parse_window_period 处理多种其他格式", {
+test_that("parse_window_period handles various other formats", {
   result <- pdchecker:::parse_window_period("固定")
   expect_equal(result$type, "其他")
   expect_equal(result$value, "固定")
@@ -266,15 +266,14 @@ test_that("parse_window_period 处理多种其他格式", {
 })
 
 # ============================================================================
-# 测试 read_visitcode_file() 函数
+# Tests for read_visitcode_file() function
 # ============================================================================
 
-test_that("read_visitcode_file 读取Excel文件", {
-  # 创建测试数据
+test_that("read_visitcode_file reads Excel file", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2", "V3"),
-    访视名称 = c("筛选访视", "基线访视", "第一次随访"),
-    窗口期 = c("±3d", "≤24h", "+2天"),
+    visit_code = c("V1", "V2", "V3"),
+    visit_name = c("Screening", "Baseline", "Follow-up 1"),
+    WP = c("±3d", "≤24h", "+2天"),
     stringsAsFactors = FALSE
   )
 
@@ -288,18 +287,16 @@ test_that("read_visitcode_file 读取Excel文件", {
   expect_true("wpvalue" %in% names(result))
 
   expect_equal(result$type, c("±", "≤", "+"))
-  expect_equal(result$wpvalue, c("3", "1", "2"))
+  expect_equal(result$wpvalue, c(3, 1, 2))
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 读取CSV文件", {
-  # 创建测试数据
+test_that("read_visitcode_file reads CSV file", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2"),
-    访视名称 = c("筛选访视", "基线访视"),
-    窗口期 = c("-1d", "±2周"),
+    visit_code = c("V1", "V2"),
+    visit_name = c("Screening", "Baseline"),
+    WP = c("-1d", "±2周"),
     stringsAsFactors = FALSE
   )
 
@@ -310,39 +307,15 @@ test_that("read_visitcode_file 读取CSV文件", {
   expect_s3_class(result, "tbl_df")
   expect_equal(nrow(result), 2)
   expect_equal(result$type, c("-", "±"))
-  expect_equal(result$wpvalue, c("1", "14"))
+  expect_equal(result$wpvalue, c(1, 14))
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 支持多种窗口期列名", {
-  # 测试不同的列名
-  col_names <- c("窗口期", "访视窗口", "窗口", "window", "Window")
-
-  for (col_name in col_names) {
-    test_data <- data.frame(
-      访视编码 = c("V1"),
-      stringsAsFactors = FALSE
-    )
-    test_data[[col_name]] <- "±3d"
-
-    temp_file <- create_temp_csv_file(test_data, paste0("test_", col_name, ".csv"))
-
-    result <- read_visitcode_file(temp_file)
-
-    expect_equal(result$type[1], "±")
-    expect_equal(result$wpvalue[1], "3")
-
-    # 清理临时文件
-    unlink(temp_file)
-  }
-})
-
-test_that("read_visitcode_file 处理包含NA值的数据", {
+test_that("read_visitcode_file handles data with NA values", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2", "V3"),
-    窗口期 = c("±3d", NA, ""),
+    visit_code = c("V1", "V2", "V3"),
+    WP = c("±3d", NA, ""),
     stringsAsFactors = FALSE
   )
 
@@ -354,92 +327,90 @@ test_that("read_visitcode_file 处理包含NA值的数据", {
   expect_true(is.na(result$type[2]))
   expect_true(is.na(result$type[3]))
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 处理空文件", {
+test_that("read_visitcode_file handles empty file with warning", {
   test_data <- data.frame(
-    访视编码 = character(0),
-    窗口期 = character(0),
+    visit_code = character(0),
+    WP = character(0),
     stringsAsFactors = FALSE
   )
 
   temp_file <- create_temp_csv_file(test_data, "test_empty.csv")
 
-  result <- read_visitcode_file(temp_file)
+  expect_warning(
+    result <- read_visitcode_file(temp_file),
+    "no data rows"
+  )
 
   expect_equal(nrow(result), 0)
   expect_true("type" %in% names(result))
   expect_true("wpvalue" %in% names(result))
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 文件不存在时报错", {
+test_that("read_visitcode_file errors when file not found", {
   expect_error(
     read_visitcode_file("nonexistent_file.xlsx"),
-    "文件未找到"
+    "File not found"
   )
 })
 
-test_that("read_visitcode_file 不支持的文件格式时报错", {
-  # 创建一个txt文件
+test_that("read_visitcode_file errors on unsupported file format", {
   temp_dir <- withr::local_tempdir()
   temp_file <- file.path(temp_dir, "test.txt")
   writeLines("test", temp_file)
 
   expect_error(
     read_visitcode_file(temp_file),
-    "不支持的文件格式"
+    "Unsupported file format"
   )
 })
 
-test_that("read_visitcode_file 缺少窗口期列时报错", {
+test_that("read_visitcode_file errors when WP column is missing", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2"),
-    访视名称 = c("筛选访视", "基线访视"),
+    visit_code = c("V1", "V2"),
+    visit_name = c("Screening", "Baseline"),
     stringsAsFactors = FALSE
   )
 
-  temp_file <- create_temp_csv_file(test_data, "test_no_window.csv")
+  temp_file <- create_temp_csv_file(test_data, "test_no_wp.csv")
 
   expect_error(
     read_visitcode_file(temp_file),
-    "文件中缺少窗口期列"
+    "Missing required column 'WP'"
   )
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 读取指定sheet", {
-  # 创建测试数据
+test_that("read_visitcode_file reads specified sheet", {
   test_data <- data.frame(
-    访视编码 = c("V1"),
-    窗口期 = c("±3d"),
+    visit_code = c("V1"),
+    WP = c("±3d"),
     stringsAsFactors = FALSE
   )
 
   temp_file <- create_temp_excel_file(test_data, "test_sheet.xlsx")
 
-  # 默认读取Sheet1
   result <- read_visitcode_file(temp_file, sheet_name = "Sheet1")
 
   expect_equal(nrow(result), 1)
   expect_equal(result$type[1], "±")
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 完整场景测试", {
-  # 创建包含多种窗口期格式的测试数据
+test_that("read_visitcode_file complete scenario test", {
   test_data <- data.frame(
-    访视编码 = c("V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8"),
-    访视名称 = c("筛选", "基线", "第1次", "第2次", "第3次", "第4次", "第5次", "第6次", "第7次"),
-    窗口期 = c("±3d", "≤24h", "+2天", "-1d", "1w", "±2周", "≥1d", "-2到+4", "固定"),
+    visit_code = c("V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8"),
+    visit_name = c(
+      "Screening", "Baseline", "Visit 1", "Visit 2", "Visit 3",
+      "Visit 4", "Visit 5", "Visit 6", "Visit 7"
+    ),
+    WP = c("±3d", "≤24h", "+2天", "-1d", "1w", "±2周", "≥1d", "-2到+4", "固定"),
     stringsAsFactors = FALSE
   )
 
@@ -449,52 +420,49 @@ test_that("read_visitcode_file 完整场景测试", {
 
   expect_equal(nrow(result), 9)
   expect_equal(result$type, c("±", "≤", "+", "-", "+", "±", "≥", "范围", "其他"))
-  expect_equal(result$wpvalue, c("3", "1", "2", "1", "7", "14", "1", "-2到+4", "固定"))
+  expect_equal(result$wpvalue, c(3, 1, 2, 1, 7, 14, 1, NA, NA))
 
-  # 验证原始列保留
-  expect_true("访视编码" %in% names(result))
-  expect_true("访视名称" %in% names(result))
-  expect_true("窗口期" %in% names(result))
+  # Verify original columns are preserved
+  expect_true("visit_code" %in% names(result))
+  expect_true("visit_name" %in% names(result))
+  expect_true("WP" %in% names(result))
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 处理列名冲突", {
-  # 创建已有 type 和 wpvalue 列的数据
+test_that("read_visitcode_file handles column name conflicts", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2"),
-    窗口期 = c("±3d", "≤24h"),
-    type = c("旧类型1", "旧类型2"),
-    wpvalue = c("旧值1", "旧值2"),
+    visit_code = c("V1", "V2"),
+    WP = c("±3d", "≤24h"),
+    type = c("old_type1", "old_type2"),
+    wpvalue = c("old_value1", "old_value2"),
     stringsAsFactors = FALSE
   )
 
   temp_file <- create_temp_csv_file(test_data, "test_conflict.csv")
 
-  # 应该发出消息提示覆盖
+  # Should output message about overwriting
   expect_message(
     result <- read_visitcode_file(temp_file),
-    "已存在 'type' 列，将被覆盖"
+    "'type' column will be overwritten"
   )
 
   expect_message(
     result <- read_visitcode_file(temp_file),
-    "已存在 'wpvalue' 列，将被覆盖"
+    "'wpvalue' column will be overwritten"
   )
 
-  # 验证列已被覆盖为新解析的值
+  # Verify columns are overwritten with newly parsed values
   expect_equal(result$type, c("±", "≤"))
-  expect_equal(result$wpvalue, c("3", "1"))
+  expect_equal(result$wpvalue, c(3, 1))
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 处理混合窗口期类型", {
+test_that("read_visitcode_file handles mixed window period types", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2", "V3", "V4", "V5", "V6", "V7"),
-    窗口期 = c("±3d", "≤24h", "≥7天", "+2w", "-1d", "1至3天", "固定"),
+    visit_code = c("V1", "V2", "V3", "V4", "V5", "V6", "V7"),
+    WP = c("±3d", "≤24h", "≥7天", "+2w", "-1d", "1至3天", "固定"),
     stringsAsFactors = FALSE
   )
 
@@ -503,16 +471,15 @@ test_that("read_visitcode_file 处理混合窗口期类型", {
   result <- read_visitcode_file(temp_file)
 
   expect_equal(result$type, c("±", "≤", "≥", "+", "-", "范围", "其他"))
-  expect_equal(result$wpvalue, c("3", "1", "7", "14", "1", "1至3天", "固定"))
+  expect_equal(result$wpvalue, c(3, 1, 7, 14, 1, NA, NA))
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 处理小数窗口期", {
+test_that("read_visitcode_file handles decimal window periods", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2", "V3"),
-    窗口期 = c("±1.5d", "≤0.5天", "+2.5w"),
+    visit_code = c("V1", "V2", "V3"),
+    WP = c("±1.5d", "≤0.5天", "+2.5w"),
     stringsAsFactors = FALSE
   )
 
@@ -521,19 +488,18 @@ test_that("read_visitcode_file 处理小数窗口期", {
   result <- read_visitcode_file(temp_file)
 
   expect_equal(result$type, c("±", "≤", "+"))
-  expect_equal(result$wpvalue, c("1.5", "0.5", "17.5"))
+  expect_equal(result$wpvalue, c(1.5, 0.5, 17.5))
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 保留原始列完整性", {
+test_that("read_visitcode_file preserves original column integrity", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2"),
-    访视名称 = c("筛选", "基线"),
-    访视日期 = c("第1天", "第7天"),
-    窗口期 = c("±3d", "≤24h"),
-    备注 = c("备注1", "备注2"),
+    visit_code = c("V1", "V2"),
+    visit_name = c("Screening", "Baseline"),
+    visit_date = c("Day 1", "Day 7"),
+    WP = c("±3d", "≤24h"),
+    notes = c("Note 1", "Note 2"),
     stringsAsFactors = FALSE
   )
 
@@ -541,46 +507,24 @@ test_that("read_visitcode_file 保留原始列完整性", {
 
   result <- read_visitcode_file(temp_file)
 
-  # 验证所有原始列都存在
-  expect_true(all(c("访视编码", "访视名称", "访视日期", "窗口期", "备注") %in% names(result)))
+  # Verify all original columns exist
+  expect_true(all(c("visit_code", "visit_name", "visit_date", "WP", "notes") %in% names(result)))
 
-  # 验证新增列存在
+  # Verify new columns exist
   expect_true(all(c("type", "wpvalue") %in% names(result)))
 
-  # 验证原始数据未被修改
-  expect_equal(result$访视编码, c("V1", "V2"))
-  expect_equal(result$访视名称, c("筛选", "基线"))
-  expect_equal(result$备注, c("备注1", "备注2"))
+  # Verify original data is not modified
+  expect_equal(result$visit_code, c("V1", "V2"))
+  expect_equal(result$visit_name, c("Screening", "Baseline"))
+  expect_equal(result$notes, c("Note 1", "Note 2"))
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 列名优先级测试", {
-  # 当存在多个可能的窗口期列名时，应按优先级选择
+test_that("read_visitcode_file handles mixed invalid data", {
   test_data <- data.frame(
-    访视编码 = c("V1"),
-    窗口期 = "±3d",
-    window = "±5d", # 应该优先使用"窗口期"列
-    stringsAsFactors = FALSE
-  )
-
-  temp_file <- create_temp_csv_file(test_data, "test_priority.csv")
-
-  result <- read_visitcode_file(temp_file)
-
-  # 应该使用"窗口期"列的值
-  expect_equal(result$type[1], "±")
-  expect_equal(result$wpvalue[1], "3")
-
-  # 清理临时文件
-  unlink(temp_file)
-})
-
-test_that("read_visitcode_file 处理包含无效值的混合数据", {
-  test_data <- data.frame(
-    访视编码 = c("V1", "V2", "V3", "V4"),
-    窗口期 = c("±3d", NA, "invalid", "≤24h"),
+    visit_code = c("V1", "V2", "V3", "V4"),
+    WP = c("±3d", NA, "invalid", "≤24h"),
     stringsAsFactors = FALSE
   )
 
@@ -588,31 +532,29 @@ test_that("read_visitcode_file 处理包含无效值的混合数据", {
 
   result <- read_visitcode_file(temp_file)
 
-  # V1 正常解析
+  # V1 parsed normally
   expect_equal(result$type[1], "±")
-  expect_equal(result$wpvalue[1], "3")
+  expect_equal(result$wpvalue[1], 3)
 
-  # V2 是 NA
+  # V2 is NA
   expect_true(is.na(result$type[2]))
   expect_true(is.na(result$wpvalue[2]))
 
-  # V3 无法识别，归为"其他"
+  # V3 unrecognized, classified as "其他", wpvalue is NA (non-numeric)
   expect_equal(result$type[3], "其他")
-  expect_equal(result$wpvalue[3], "invalid")
+  expect_true(is.na(result$wpvalue[3]))
 
-  # V4 正常解析
+  # V4 parsed normally
   expect_equal(result$type[4], "≤")
-  expect_equal(result$wpvalue[4], "1")
+  expect_equal(result$wpvalue[4], 1)
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 处理大数据集", {
-  # 创建100行数据
+test_that("read_visitcode_file handles large dataset", {
   test_data <- data.frame(
-    访视编码 = paste0("V", 1:100),
-    窗口期 = rep(c("±3d", "≤24h", "+2天", "-1d", "1w"), 20),
+    visit_code = paste0("V", 1:100),
+    WP = rep(c("±3d", "≤24h", "+2天", "-1d", "1w"), 20),
     stringsAsFactors = FALSE
   )
 
@@ -623,18 +565,17 @@ test_that("read_visitcode_file 处理大数据集", {
   expect_equal(nrow(result), 100)
   expect_true(all(c("type", "wpvalue") %in% names(result)))
 
-  # 验证解析结果的模式
+  # Verify pattern of parsed results
   expected_types <- rep(c("±", "≤", "+", "-", "+"), 20)
   expect_equal(result$type, expected_types)
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 处理只有一行数据的文件", {
+test_that("read_visitcode_file handles single row file", {
   test_data <- data.frame(
-    访视编码 = "V1",
-    窗口期 = "±3d",
+    visit_code = "V1",
+    WP = "±3d",
     stringsAsFactors = FALSE
   )
 
@@ -644,17 +585,16 @@ test_that("read_visitcode_file 处理只有一行数据的文件", {
 
   expect_equal(nrow(result), 1)
   expect_equal(result$type[1], "±")
-  expect_equal(result$wpvalue[1], "3")
+  expect_equal(result$wpvalue[1], 3)
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file 处理特殊字符在访视名称中", {
+test_that("read_visitcode_file handles special characters in visit names", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2", "V3"),
-    访视名称 = c("第1次访视（基线）", "随访 - 第2周", "终点访视/退出"),
-    窗口期 = c("±3d", "≤24h", "+2天"),
+    visit_code = c("V1", "V2", "V3"),
+    visit_name = c("Visit 1 (Baseline)", "Follow-up - Week 2", "End Visit/Exit"),
+    WP = c("±3d", "≤24h", "+2天"),
     stringsAsFactors = FALSE
   )
 
@@ -662,36 +602,104 @@ test_that("read_visitcode_file 处理特殊字符在访视名称中", {
 
   result <- read_visitcode_file(temp_file)
 
-  # 验证特殊字符不影响解析
+  # Verify special characters don't affect parsing
   expect_equal(nrow(result), 3)
   expect_equal(result$type, c("±", "≤", "+"))
 
-  # 验证访视名称保持完整
-  expect_equal(result$访视名称[1], "第1次访视（基线）")
+  # Verify visit names are preserved
+  expect_equal(result$visit_name[1], "Visit 1 (Baseline)")
 
-  # 清理临时文件
   unlink(temp_file)
 })
 
-test_that("read_visitcode_file Excel和CSV结果一致性", {
+test_that("read_visitcode_file Excel and CSV results are consistent", {
   test_data <- data.frame(
-    访视编码 = c("V1", "V2", "V3"),
-    窗口期 = c("±3d", "≤24h", "+2天"),
+    visit_code = c("V1", "V2", "V3"),
+    WP = c("±3d", "≤24h", "+2天"),
     stringsAsFactors = FALSE
   )
 
-  # 创建Excel和CSV文件
   excel_file <- create_temp_excel_file(test_data, "test_consistency.xlsx")
   csv_file <- create_temp_csv_file(test_data, "test_consistency.csv")
 
   result_excel <- read_visitcode_file(excel_file)
   result_csv <- read_visitcode_file(csv_file)
 
-  # 验证两种文件格式解析结果一致
+  # Verify both file formats produce consistent results
   expect_equal(result_excel$type, result_csv$type)
   expect_equal(result_excel$wpvalue, result_csv$wpvalue)
 
-  # 清理临时文件
   unlink(excel_file)
   unlink(csv_file)
+})
+
+# ============================================================================
+# Tests for parameter validation
+# ============================================================================
+
+test_that("read_visitcode_file validates file_path parameter", {
+  # file_path must be character
+  expect_error(
+    read_visitcode_file(123),
+    "'file_path' must be a single character string"
+  )
+
+  # file_path must be length 1
+  expect_error(
+    read_visitcode_file(c("file1.xlsx", "file2.xlsx")),
+    "'file_path' must be a single character string"
+  )
+
+  # file_path cannot be NA
+  expect_error(
+    read_visitcode_file(NA_character_),
+    "'file_path' cannot be NA or empty"
+  )
+
+  # file_path cannot be empty
+  expect_error(
+    read_visitcode_file(""),
+    "'file_path' cannot be NA or empty"
+  )
+
+  # file_path cannot be whitespace only
+  expect_error(
+    read_visitcode_file("   "),
+    "'file_path' cannot be NA or empty"
+  )
+})
+
+test_that("read_visitcode_file validates sheet_name parameter", {
+  test_data <- data.frame(
+    visit_code = c("V1"),
+    WP = c("±3d"),
+    stringsAsFactors = FALSE
+  )
+  temp_file <- create_temp_excel_file(test_data, "test_sheet_validation.xlsx")
+
+  # sheet_name must be character
+  expect_error(
+    read_visitcode_file(temp_file, sheet_name = 123),
+    "'sheet_name' must be a single character string"
+  )
+
+  # sheet_name must be length 1
+  expect_error(
+    read_visitcode_file(temp_file, sheet_name = c("Sheet1", "Sheet2")),
+    "'sheet_name' must be a single character string"
+  )
+
+  # sheet_name cannot be NA
+  expect_error(
+    read_visitcode_file(temp_file, sheet_name = NA_character_),
+    "'sheet_name' cannot be NA or empty"
+  )
+
+  # sheet_name cannot be empty
+  expect_error(
+    read_visitcode_file(temp_file, sheet_name = ""),
+    "'sheet_name' cannot be NA or empty"
+  )
+
+  unlink(temp_file)
 })

@@ -8,7 +8,8 @@ check_visit_window(planned_dates)
 }
 \arguments{
 \item{planned_dates}{Data frame from \code{\link{generate_planned_visit_dates}}.
-Must contain: SUBJID, VISIT, VISITNUM, planned_date, wp_start, wp_end, wp_type, wp_value, actual_date, status}
+Must contain: SUBJID, VISIT, VISITNUM, planned_date, wp_start, wp_end,
+wp_type, wp_value, actual_date, status, first_dose_date}
 }
 \value{
 List with the following components:
@@ -77,3 +78,36 @@ Windows are calculated by \code{generate_planned_visit_dates} based on visit sch
 }
 }
 }
+\examples{
+\dontrun{
+# Load data and visit schedule
+data <- read_raw_data("path/to/data")
+visit_codes <- read_visitcode_file("path/to/visitcode.xlsx")
+
+# Generate planned visit dates
+planned_dates <- generate_planned_visit_dates(
+  data = data,
+  visit_schedule_data = visit_codes
+)
+
+# Check visit window deviations
+result <- check_visit_window(planned_dates)
+print(result)
+
+# Access deviation details
+if (result$has_deviation) {
+  window_details <- result$details
+  # Get subjects with out-of-window visits
+  subjects_with_issues <- unique(window_details$SUBJID)
+}
+}
+
+}
+\seealso{
+\code{\link{generate_planned_visit_dates}} for generating planned visit data
+\code{\link{check_missing_visit}} for checking missing visits
+
+Other visit checks: 
+\code{\link{check_missing_visit}()}
+}
+\concept{visit checks}

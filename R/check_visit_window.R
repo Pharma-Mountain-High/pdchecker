@@ -37,7 +37,8 @@
 #' - -2d: Can only be early by 2 days
 #'
 #' @param planned_dates Data frame from \code{\link{generate_planned_visit_dates}}.
-#'   Must contain: SUBJID, VISIT, VISITNUM, planned_date, wp_start, wp_end, wp_type, wp_value, actual_date, status
+#'   Must contain: SUBJID, VISIT, VISITNUM, planned_date, wp_start, wp_end,
+#'   wp_type, wp_value, actual_date, status, first_dose_date
 #'
 #' @return List with the following components:
 #'   \describe{
@@ -63,25 +64,58 @@
 #'     \item{planned_visits}{Data frame. Complete input planned visit information}
 #'   }
 #'
-#' @importFrom dplyr filter select mutate group_by ungroup pull distinct
+#' @examples
+#' \dontrun{
+#' # Load data and visit schedule
+#' data <- read_raw_data("path/to/data")
+#' visit_codes <- read_visitcode_file("path/to/visitcode.xlsx")
+#'
+#' # Generate planned visit dates
+#' planned_dates <- generate_planned_visit_dates(
+#'   data = data,
+#'   visit_schedule_data = visit_codes
+#' )
+#'
+#' # Check visit window deviations
+#' result <- check_visit_window(planned_dates)
+#' print(result)
+#'
+#' # Access deviation details
+#' if (result$has_deviation) {
+#'   window_details <- result$details
+#'   # Get subjects with out-of-window visits
+#'   subjects_with_issues <- unique(window_details$SUBJID)
+#' }
+#' }
+#'
+#' @seealso
+#' \code{\link{generate_planned_visit_dates}} for generating planned visit data
+#' \code{\link{check_missing_visit}} for checking missing visits
+#'
+#' @family visit checks
+#'
+#' @importFrom dplyr filter bind_rows
+#' @importFrom purrr map_dfr
+#' @importFrom rlang .data
 #' @importFrom magrittr %>%
 #' @export
 #'
 check_visit_window <- function(planned_dates) {
-  # 验证输入参数
+  # Validate input parameters
   if (!is.data.frame(planned_dates)) {
-    stop("planned_dates 必须是 data frame 类型")
+    stop("'planned_dates' must be a data frame")
   }
 
-  # 检查必要的列
+  # Check required columns
   required_cols <- c(
     "SUBJID", "VISIT", "VISITNUM", "planned_date",
     "wp_start", "wp_end", "wp_type", "wp_value",
-    "actual_date", "status"
+    "actual_date", "status", "first_dose_date"
   )
+
   missing_cols <- setdiff(required_cols, names(planned_dates))
   if (length(missing_cols) > 0) {
-    stop("planned_dates 缺少必要的列: ", paste(missing_cols, collapse = ", "))
+    stop("'planned_dates' is missing required columns: ", paste(missing_cols, collapse = ", "))
   }
 
   # Initialize results
@@ -89,43 +123,41 @@ check_visit_window <- function(planned_dates) {
     has_deviation = FALSE,
     messages = character(),
     details = data.frame(),
-    planned_visits = planned_dates # 存储输入的计划访视信息
+    planned_visits = planned_dates
   )
 
-  # 只检查已完成的访视
-  completed_visits <- dplyr::filter(
-    planned_dates,
-    status == "completed" & !is.na(actual_date)
-  )
+  # Only check completed visits
+  completed_visits <- planned_dates %>%
+    filter(.data$status == "completed" & !is.na(.data$actual_date))
 
-  # 如果没有已完成的访视，直接返回
+  # Return early if no completed visits
   if (nrow(completed_visits) == 0) {
     class(results) <- c("visit_window_check", "list")
     return(results)
   }
 
-  # 为每个受试者检查超窗访视
+  # Check out-of-window visits for each subject
   subjects <- unique(completed_visits$SUBJID)
 
-  subject_deviations_list <- lapply(subjects, function(subj_id) {
-    # 获取该受试者的已完成访视
-    subj_completed <- dplyr::filter(completed_visits, SUBJID == subj_id)
+  subject_deviations <- map_dfr(subjects, function(subj_id) {
+    # Get completed visits for this subject
+    subj_completed <- filter(completed_visits, .data$SUBJID == subj_id)
 
-    # 检查每个访视是否在窗口期内
-    # 窗口期内：wp_start <= actual_date <= wp_end
-    out_of_window <- dplyr::filter(
-      subj_completed,
-      !is.na(wp_start) & !is.na(wp_end) &
-        (actual_date < wp_start | actual_date > wp_end)
-    )
+    # Check if each visit is within window
+    # Within window: wp_start <= actual_date <= wp_end
+    out_of_window <- subj_completed %>%
+      filter(
+        !is.na(.data$wp_start) & !is.na(.data$wp_end) &
+          (.data$actual_date < .data$wp_start | .data$actual_date > .data$wp_end)
+      )
 
-    # 如果有超窗访视，构建结果
+    # If there are out-of-window visits, build result
     if (nrow(out_of_window) > 0) {
-      # 获取受试者的首次用药日期
+      # Get subject's first dose date
       first_dose_date <- unique(subj_completed$first_dose_date)[1]
 
-      # 为每个超窗访视创建一条记录
-      out_of_window_records <- lapply(seq_len(nrow(out_of_window)), function(i) {
+      # Create a record for each out-of-window visit
+      return(map_dfr(seq_len(nrow(out_of_window)), function(i) {
         visit_name <- out_of_window$VISIT[i]
         visitnum <- out_of_window$VISITNUM[i]
         planned_date <- out_of_window$planned_date[i]
@@ -135,7 +167,7 @@ check_visit_window <- function(planned_dates) {
         wp_type <- out_of_window$wp_type[i]
         wp_value <- out_of_window$wp_value[i]
 
-        # 计算偏差天数（基于计划日期）
+        # Calculate deviation days (based on planned date)
         deviation_days <- as.numeric(actual_date - planned_date)
 
         data.frame(
@@ -154,26 +186,11 @@ check_visit_window <- function(planned_dates) {
           out_of_window_count = nrow(out_of_window),
           stringsAsFactors = FALSE
         )
-      })
-
-      return(do.call(rbind, out_of_window_records))
+      }))
     } else {
       return(data.frame())
     }
   })
-
-  # 合并所有受试者的结果
-  if (length(subject_deviations_list) > 0) {
-    # 过滤掉空的数据框
-    non_empty_lists <- subject_deviations_list[sapply(subject_deviations_list, nrow) > 0]
-    if (length(non_empty_lists) > 0) {
-      subject_deviations <- do.call(rbind, non_empty_lists)
-    } else {
-      subject_deviations <- data.frame()
-    }
-  } else {
-    subject_deviations <- data.frame()
-  }
 
   # Compile results
   if (nrow(subject_deviations) > 0) {
@@ -206,46 +223,51 @@ print.visit_window_check <- function(x, ...) {
 
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
-    formatted_details <- apply(x$details, 1, function(row) {
-      first_dose <- if (!is.na(row["first_dose_date"])) {
-        row["first_dose_date"]
-      } else {
-        "未记录"
-      }
+    formatted_details <- vapply(
+      seq_len(nrow(x$details)),
+      function(i) {
+        row <- x$details[i, ]
+        first_dose <- if (!is.na(row$first_dose_date)) {
+          as.character(row$first_dose_date)
+        } else {
+          "未记录"
+        }
 
-      # 构建窗口期描述
-      wp_type <- row["wp_type"]
-      wp_value <- row["wp_value"]
-      if (!is.na(wp_type) && !is.na(wp_value)) {
-        window_desc <- sprintf("%s%s", wp_type, wp_value)
-      } else {
-        window_desc <- "未定义"
-      }
+        # Build window description
+        wp_type <- row$wp_type
+        wp_value <- row$wp_value
+        if (!is.na(wp_type) && !is.na(wp_value)) {
+          window_desc <- sprintf("%s%s", wp_type, wp_value)
+        } else {
+          window_desc <- "未定义"
+        }
 
-      # 计算偏差天数的绝对值
-      deviation_days <- abs(as.numeric(row["deviation_days"]))
+        # Calculate absolute deviation days
+        deviation_days <- abs(as.numeric(row$deviation_days))
 
-      deviation_text <- sprintf(
-        "偏离计划时间点%d天，不在<窗口期%s>天内",
-        deviation_days,
-        window_desc
-      )
+        deviation_text <- sprintf(
+          "偏离计划时间点%d天，不在<窗口期%s>天内",
+          deviation_days,
+          window_desc
+        )
 
-      visit_info <- sprintf(
-        "%s(计划日期:%s,实际日期:%s),%s",
-        row["VISIT"],
-        row["planned_date"],
-        row["actual_date"],
-        deviation_text
-      )
+        visit_info <- sprintf(
+          "%s(计划日期:%s,实际日期:%s),%s",
+          row$VISIT,
+          row$planned_date,
+          row$actual_date,
+          deviation_text
+        )
 
-      sprintf(
-        "受试者编号%s，首次用药时间为%s，%s",
-        row["SUBJID"],
-        first_dose,
-        visit_info
-      )
-    })
+        sprintf(
+          "受试者编号%s，首次用药时间为%s，%s",
+          row$SUBJID,
+          first_dose,
+          visit_info
+        )
+      },
+      character(1)
+    )
     cat(formatted_details, sep = "\n")
   }
 }

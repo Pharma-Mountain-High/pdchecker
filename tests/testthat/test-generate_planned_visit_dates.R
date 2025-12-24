@@ -4,11 +4,11 @@
 setup_test_data <- function() {
   # 访视编码数据
   visit_schedule <- data.frame(
-    访视名称 = c("筛选访视", "C1D1", "C1D8", "C1D15", "C2D1", "C2D15", "治疗结束访视", "随访访视"),
-    访视编码 = c(0, 1, 2, 3, 4, 5, 99, 100),
-    周期 = c("筛选", "治疗周期1", "治疗周期1", "治疗周期1", "治疗周期2", "治疗周期2", "治疗结束", "随访"),
-    访视日 = c("0", "1", "8", "15", "1", "15", "EOT", "EOT+30"),
-    窗口期 = c("±3d", "±3d", "±2d", "±2d", "±3d", "±2d", "+7d", "±7d"),
+    VISIT = c("筛选访视", "C1D1", "C1D8", "C1D15", "C2D1", "C2D15", "治疗结束访视", "随访访视"),
+    VISITNUM = c(0, 1, 2, 3, 4, 5, 99, 100),
+    CYCLE = c("筛选", "治疗周期1", "治疗周期1", "治疗周期1", "治疗周期2", "治疗周期2", "治疗结束", "随访"),
+    VISITDAY = c("0", "1", "8", "15", "1", "15", "EOT", "EOT+30"),
+    WP = c("±3d", "±3d", "±2d", "±2d", "±3d", "±2d", "+7d", "±7d"),
     type = c("±", "±", "±", "±", "±", "±", "+", "±"),
     wpvalue = c("3", "3", "2", "2", "3", "2", "7", "7"),
     stringsAsFactors = FALSE
@@ -303,7 +303,7 @@ test_that("参数验证：visit_schedule_data缺少必要列时报错", {
       data = test_data$data,
       visit_schedule_data = incomplete_schedule
     ),
-    "访视编码文件缺少必要的列"
+    "visit_schedule_data is missing required columns"
   )
 })
 
@@ -317,7 +317,7 @@ test_that("参数验证：ex_date_var长度不匹配时报错", {
       ex_datasets = c("EX", "EX1"),
       ex_date_var = c("EXSTDAT", "STDAT", "EXTRA") # 长度不匹配
     ),
-    "ex_date_var 的长度必须为1或与 ex_datasets 的长度相同"
+    "'ex_date_var' length must be 1 or equal to 'ex_datasets' length"
   )
 })
 
@@ -330,7 +330,7 @@ test_that("参数验证：访视数据集不存在时报错", {
       visit_schedule_data = test_data$visit_schedule,
       sv_dataset = "NONEXISTENT"
     ),
-    "缺少访视数据集"
+    "Missing visit dataset"
   )
 })
 
@@ -345,7 +345,7 @@ test_that("参数验证：访视数据集缺少必要列时报错", {
       data = test_data$data,
       visit_schedule_data = test_data$visit_schedule
     ),
-    "缺少必要的列"
+    "is missing required columns"
   )
 })
 
@@ -486,7 +486,7 @@ test_that("返回结果包含所有访视", {
   expect_equal(nrow(subj_001), nrow(test_data$visit_schedule))
 
   # 检查访视名称是否完整
-  expect_setequal(subj_001$VISIT, test_data$visit_schedule$访视名称)
+  expect_setequal(subj_001$VISIT, test_data$visit_schedule$VISIT)
 })
 
 test_that("返回结果按受试者和日期排序", {
@@ -507,4 +507,417 @@ test_that("返回结果按受试者和日期排序", {
   if (nrow(subj_001_with_date) > 1) {
     expect_true(all(diff(subj_001_with_date$actual_date) >= 0))
   }
+})
+
+
+# =============================================================================
+# 补充测试：D1 计划日期迭代计算
+# =============================================================================
+
+test_that("D1计划日期：C2D1基于C1D1实际日期计算", {
+  # 当C1D1有实际访视记录且与首次给药日期不同时
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "C2D1"),
+    VISITNUM = c(1, 2),
+    CYCLE = c("治疗周期1", "治疗周期2"),
+    VISITDAY = c("1", "1"),
+    WP = c("±3d", "±3d"),
+    type = c("±", "±"),
+    wpvalue = c("3", "3"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      EXSTDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    SV = data.frame(
+      SUBJID = c("001", "001"),
+      VISIT = c("C1D1", "C2D1"),
+      VISITNUM = c(1, 2),
+      SVDAT = c("2024-01-03", "2024-02-02"), # C1D1实际延迟2天
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visit_schedule_data = visit_schedule,
+    cycle_days = 28
+  )
+
+  # C1D1计划日期应为实际日期（有实际访视）
+  c1d1 <- result[result$VISIT == "C1D1", ]
+  expect_equal(as.character(c1d1$planned_date), "2024-01-03")
+
+  # C2D1计划日期应基于C1D1实际日期 + 28天
+  c2d1 <- result[result$VISIT == "C2D1", ]
+  expect_equal(as.character(c2d1$planned_date), "2024-01-31")
+})
+
+
+# =============================================================================
+# 补充测试：非D1访视基于D1实际日期计算
+# =============================================================================
+
+test_that("非D1访视：基于当前周期D1实际日期计算", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "C1D8", "C1D15"),
+    VISITNUM = c(1, 2, 3),
+    CYCLE = c("治疗周期1", "治疗周期1", "治疗周期1"),
+    VISITDAY = c("1", "8", "15"),
+    WP = c("±3d", "±2d", "±2d"),
+    type = c("±", "±", "±"),
+    wpvalue = c("3", "2", "2"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      EXSTDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    SV = data.frame(
+      SUBJID = c("001"),
+      VISIT = c("C1D1"),
+      VISITNUM = c(1),
+      SVDAT = c("2024-01-05"), # C1D1实际延迟4天
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visit_schedule_data = visit_schedule
+  )
+
+  # C1D8应基于C1D1实际日期(2024-01-05) + 7天
+  c1d8 <- result[result$VISIT == "C1D8", ]
+  expect_equal(as.character(c1d8$planned_date), "2024-01-12")
+
+  # C1D15应基于C1D1实际日期(2024-01-05) + 14天
+  c1d15 <- result[result$VISIT == "C1D15", ]
+  expect_equal(as.character(c1d15$planned_date), "2024-01-19")
+})
+
+
+# =============================================================================
+# 补充测试：随访访视计划日期
+# =============================================================================
+
+test_that("随访访视：基于EOT日期计算", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "随访1", "随访2"),
+    VISITNUM = c(1, 100, 101),
+    CYCLE = c("治疗周期1", "随访", "随访"),
+    VISITDAY = c("1", "EOT+30", "EOT+60"),
+    WP = c("±3d", "±7d", "±7d"),
+    type = c("±", "±", "±"),
+    wpvalue = c("3", "7", "7"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      EXSTDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    SV = data.frame(
+      SUBJID = "001",
+      VISIT = "C1D1",
+      VISITNUM = 1,
+      SVDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    EOT = data.frame(
+      SUBJID = "001",
+      EOTDAT = "2024-03-15",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visit_schedule_data = visit_schedule
+  )
+
+  # 随访1应为EOT + 30天
+  fu1 <- result[result$VISIT == "随访1", ]
+  expect_equal(as.character(fu1$planned_date), "2024-04-14")
+
+  # 随访2应为EOT + 60天
+  fu2 <- result[result$VISIT == "随访2", ]
+  expect_equal(as.character(fu2$planned_date), "2024-05-14")
+})
+
+test_that("随访访视：基于末次给药日期计算（LD+N格式）", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "安全性随访"),
+    VISITNUM = c(1, 100),
+    CYCLE = c("治疗周期1", "随访"),
+    VISITDAY = c("1", "LD+30"),
+    WP = c("±3d", "±7d"),
+    type = c("±", "±"),
+    wpvalue = c("3", "7"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(
+      SUBJID = c("001", "001"),
+      EXSTDAT = c("2024-01-01", "2024-02-01"),
+      stringsAsFactors = FALSE
+    ),
+    SV = data.frame(
+      SUBJID = "001",
+      VISIT = "C1D1",
+      VISITNUM = 1,
+      SVDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visit_schedule_data = visit_schedule
+  )
+
+  # 安全性随访应为末次给药日期(2024-02-01) + 30天
+  fu <- result[result$VISIT == "安全性随访", ]
+  expect_equal(as.character(fu$planned_date), "2024-03-02")
+})
+
+
+# =============================================================================
+# 补充测试：EOT访视计划日期
+# =============================================================================
+
+test_that("EOT访视：使用EOT日期", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "治疗结束"),
+    VISITNUM = c(1, 99),
+    CYCLE = c("治疗周期1", "治疗结束"),
+    VISITDAY = c("1", "EOT"),
+    WP = c("±3d", "+7d"),
+    type = c("±", "+"),
+    wpvalue = c("3", "7"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      EXSTDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    SV = data.frame(
+      SUBJID = "001",
+      VISIT = "C1D1",
+      VISITNUM = 1,
+      SVDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    EOT = data.frame(
+      SUBJID = "001",
+      EOTDAT = "2024-03-15",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visit_schedule_data = visit_schedule
+  )
+
+  # 治疗结束访视计划日期应为EOT日期
+  eot <- result[result$VISIT == "治疗结束", ]
+  expect_equal(as.character(eot$planned_date), "2024-03-15")
+})
+
+test_that("EOT访视：使用EOS日期", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "研究结束"),
+    VISITNUM = c(1, 99),
+    CYCLE = c("治疗周期1", "治疗结束"),
+    VISITDAY = c("1", "EOS"),
+    WP = c("±3d", "+7d"),
+    type = c("±", "+"),
+    wpvalue = c("3", "7"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      EXSTDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    SV = data.frame(
+      SUBJID = "001",
+      VISIT = "C1D1",
+      VISITNUM = 1,
+      SVDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    DS = data.frame(
+      SUBJID = "001",
+      DSDAT = "2024-09-01",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visit_schedule_data = visit_schedule
+  )
+
+  # 研究结束访视计划日期应为EOS日期
+  eos <- result[result$VISIT == "研究结束", ]
+  expect_equal(as.character(eos$planned_date), "2024-09-01")
+})
+
+
+# =============================================================================
+# 补充测试：窗口类型变体
+# =============================================================================
+
+test_that("窗口期计算：- 类型（负向窗口）", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1"),
+    VISITNUM = c(1),
+    CYCLE = c("治疗周期1"),
+    VISITDAY = c("1"),
+    WP = c("-3d"),
+    type = c("-"),
+    wpvalue = c("3"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      EXSTDAT = "2024-01-15",
+      stringsAsFactors = FALSE
+    ),
+    SV = data.frame(
+      SUBJID = "001",
+      VISIT = "C1D1",
+      VISITNUM = 1,
+      SVDAT = "2024-01-15",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visit_schedule_data = visit_schedule
+  )
+
+  c1d1 <- result[result$VISIT == "C1D1", ]
+  # -3d 表示 [planned - 3, planned]
+  expect_equal(c1d1$wp_start[1], as.Date("2024-01-12"))
+  expect_equal(c1d1$wp_end[1], as.Date("2024-01-15"))
+})
+
+
+# =============================================================================
+# 补充测试：处理非数字visitday不产生警告
+# =============================================================================
+
+test_that("处理非数字visitday不产生警告", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "治疗结束", "随访"),
+    VISITNUM = c(1, 99, 100),
+    CYCLE = c("治疗周期1", "治疗结束", "随访"),
+    VISITDAY = c("1", "EOT", "EOT+30"), # EOT和EOT+30是非数字
+    WP = c("±3d", "+7d", "±7d"),
+    type = c("±", "+", "±"),
+    wpvalue = c("3", "7", "7"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      EXSTDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    SV = data.frame(
+      SUBJID = "001",
+      VISIT = "C1D1",
+      VISITNUM = 1,
+      SVDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    EOT = data.frame(
+      SUBJID = "001",
+      EOTDAT = "2024-03-15",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  # 不应产生警告
+  expect_no_warning({
+    result <- generate_planned_visit_dates(
+      data = data_list,
+      visit_schedule_data = visit_schedule
+    )
+  })
+
+  expect_s3_class(result, "data.frame")
+})
+
+
+# =============================================================================
+# 补充测试：多周期场景
+# =============================================================================
+
+test_that("多周期场景：C3D1基于C2D1实际日期计算", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "C2D1", "C3D1"),
+    VISITNUM = c(1, 2, 3),
+    CYCLE = c("治疗周期1", "治疗周期2", "治疗周期3"),
+    VISITDAY = c("1", "1", "1"),
+    WP = c("±3d", "±3d", "±3d"),
+    type = c("±", "±", "±"),
+    wpvalue = c("3", "3", "3"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      EXSTDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    ),
+    SV = data.frame(
+      SUBJID = c("001", "001"),
+      VISIT = c("C1D1", "C2D1"),
+      VISITNUM = c(1, 2),
+      SVDAT = c("2024-01-01", "2024-02-05"), # C2D1延迟7天
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visit_schedule_data = visit_schedule,
+    cycle_days = 28
+  )
+
+  # C1D1：实际日期 = 2024-01-01
+  c1d1 <- result[result$VISIT == "C1D1", ]
+  expect_equal(as.character(c1d1$planned_date), "2024-01-01")
+
+  # C2D1：基于C1D1 + 28天 = 2024-01-29，但有实际访视延迟到2024-02-05
+  c2d1 <- result[result$VISIT == "C2D1", ]
+  expect_equal(as.character(c2d1$planned_date), "2024-01-29")
+
+  # C3D1：基于C2D1实际日期(2024-02-05) + 28天 = 2024-03-04
+  c3d1 <- result[result$VISIT == "C3D1", ]
+  expect_equal(as.character(c3d1$planned_date), "2024-03-04")
 })

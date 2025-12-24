@@ -25,7 +25,7 @@ generate_planned_visit_dates(
 \item{data}{List containing all clinical trial datasets}
 
 \item{visit_schedule_data}{Data frame, visit schedule data from \code{\link{read_visitcode_file}}.
-Must contain columns: visit_name, visit_code, window, cycle, visit_day, type, wpvalue}
+Must contain columns: VISIT, VISITNUM (numeric), WP, CYCLE, VISITDAY, type, wpvalue (numeric)}
 
 \item{ex_datasets}{Character vector, exposure dataset names (default: "EX").
 Multiple datasets can be specified, e.g., c("EX1", "EX2")}
@@ -69,22 +69,22 @@ Used to calculate subsequent cycle D1 planned dates}
 \value{
 Data frame with the following columns:
 \describe{
-\item{SUBJID}{Subject ID}
-\item{VISIT}{Visit name}
-\item{VISITNUM}{Visit number}
-\item{visittype}{Visit type (cycle information)}
-\item{visitday}{Visit day}
-\item{planned_date}{Planned visit date}
-\item{wp_start}{Visit window start date}
-\item{wp_end}{Visit window end date}
-\item{wp_type}{Window type (+/-, +, -, etc.)}
-\item{wp_value}{Window value in days}
-\item{actual_date}{Actual visit date (if available)}
-\item{status}{Visit status (completed or missing)}
-\item{first_dose_date}{Subject's first dose date}
-\item{last_dose_date}{Subject's last dose date}
-\item{eot_date}{Subject's end of treatment date}
-\item{eos_date}{Subject's end of study date}
+\item{SUBJID}{Character. Subject ID}
+\item{VISIT}{Character. Visit name}
+\item{VISITNUM}{Numeric. Visit number}
+\item{visittype}{Character. Visit type (cycle information)}
+\item{visitday}{Character. Visit day}
+\item{planned_date}{Date. Planned visit date}
+\item{wp_start}{Date. Visit window start date}
+\item{wp_end}{Date. Visit window end date}
+\item{wp_type}{Character. Window type (+/-, +, -, etc.)}
+\item{wp_value}{Numeric. Window value in days}
+\item{actual_date}{Date. Actual visit date (NA if not available)}
+\item{status}{Character. Visit status ("completed" or "missing")}
+\item{first_dose_date}{Date. Subject's first dose date}
+\item{last_dose_date}{Date. Subject's last dose date}
+\item{eot_date}{Date. Subject's end of treatment date}
+\item{eos_date}{Date. Subject's end of study date}
 }
 }
 \description{
@@ -93,148 +93,104 @@ visit schedule data and clinical trial data. Supports screening, treatment,
 end of treatment, and follow-up visit date calculations.
 }
 \details{
-\subsection{Planned Visit Date Calculation Rules}{
+\subsection{Visit Categories}{
 
-This function uses different calculation logic based on visit type:
-\subsection{1. Screening Visits}{
-
-Planned date = First dose date
-
-\strong{Example}: If first dose date is 2024-01-01, screening visit planned date is 2024-01-01
+The function handles four types of visits:\tabular{ll}{
+   Category \tab Description \cr
+   Screening \tab Based on first dose date \cr
+   Treatment \tab D1 visits use iterative cycle calculation; non-D1 based on cycle D1 date \cr
+   End of Treatment \tab Based on EOT date or EOS date \cr
+   Follow-up \tab Based on EOT date or last dose date \cr
 }
 
-\subsection{2. Treatment Visits}{
-\subsection{\strong{D1 Visits (visit day = 1)}}{
 
-\strong{C1D1 (Cycle 1 Day 1)}:
-\itemize{
-\item If actual visit exists: Planned date = Actual visit date
-\item If no actual visit: Planned date = First dose date
-}
-
-\strong{CnD1 (Subsequent cycles, n > 1)}:
-\itemize{
-\item Planned date = Previous cycle D1 reference date + cycle_days (default 28 days)
-\item \strong{Reference date selection rule}:
-\enumerate{
-\item Prefer previous cycle D1 \strong{actual visit date} (if exists)
-\item Otherwise use previous cycle D1 \strong{planned date}
-}
-}
-
-\strong{Key features}:
-\itemize{
-\item C2D1, C3D1 planned dates are calculated iteratively, not using their own actual dates
-\item If C2D1 has an actual visit, that date affects C3D1 planned date calculation
-}
-
-\strong{Example}:
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{First dose date: 2024-01-01
-C1D1 planned: 2024-01-01 (no actual visit)
-C2D1 planned: 2024-01-01 + 28 days = 2024-01-29
-C2D1 actual: 2024-02-02 (delayed visit)
-C3D1 planned: 2024-02-02 + 28 days = 2024-03-01 (based on C2D1 actual)
-}\if{html}{\out{</div>}}
-}
-
-\subsection{\strong{Non-D1 Visits (e.g., D8, D15, D21)}}{
-
-Planned date = Current cycle D1 reference date + (visit day - 1)
-
-\strong{Reference date selection rule}:
-\enumerate{
-\item Prefer current cycle D1 \strong{actual visit date} (if exists)
-\item Otherwise use current cycle D1 \strong{planned date}
-}
-
-\strong{Example}:
-
-\if{html}{\out{<div class="sourceCode">}}\preformatted{C2D1 planned: 2024-01-29
-C2D1 actual: 2024-02-02
-
-C2D8 planned: 2024-02-02 + 7 days = 2024-02-09 (based on D1 actual)
-C2D15 planned: 2024-02-02 + 14 days = 2024-02-16 (based on D1 actual)
-}\if{html}{\out{</div>}}
-}
-
-}
-
-\subsection{3. End of Treatment Visits}{
-\itemize{
-\item \strong{EOT}: Planned date = End of treatment date (eot_date)
-\item \strong{EOT+number}: Planned date = End of treatment date + days
-\itemize{
-\item Example: EOT+7 = eot_date + 7 days
-}
-\item \strong{EOS}: Planned date = End of study date (eos_date)
-}
-}
-
-\subsection{4. Follow-up Visits}{
-\itemize{
-\item \strong{EOT+number}: Planned date = End of treatment date + days
-\itemize{
-\item Example: EOT+30 = eot_date + 30 days
-}
-\item \strong{Last Dose+number} or \strong{LD+number}: Planned date = Last dose date + days
-\itemize{
-\item Example: LD+30 = last_dose_date + 30 days
-\item Example: Last Dose+60 = last_dose_date + 60 days
-}
-}
-}
-
+For detailed calculation rules of each visit type, see the internal calculation
+functions in \code{planned_date_calculation.R}.
 }
 
 \subsection{Visit Window Calculation}{
 
-Calculate visit window range based on window type in visit schedule data:\tabular{lllll}{
-   Window Type \tab Window Start \tab Window End \tab Description \tab Example \cr
-   +/-3d \tab planned-3 \tab planned+3 \tab 3 days before/after \tab planned 2024-01-10, window 2024-01-07 to 2024-01-13 \cr
-   +2d \tab planned \tab planned+2 \tab delay only \tab planned 2024-01-10, window 2024-01-10 to 2024-01-12 \cr
-   -2d \tab planned-2 \tab planned \tab early only \tab planned 2024-01-10, window 2024-01-08 to 2024-01-10 \cr
-}
-
-
-\strong{Window purpose}: Used to determine if actual visit is within allowed time range.
-Visits outside window are considered protocol deviations.
-}
-
-\subsection{First and Last Dose Date Calculation}{
-\subsection{\strong{First Dose Date}}{
-\itemize{
-\item Extract earliest dosing start date from all specified exposure datasets (ex_datasets)
-\item Always uses \strong{dosing start date} variable (ex_date_var)
-\item Supports multiple datasets, automatically merges and takes minimum
-}
-
-\strong{Example}:
-
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{EX1 data: Subject 001, dose dates 2024-01-01, 2024-01-29
-EX2 data: Subject 001, dose date 2024-01-03
-First dose date = min(2024-01-01, 2024-01-29, 2024-01-03) = 2024-01-01
-}\if{html}{\out{</div>}}
-}
-
-\subsection{\strong{Last Dose Date}}{
-\itemize{
-\item Uses different logic based on whether ex_end_date_var is specified:
-}
-
-\strong{Case 1: ex_end_date_var not specified (default)}
-\itemize{
-\item Uses dosing start date (ex_date_var)
-\item Takes \strong{latest} dosing start date from all records
-}
-
-\strong{Case 2: ex_end_date_var specified}
-\itemize{
-\item Uses dosing end date (ex_end_date_var)
-\item Takes \strong{latest} dosing end date from all records
-\item Suitable for studies with explicit start and end dates
-}
+Window ranges are calculated based on the window type specified in visit schedule:\tabular{ll}{
+   Window Type \tab Window Range \cr
+   +/-Nd \tab \verb{[planned - N, planned + N]} \cr
+   +Nd \tab \verb{[planned, planned + N]} \cr
+   -Nd \tab \verb{[planned - N, planned]} \cr
 }
 
 }
 }
+\examples{
+\dontrun{
+# Prepare visit schedule data
+visit_schedule <- data.frame(
+  VISIT = c("Screening", "C1D1", "C1D8", "C2D1", "EOT"),
+  VISITNUM = c(0, 1, 2, 3, 99),
+  WP = c("", "+/-3d", "+/-2d", "+/-3d", "+7d"),
+  CYCLE = c("Screening", "Cycle 1", "Cycle 1", "Cycle 2", "End of Treatment"),
+  VISITDAY = c("0", "1", "8", "1", "EOT"),
+  type = c(NA, "+/-", "+/-", "+/-", "+"),
+  wpvalue = c(NA, 3, 2, 3, 7),
+  stringsAsFactors = FALSE
+)
+
+# Prepare clinical trial data
+data <- list(
+  EX = data.frame(
+    SUBJID = c("001", "001", "002"),
+    EXSTDAT = c("2024-01-01", "2024-01-29", "2024-01-05"),
+    stringsAsFactors = FALSE
+  ),
+  SV = data.frame(
+    SUBJID = c("001", "001", "002"),
+    VISIT = c("C1D1", "C1D8", "C1D1"),
+    VISITNUM = c(1, 2, 1),
+    SVDAT = c("2024-01-01", "2024-01-08", "2024-01-05"),
+    stringsAsFactors = FALSE
+  ),
+  EOT = data.frame(
+    SUBJID = c("001", "002"),
+    EOTDAT = c("2024-03-15", "2024-03-20"),
+    stringsAsFactors = FALSE
+  ),
+  DS = data.frame(
+    SUBJID = c("001", "002"),
+    DSDAT = c("2024-04-15", "2024-04-20"),
+    stringsAsFactors = FALSE
+  )
+)
+
+# Generate planned visit dates
+result <- generate_planned_visit_dates(
+  data = data,
+  visit_schedule_data = visit_schedule
+)
+
+# With custom cycle days (21-day cycle)
+result <- generate_planned_visit_dates(
+  data = data,
+  visit_schedule_data = visit_schedule,
+  cycle_days = 21
+)
+
+# With multiple exposure datasets
+result <- generate_planned_visit_dates(
+  data = data,
+  visit_schedule_data = visit_schedule,
+  ex_datasets = c("EX1", "EX2"),
+  ex_date_var = c("EXSTDAT1", "EXSTDAT2")
+)
+}
+
+}
+\seealso{
+\code{\link{read_visitcode_file}} for reading visit schedule files
+
+\code{\link{check_visit_window}} for checking visit window deviations
+
+\code{\link{check_missing_visit}} for checking missing visits
+
+\code{\link{get_first_dose_date}} for extracting first dose dates
+
+\code{\link{get_last_dose_date}} for extracting last dose dates
+}
+\concept{visit planning}

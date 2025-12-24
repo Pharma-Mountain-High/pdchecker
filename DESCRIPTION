@@ -15,10 +15,13 @@ Imports:
     readr,
     readxl,
     rlang,
-    tibble
-Suggests:
-    mockery,
+    tibble,
     openxlsx,
+    purrr
+Suggests:
+    knitr,
+    mockery,
+    rmarkdown,
     testthat (>= 3.0.0),
     withr,
     writexl

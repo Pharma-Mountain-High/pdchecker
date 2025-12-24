@@ -1,82 +1,84 @@
+#' Parse Time Unit String to Days
+#'
+#' @description
+#' Convert time unit string to number of days.
+#' Supports hours (h), days (d), and weeks (w).
+#'
+#' @param value_str Time value string (e.g., "3d", "24h", "2w")
+#' @return Numeric value in days
+#' @noRd
+parse_time_unit <- function(value_str) {
+  if (grepl("h$|小时$", value_str)) {
+    # Hours to days
+    num <- as.numeric(gsub("h$|小时$", "", value_str))
+    return(num / 24)
+  } else if (grepl("w$|周$", value_str)) {
+    # Weeks to days
+    num <- as.numeric(gsub("w$|周$", "", value_str))
+    return(num * 7)
+  } else if (grepl("d$|天$|日$", value_str)) {
+    # Days
+    num <- as.numeric(gsub("d$|天$|日$", "", value_str))
+    return(num)
+  } else {
+    # Default: treat as days
+    return(as.numeric(value_str))
+  }
+}
+
 #' Parse Visit Window Period String
 #'
 #' @param window_str Window period string (e.g., "+/-3d", "<=24h", "+2d", "-1d")
 #' @return List containing window type and value
 #' @noRd
 parse_window_period <- function(window_str) {
-  # 处理缺失值
+  # Handle missing values
   if (is.na(window_str) || window_str == "" || is.null(window_str)) {
     return(list(type = NA, value = NA))
   }
 
-  # 转换为字符串并清理空格
+  # Convert to string and trim whitespace
   window_str <- trimws(as.character(window_str))
 
-  # 解析时间单位，转换为天数
-  parse_time_unit <- function(value_str) {
-    if (grepl("h$|小时$", value_str)) {
-      # 小时转天
-      num <- as.numeric(gsub("h$|小时$", "", value_str))
-      return(num / 24)
-    } else if (grepl("w$|周$", value_str)) {
-      # 周转天
-      num <- as.numeric(gsub("w$|周$", "", value_str))
-      return(num * 7)
-    } else if (grepl("d$|天$|日$", value_str)) {
-      # 天数
-      num <- as.numeric(gsub("d$|天$|日$", "", value_str))
-      return(num)
-    } else {
-      # 默认为天
-      return(as.numeric(value_str))
+  # Define window type pattern table: pattern, type, gsub_pattern
+  window_patterns <- list(
+    list(pattern = "^±", type = "±", gsub_pattern = "^±"),
+    list(pattern = "^(≤|<=)", type = "≤", gsub_pattern = "^(≤|<=)"),
+    list(pattern = "^(≥|>=)", type = "≥", gsub_pattern = "^(≥|>=)"),
+    list(pattern = "^\\+", type = "+", gsub_pattern = "^\\+"),
+    list(pattern = "^-(?!.*(到|至))", type = "-", gsub_pattern = "^-")
+  )
+
+  # Iterate through pattern table for matching
+  for (wp in window_patterns) {
+    if (grepl(wp$pattern, window_str, perl = TRUE)) {
+      value_part <- gsub(wp$gsub_pattern, "", window_str)
+      value <- parse_time_unit(value_part)
+      return(list(type = wp$type, value = value))
     }
   }
 
-  # 判断窗口期类型
-  if (grepl("^±", window_str)) {
-    # ± 类型 (如: ±3d, ±24h)
-    value_part <- gsub("^±", "", window_str)
-    value <- parse_time_unit(value_part)
-    return(list(type = "±", value = value))
-  } else if (grepl("^≤|^<=", window_str)) {
-    # ≤ 类型 (如: ≤24h, ≤1d)
-    value_part <- gsub("^≤|^<=", "", window_str)
-    value <- parse_time_unit(value_part)
-    return(list(type = "≤", value = value))
-  } else if (grepl("^≥|^>=", window_str)) {
-    # ≥ 类型 (如: ≥1d)
-    value_part <- gsub("^≥|^>=", "", window_str)
-    value <- parse_time_unit(value_part)
-    return(list(type = "≥", value = value))
-  } else if (grepl("^\\+", window_str)) {
-    # + 类型 (如: +2d)
-    value_part <- gsub("^\\+", "", window_str)
-    value <- parse_time_unit(value_part)
-    return(list(type = "+", value = value))
-  } else if (grepl("^-", window_str) && !grepl("到|至", window_str)) {
-    # - 类型 (如: -1d)
-    value_part <- gsub("^-", "", window_str)
-    value <- parse_time_unit(value_part)
-    return(list(type = "-", value = value))
-  } else if (grepl("到|至", window_str)) {
-    # 范围类型 (如: -2到+4, 1至3天)
+  # Range type (e.g., -2到+4, 1至3天)
+  if (grepl("到|至", window_str)) {
     return(list(type = "范围", value = window_str))
-  } else if (grepl("^[0-9]", window_str)) {
-    # 数字无前缀类型 (如: 2d)
-    value_part <- window_str
-    value <- parse_time_unit(value_part)
-    return(list(type = "+", value = value))
-  } else {
-    # 其他格式
-    return(list(type = "其他", value = window_str))
   }
+
+  # Numeric without prefix (e.g., 2d) -> default to +
+  if (grepl("^[0-9]", window_str)) {
+    value <- parse_time_unit(window_str)
+    return(list(type = "+", value = value))
+  }
+
+  # Other formats
+  return(list(type = "其他", value = window_str))
 }
 
 #' Read Visit Schedule Data and Parse Window Periods
 #'
 #' @description
-#' Read visit schedule Excel or CSV file and parse window period column into two new variables:
-#' - type: Distinguishes window types (<=, +/-, +, -, fixed, range, etc.)
+#' Read visit schedule Excel or CSV file and parse window period column (WP)
+#' into two new variables:
+#' - type: Distinguishes window types (<=, +/-, +, -, range, etc.)
 #' - wpvalue: Specific window time value (automatically converts hours to days)
 #'
 #' Supported window period format examples:
@@ -88,8 +90,8 @@ parse_window_period <- function(window_str) {
 #' - "+/-2w" -> type: +/-, value: 14 (2 weeks = 14 days)
 #'
 #' @details
-#' ## Window Period Column Detection
-#' Function automatically searches for column names (in order): window, Window, WINDOW.
+#' ## Window Period Column
+#' The input file must contain a column named "WP" (case-sensitive).
 #'
 #' ## Time Unit Conversion
 #' All time units are converted to days:
@@ -103,88 +105,126 @@ parse_window_period <- function(window_str) {
 #' ## Column Name Conflicts
 #' If type or wpvalue columns already exist, they will be overwritten with a message.
 #'
-#' @param file_path File path (.xlsx, .xls, or .csv)
-#' @param sheet_name Excel sheet name (default: "Sheet1"). Ignored for CSV files.
+#' @param file_path Character. File path (.xlsx, .xls, or .csv).
+#'   Must be a non-empty string pointing to an existing file.
+#' @param sheet_name Character. Excel sheet name (default: "Sheet1").
+#'   Ignored for CSV files.
 #' @return A tibble with all columns from input file, plus two new (or overwritten) columns:
 #'   \item{type}{Window type (character): +/-, <=, >=, +, -, range, other, or NA}
-#'   \item{wpvalue}{Window value (character) in days. "NA" if unparseable}
+#'   \item{wpvalue}{Window value (numeric) in days. NA if unparseable (e.g., range or other types)}
+#'
+#' @examples
+#' \dontrun{
+#' # Read from Excel file
+#' data <- read_visitcode_file("visit_schedule.xlsx")
+#'
+#' # Read from specific sheet
+#' data <- read_visitcode_file("visit_schedule.xlsx", sheet_name = "Schedule")
+#'
+#' # Read from CSV file
+#' data <- read_visitcode_file("visit_schedule.csv")
+#'
+#' # Example output structure:
+#' #   visit  WP      type   wpvalue
+#' #   V1     ±3d     ±      3
+#' #   V2     <=24h   ≤      1
+#' #   V3     +2d     +      2
+#' #   V4     -1d     -      1
+#' #   V5     1w      +      7
+#' }
+#'
 #' @importFrom utils read.csv
+#' @importFrom readxl read_excel
+#' @importFrom tibble as_tibble
+#' @importFrom tools file_ext
 #' @export
 read_visitcode_file <- function(file_path, sheet_name = "Sheet1") {
-  # 检查文件是否存在
+  # ---- Parameter validation ----
+  # Validate file_path
+  if (!is.character(file_path) || length(file_path) != 1) {
+    stop("'file_path' must be a single character string.", call. = FALSE)
+  }
+  if (is.na(file_path) || nchar(trimws(file_path)) == 0) {
+    stop("'file_path' cannot be NA or empty.", call. = FALSE)
+  }
   if (!file.exists(file_path)) {
-    stop("文件未找到: ", file_path, call. = FALSE)
+    stop("File not found: ", file_path, call. = FALSE)
   }
 
-  # 读取文件
+  # Validate sheet_name
+  if (!is.character(sheet_name) || length(sheet_name) != 1) {
+    stop("'sheet_name' must be a single character string.", call. = FALSE)
+  }
+  if (is.na(sheet_name) || nchar(trimws(sheet_name)) == 0) {
+    stop("'sheet_name' cannot be NA or empty.", call. = FALSE)
+  }
+
+  # ---- Read file ----
   file_ext <- tolower(tools::file_ext(file_path))
 
   if (file_ext %in% c("xlsx", "xls")) {
-    # 读取Excel文件
+    # Read Excel file
     data <- readxl::read_excel(file_path, sheet = sheet_name)
   } else if (file_ext == "csv") {
-    # 读取CSV文件，使用UTF-8编码支持中文
+    # Read CSV file with UTF-8 encoding support
     data <- tryCatch(
       {
-        # 优先尝试 UTF-8 编码
+        # Try UTF-8 encoding first
         read.csv(file_path, stringsAsFactors = FALSE, fileEncoding = "UTF-8")
       },
       error = function(e) {
-        # 如果失败，尝试系统默认编码
+        # Fallback to system default encoding
         read.csv(file_path, stringsAsFactors = FALSE)
       }
     )
-    # 转换为tibble以保持一致性
+    # Convert to tibble for consistency
     data <- tibble::as_tibble(data)
   } else {
-    stop("不支持的文件格式。请使用 .xlsx, .xls 或 .csv 文件。", call. = FALSE)
-  }
-
-  # 查找窗口期列（支持多种可能的列名）
-  window_col_names <- c("窗口期", "访视窗口", "窗口", "window", "Window", "WINDOW")
-  window_col <- NULL
-
-  for (col_name in window_col_names) {
-    if (col_name %in% names(data)) {
-      window_col <- col_name
-      break
-    }
-  }
-
-  if (is.null(window_col)) {
-    stop("文件中缺少窗口期列。请确保文件包含以下列名之一: ",
-      paste(window_col_names, collapse = ", "),
+    stop(
+      "Unsupported file format. Please use .xlsx, .xls, or .csv files.",
       call. = FALSE
     )
   }
 
-  # 处理列名冲突：如果已存在 type 或 wpvalue 列，先删除
+  # ---- Validate data structure ----
+  if (nrow(data) == 0) {
+    warning("The input file contains no data rows.")
+  }
+
+  # Check for required WP column
+  if (!"WP" %in% names(data)) {
+    stop(
+      "Missing required column 'WP' in the input file. ",
+      "Available columns: ", paste(names(data), collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  # ---- Handle column name conflicts ----
   if ("type" %in% names(data)) {
-    message("注意：数据中已存在 'type' 列，将被覆盖。")
+    message("Note: Existing 'type' column will be overwritten.")
     data <- data[, !names(data) %in% "type"]
   }
   if ("wpvalue" %in% names(data)) {
-    message("注意：数据中已存在 'wpvalue' 列，将被覆盖。")
+    message("Note: Existing 'wpvalue' column will be overwritten.")
     data <- data[, !names(data) %in% "wpvalue"]
   }
 
-  # 初始化新列
-  data <- tibble::add_column(data,
-    type = NA_character_,
-    wpvalue = NA_character_
-  )
+  # ---- Parse window periods (vectorized) ----
+  parsed_results <- lapply(data[["WP"]], parse_window_period)
 
-  # 逐行解析窗口期
-  if (nrow(data) > 0) {
-    for (i in seq_len(nrow(data))) {
-      window_str <- data[[window_col]][i]
+  # Extract type and wpvalue
+  data$type <- vapply(parsed_results, function(x) {
+    if (is.na(x$type)) NA_character_ else as.character(x$type)
+  }, FUN.VALUE = character(1))
 
-      # 解析窗口期
-      result <- parse_window_period(window_str)
-      data[i, "type"] <- result$type
-      data[i, "wpvalue"] <- as.character(result$value)
+  data$wpvalue <- vapply(parsed_results, function(x) {
+    if (is.numeric(x$value)) {
+      x$value
+    } else {
+      NA_real_
     }
-  }
+  }, FUN.VALUE = numeric(1))
 
   return(data)
 }
