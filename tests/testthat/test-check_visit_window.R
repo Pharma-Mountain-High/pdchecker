@@ -342,4 +342,3 @@ test_that("print.visit_window_check 在无偏差时正常工作", {
 
   expect_true(any(grepl("Has deviation: NO", output)))
 })
-
