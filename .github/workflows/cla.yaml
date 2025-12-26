@@ -24,7 +24,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
         with:
-          path-to-signatures: ${{ github.repository }}/cla.json
+          path-to-signatures: 'cla-signatures/cla.json'
           path-to-document: https://github.com/${{ github.repository_owner }}/.github/blob/main/CLA.md
           branch: cla-signatures
           allowlist: >-
@@ -37,9 +37,7 @@ jobs:
             copilot[bot],
             Copilot
           create-file-commit-message: '🛠 Init CLA Signatures'
-          remote-organization-name: ${{ github.repository_owner }}
-          remote-repository-name: .github-private
-          signed-commit-message: '✍️ CLA signed by $contributorName in ${{ github.repository_owner }}/${{ github.repository }}'
+          signed-commit-message: '✍️ CLA signed by $contributorName'
           custom-allsigned-prcomment: '✅ All contributors have signed the CLA'
           custom-notsigned-prcomment: >-
             <br/>
