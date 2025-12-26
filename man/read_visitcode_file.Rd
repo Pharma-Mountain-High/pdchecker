@@ -75,8 +75,8 @@ data <- read_visitcode_file("visit_schedule.csv")
 
 # Example output structure:
 #   visit  WP      type   wpvalue
-#   V1     ±3d     ±      3
-#   V2     <=24h   ≤      1
+#   V1     +/-3d   +/-    3
+#   V2     <=24h   <=     1
 #   V3     +2d     +      2
 #   V4     -1d     -      1
 #   V5     1w      +      7

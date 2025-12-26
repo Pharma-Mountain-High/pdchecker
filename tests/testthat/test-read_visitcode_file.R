@@ -203,16 +203,17 @@ test_that("parse_window_period handles large values", {
 
 test_that("parse_window_period handles invalid numeric values", {
   # Invalid values produce NA with warning
+  # Use regex to match both English and Chinese warning messages
   expect_warning(
     result <- pdchecker:::parse_window_period("±abc天"),
-    "NAs introduced by coercion"
+    "NAs introduced by coercion|强制改变过程中产生了NA"
   )
   expect_equal(result$type, "±")
   expect_true(is.na(result$value))
 
   expect_warning(
     result <- pdchecker:::parse_window_period("≤xyz小时"),
-    "NAs introduced by coercion"
+    "NAs introduced by coercion|强制改变过程中产生了NA"
   )
   expect_equal(result$type, "≤")
   expect_true(is.na(result$value))

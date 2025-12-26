@@ -666,7 +666,7 @@ is_d1_visit <- function(visit_name, visit_day) {
 #' based on planned date, window type, and window value.
 #'
 #' @param planned_date Date, the planned visit date
-#' @param window_type Character, window type symbol: "±", "+", "-", "≤", "≥"
+#' @param window_type Character, window type symbol: "+/-", "+", "-", "<=", ">="
 #' @param window_value Numeric, window value in days
 #'
 #' @return Named list with \code{window_start} and \code{window_end} dates
