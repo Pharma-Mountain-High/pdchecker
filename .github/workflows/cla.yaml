@@ -10,7 +10,15 @@ on:
       - opened
       - closed
       - synchronize
-
+      
+permissions:
+  actions: write
+  contents: read
+  pull-requests: write
+  statuses: write
+  checks: write
+  issues: write
+  
 jobs:
   CLA:
     name: CLA 📝
