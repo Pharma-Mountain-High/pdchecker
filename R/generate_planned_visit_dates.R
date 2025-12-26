@@ -1,0 +1,363 @@
+#' Generate Planned Visit Dates
+#'
+#' @description
+#' Calculate planned visit dates and visit window ranges for each subject based on
+#' visit schedule data and clinical trial data. Supports screening, treatment,
+#' end of treatment, and follow-up visit date calculations.
+#'
+#' @details
+#' ## Visit Categories
+#'
+#' The function handles four types of visits:
+#'
+#' | Category | Description |
+#' |----------|-------------|
+#' | Screening | Based on first dose date |
+#' | Treatment | D1 visits use iterative cycle calculation; non-D1 based on cycle D1 date |
+#' | End of Treatment | Based on EOT date or EOS date |
+#' | Follow-up | Based on EOT date or last dose date |
+#'
+#' For detailed calculation rules of each visit type, see the internal calculation
+#' functions in `planned_date_calculation.R`.
+#'
+#' ## Visit Window Calculation
+#'
+#' Window ranges are calculated based on the window type specified in visit schedule:
+#'
+#' | Window Type | Window Range |
+#' |-------------|--------------|
+#' | +/-Nd | `[planned - N, planned + N]` |
+#' | +Nd | `[planned, planned + N]` |
+#' | -Nd | `[planned - N, planned]` |
+#' @param data List containing all clinical trial datasets
+#' @param visit_schedule_data Data frame, visit schedule data from \code{\link{read_visitcode_file}}.
+#'   Must contain columns: VISIT, VISITNUM (numeric), WP, CYCLE, VISITDAY, type, wpvalue (numeric)
+#' @param ex_datasets Character vector, exposure dataset names (default: "EX").
+#'   Multiple datasets can be specified, e.g., c("EX1", "EX2")
+#' @param ex_date_var Character vector, dosing start date variable names (default: "EXSTDAT").
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{ex_datasets}, corresponds one-to-one with datasets
+#'   - Example: c("EXSTDAT1", "EXSTDAT2") corresponds to c("EX1", "EX2")
+#' @param ex_end_date_var Character vector, dosing end date variable names (default: NULL).
+#'   - If NULL or empty, last dose date uses \code{ex_date_var} (dosing start date)
+#'   - If specified, last dose date uses dosing end date
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{ex_datasets}, corresponds one-to-one with datasets
+#' @param sv_dataset Character string, visit dataset name (default: "SV")
+#' @param sv_visit_var Character string, visit name variable in visit dataset (default: "VISIT")
+#' @param sv_visitnum_var Character string, visit number variable in visit dataset (default: "VISITNUM")
+#' @param sv_date_var Character string, visit date variable in visit dataset (default: "SVDAT")
+#' @param eot_dataset Character string, end of treatment dataset name (default: "EOT").
+#'   If dataset doesn't exist, EOT-related planned dates will be NA
+#' @param eot_date_var Character string, end of treatment date variable (default: "EOTDAT")
+#' @param ds_dataset Character string, disposition dataset name (default: "DS").
+#'   If dataset doesn't exist, EOS-related planned dates will be NA
+#' @param ds_date_var Character string, end of study date variable (default: "DSDAT")
+#' @param cycle_days Numeric, treatment cycle length in days (default: 28).
+#'   Used to calculate subsequent cycle D1 planned dates
+#'
+#' @return Data frame with the following columns:
+#'   \describe{
+#'     \item{SUBJID}{Character. Subject ID}
+#'     \item{VISIT}{Character. Visit name}
+#'     \item{VISITNUM}{Numeric. Visit number}
+#'     \item{visittype}{Character. Visit type (cycle information)}
+#'     \item{visitday}{Character. Visit day}
+#'     \item{planned_date}{Date. Planned visit date}
+#'     \item{wp_start}{Date. Visit window start date}
+#'     \item{wp_end}{Date. Visit window end date}
+#'     \item{wp_type}{Character. Window type (+/-, +, -, etc.)}
+#'     \item{wp_value}{Numeric. Window value in days}
+#'     \item{actual_date}{Date. Actual visit date (NA if not available)}
+#'     \item{status}{Character. Visit status ("completed" or "missing")}
+#'     \item{first_dose_date}{Date. Subject's first dose date}
+#'     \item{last_dose_date}{Date. Subject's last dose date}
+#'     \item{eot_date}{Date. Subject's end of treatment date}
+#'     \item{eos_date}{Date. Subject's end of study date}
+#'   }
+#'
+#' @examples
+#' \dontrun{
+#' # Prepare visit schedule data
+#' visit_schedule <- data.frame(
+#'   VISIT = c("Screening", "C1D1", "C1D8", "C2D1", "EOT"),
+#'   VISITNUM = c(0, 1, 2, 3, 99),
+#'   WP = c("", "+/-3d", "+/-2d", "+/-3d", "+7d"),
+#'   CYCLE = c("Screening", "Cycle 1", "Cycle 1", "Cycle 2", "End of Treatment"),
+#'   VISITDAY = c("0", "1", "8", "1", "EOT"),
+#'   type = c(NA, "+/-", "+/-", "+/-", "+"),
+#'   wpvalue = c(NA, 3, 2, 3, 7),
+#'   stringsAsFactors = FALSE
+#' )
+#'
+#' # Prepare clinical trial data
+#' data <- list(
+#'   EX = data.frame(
+#'     SUBJID = c("001", "001", "002"),
+#'     EXSTDAT = c("2024-01-01", "2024-01-29", "2024-01-05"),
+#'     stringsAsFactors = FALSE
+#'   ),
+#'   SV = data.frame(
+#'     SUBJID = c("001", "001", "002"),
+#'     VISIT = c("C1D1", "C1D8", "C1D1"),
+#'     VISITNUM = c(1, 2, 1),
+#'     SVDAT = c("2024-01-01", "2024-01-08", "2024-01-05"),
+#'     stringsAsFactors = FALSE
+#'   ),
+#'   EOT = data.frame(
+#'     SUBJID = c("001", "002"),
+#'     EOTDAT = c("2024-03-15", "2024-03-20"),
+#'     stringsAsFactors = FALSE
+#'   ),
+#'   DS = data.frame(
+#'     SUBJID = c("001", "002"),
+#'     DSDAT = c("2024-04-15", "2024-04-20"),
+#'     stringsAsFactors = FALSE
+#'   )
+#' )
+#'
+#' # Generate planned visit dates
+#' result <- generate_planned_visit_dates(
+#'   data = data,
+#'   visit_schedule_data = visit_schedule
+#' )
+#'
+#' # With custom cycle days (21-day cycle)
+#' result <- generate_planned_visit_dates(
+#'   data = data,
+#'   visit_schedule_data = visit_schedule,
+#'   cycle_days = 21
+#' )
+#'
+#' # With multiple exposure datasets
+#' result <- generate_planned_visit_dates(
+#'   data = data,
+#'   visit_schedule_data = visit_schedule,
+#'   ex_datasets = c("EX1", "EX2"),
+#'   ex_date_var = c("EXSTDAT1", "EXSTDAT2")
+#' )
+#' }
+#'
+#' @seealso
+#' \code{\link{read_visitcode_file}} for reading visit schedule files
+#'
+#' \code{\link{check_visit_window}} for checking visit window deviations
+#'
+#' \code{\link{check_missing_visit}} for checking missing visits
+#'
+#' \code{\link{get_first_dose_date}} for extracting first dose dates
+#'
+#' \code{\link{get_last_dose_date}} for extracting last dose dates
+#'
+#' @family visit planning
+#'
+#' @importFrom dplyr filter select mutate arrange group_by ungroup left_join
+#' @importFrom dplyr case_when if_else sym distinct bind_rows slice
+#' @importFrom purrr map_chr map2_lgl map_dfr
+#' @importFrom magrittr %>%
+#' @export
+generate_planned_visit_dates <- function(data,
+                                         visit_schedule_data,
+                                         ex_datasets = "EX",
+                                         ex_date_var = "EXSTDAT",
+                                         ex_end_date_var = NULL,
+                                         sv_dataset = "SV",
+                                         sv_visit_var = "VISIT",
+                                         sv_visitnum_var = "VISITNUM",
+                                         sv_date_var = "SVDAT",
+                                         eot_dataset = "EOT",
+                                         eot_date_var = "EOTDAT",
+                                         ds_dataset = "DS",
+                                         ds_date_var = "DSDAT",
+                                         cycle_days = 28) {
+  # ============================================================================
+  # Parameter validation
+  # ============================================================================
+
+  # Validate data parameter
+  if (!is.list(data)) {
+    stop("'data' must be a list")
+  }
+
+  # Validate visit_schedule_data parameter
+  if (is.null(visit_schedule_data) || !is.data.frame(visit_schedule_data)) {
+    stop("'visit_schedule_data' must be a data frame")
+  }
+
+  # Validate visit_schedule_data required columns
+  required_visit_cols <- c("VISIT", "VISITNUM", "WP", "CYCLE", "VISITDAY", "type", "wpvalue")
+  missing_visit_cols <- setdiff(required_visit_cols, names(visit_schedule_data))
+  if (length(missing_visit_cols) > 0) {
+    stop("visit_schedule_data is missing required columns: ", paste(missing_visit_cols, collapse = ", "))
+  }
+
+  # Validate character string parameters
+  char_params <- list(
+    sv_dataset = sv_dataset,
+    sv_visit_var = sv_visit_var,
+    sv_visitnum_var = sv_visitnum_var,
+    sv_date_var = sv_date_var,
+    eot_dataset = eot_dataset,
+    eot_date_var = eot_date_var,
+    ds_dataset = ds_dataset,
+    ds_date_var = ds_date_var
+  )
+
+  for (param_name in names(char_params)) {
+    param_value <- char_params[[param_name]]
+    if (!is.character(param_value) || length(param_value) != 1 || nchar(param_value) == 0) {
+      stop("'", param_name, "' must be a non-empty character string")
+    }
+  }
+
+  # Validate ex_datasets parameter
+  if (!is.character(ex_datasets) || length(ex_datasets) == 0) {
+    stop("'ex_datasets' must be a non-empty character vector")
+  }
+
+  # Validate ex_date_var parameter
+  if (!is.character(ex_date_var) || length(ex_date_var) == 0) {
+    stop("'ex_date_var' must be a non-empty character vector")
+  }
+
+  # Validate ex_date_var length matches ex_datasets
+  if (length(ex_date_var) != 1 && length(ex_date_var) != length(ex_datasets)) {
+    stop(
+      "'ex_date_var' length must be 1 or equal to 'ex_datasets' length. ",
+      "ex_datasets length: ", length(ex_datasets),
+      ", ex_date_var length: ", length(ex_date_var)
+    )
+  }
+
+  # Validate ex_end_date_var parameter (if provided)
+  if (!is.null(ex_end_date_var) && length(ex_end_date_var) > 0) {
+    if (!is.character(ex_end_date_var)) {
+      stop("'ex_end_date_var' must be a character vector or NULL")
+    }
+    if (length(ex_end_date_var) != 1 && length(ex_end_date_var) != length(ex_datasets)) {
+      stop(
+        "'ex_end_date_var' length must be 1 or equal to 'ex_datasets' length. ",
+        "ex_datasets length: ", length(ex_datasets),
+        ", ex_end_date_var length: ", length(ex_end_date_var)
+      )
+    }
+  }
+
+  # Validate sv_dataset exists
+  if (!sv_dataset %in% names(data)) {
+    stop("Missing visit dataset: ", sv_dataset)
+  }
+
+  # Validate visit dataset required columns
+  sv_data <- data[[sv_dataset]]
+  sv_required_cols <- c("SUBJID", sv_visit_var, sv_date_var)
+  missing_sv_cols <- setdiff(sv_required_cols, names(sv_data))
+  if (length(missing_sv_cols) > 0) {
+    stop("Visit dataset '", sv_dataset, "' is missing required columns: ", paste(missing_sv_cols, collapse = ", "))
+  }
+
+  # Validate cycle_days parameter
+  if (!is.numeric(cycle_days) || length(cycle_days) != 1 || is.na(cycle_days) || cycle_days <= 0) {
+    stop("'cycle_days' must be a positive number")
+  }
+
+  # ============================================================================
+  # Get date data
+  # ============================================================================
+
+  # First dose date
+  first_dose_dates <- get_first_dose_date(
+    data = data,
+    ex_datasets = ex_datasets,
+    ex_date_var = ex_date_var
+  )
+
+  # Last dose date
+  last_dose_dates <- get_last_dose_date(
+    data = data,
+    ex_datasets = ex_datasets,
+    ex_date_var = ex_date_var,
+    ex_end_date_var = ex_end_date_var
+  )
+
+  # End of treatment date
+  eot_dates <- get_eot_date(
+    data = data,
+    eot_dataset = eot_dataset,
+    eot_date_var = eot_date_var
+  )
+
+  # End of study date
+  eos_dates <- get_eos_date(
+    data = data,
+    ds_dataset = ds_dataset,
+    ds_date_var = ds_date_var
+  )
+
+  # ============================================================================
+  # Prepare visit information data frame
+  # ============================================================================
+
+  visit_info <- visit_schedule_data %>%
+    mutate(
+      visit = VISIT,
+      visitnum = VISITNUM,
+      visitday = VISITDAY,
+      visittype = CYCLE,
+      wp = WP,
+      wp_type = type,
+      wp_value = as.numeric(wpvalue),
+      visit_category = map_chr(CYCLE, match_visit_type),
+      is_d1 = map2_lgl(VISIT, VISITDAY, is_d1_visit)
+    ) %>%
+    arrange(seq_len(nrow(visit_schedule_data)))
+
+  # ============================================================================
+  # Get actual visit data
+  # ============================================================================
+
+  actual_visits <- sv_data %>%
+    filter(!is_sas_na(!!sym(sv_date_var))) %>%
+    mutate(
+      actual_date = as.Date(!!sym(sv_date_var)),
+      VISIT = !!sym(sv_visit_var),
+      VISITNUM = !!sym(sv_visitnum_var)
+    ) %>%
+    select(SUBJID, VISIT, VISITNUM, actual_date) %>%
+    arrange(SUBJID, actual_date)
+
+  # ============================================================================
+  # Merge subject dates
+  # ============================================================================
+
+  subjects <- unique(sv_data$SUBJID)
+
+  subject_dates <- data.frame(SUBJID = subjects, stringsAsFactors = FALSE) %>%
+    left_join(first_dose_dates, by = "SUBJID") %>%
+    left_join(last_dose_dates, by = "SUBJID") %>%
+    left_join(eot_dates, by = "SUBJID") %>%
+    left_join(eos_dates, by = "SUBJID")
+
+  # ============================================================================
+  # Calculate planned visit dates for each subject
+  # ============================================================================
+
+  planned_dates <- map_dfr(subjects, function(subj_id) {
+    calc_planned_dates(
+      subj_id = subj_id,
+      visit_info = visit_info,
+      actual_visits = actual_visits,
+      subject_dates = subject_dates,
+      cycle_days = cycle_days
+    )
+  })
+
+  # Return result
+  if (nrow(planned_dates) > 0) {
+    result <- planned_dates %>%
+      arrange(SUBJID, actual_date)
+    return(result)
+  } else {
+    return(data.frame())
+  }
+}

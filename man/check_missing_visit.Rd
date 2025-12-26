@@ -2,16 +2,123 @@
 % Please edit documentation in R/check_missing_visit.R
 \name{check_missing_visit}
 \alias{check_missing_visit}
-\title{Check missing visits}
+\title{Check Missing Visits}
 \usage{
-check_missing_visit(test_data, dataset_name)
+check_missing_visit(planned_dates, cutoffdt = Sys.Date())
 }
 \arguments{
-\item{data}{List of data frames containing study data}
+\item{planned_dates}{Data frame from \code{\link{generate_planned_visit_dates}}.
+Must contain: SUBJID, VISIT, VISITNUM, visittype, planned_date, status, eot_date, eos_date}
+
+\item{cutoffdt}{Date, data cutoff date (default: current date). Used to determine if visit should be completed}
 }
 \value{
-List containing check results and descriptions
+List with the following components:
+\describe{
+\item{has_deviation}{Logical. TRUE if there are missing visits}
+\item{messages}{Character vector. Deviation description messages}
+\item{details}{Data frame. Missing visit details with columns:
+\itemize{
+\item SUBJID: Subject ID
+\item first_dose_date: Subject's first dose date
+\item VISIT: Missing visit name
+\item VISITNUM: Visit number
+\item planned_date: Planned visit date
+\item visittype: Visit type
+\item eot_date: Subject's end of treatment date
+\item eos_date: Subject's end of study date
+\item cutoffdt: Data cutoff date
+\item valid_visits_count: Total visits that should be completed
+\item completed_visits_count: Actual completed visits
+}
+}
+\item{planned_visits}{Data frame. Complete input planned visit information}
+}
 }
 \description{
-Check missing visits
+Check for missing visits based on planned visit dates. Receives planned visit data
+from \code{\link{generate_planned_visit_dates}} and uses different cutoff date
+criteria based on visit type to determine if a visit should have been completed.
 }
+\details{
+\subsection{Usage Workflow}{
+
+This function is designed to work with \code{generate_planned_visit_dates}:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Step 1: Generate planned visit dates
+planned_dates <- generate_planned_visit_dates(
+  data = study_data,
+  visit_schedule_data = visit_codes
+)
+
+# Step 2: Check missing visits
+result <- check_missing_visit(
+  planned_dates = planned_dates,
+  cutoffdt = as.Date("2024-12-31")
+)
+}\if{html}{\out{</div>}}
+}
+
+\subsection{Visit Completion Criteria}{
+
+Different visit types use different termination date criteria:
+\subsection{Screening and Treatment Visits}{
+
+Planned date must be < min(end of treatment date, end of study date, cutoff date)
+}
+
+\subsection{End of Treatment and Follow-up Visits}{
+
+Planned date must be <= min(end of study date, cutoff date)
+}
+
+}
+
+\subsection{Visit Type Classification}{
+
+Visit types are automatically identified by \code{generate_planned_visit_dates}:
+\itemize{
+\item screening: Screening visits
+\item treatment: Treatment visits
+\item end_of_treatment: End of treatment visits
+\item follow_up: Follow-up visits
+}
+}
+}
+\examples{
+\dontrun{
+# Load data and visit schedule
+data <- read_raw_data("path/to/data")
+visit_codes <- read_visitcode_file("path/to/visitcode.xlsx")
+
+# Generate planned visit dates
+planned_dates <- generate_planned_visit_dates(
+  data = data,
+  visit_schedule_data = visit_codes
+)
+
+# Check missing visits with default cutoff (current date)
+result <- check_missing_visit(planned_dates)
+print(result)
+
+# Check missing visits with specific cutoff date
+result <- check_missing_visit(
+  planned_dates = planned_dates,
+  cutoffdt = as.Date("2024-06-30")
+)
+
+# Access deviation details
+if (result$has_deviation) {
+  missing_details <- result$details
+}
+}
+
+}
+\seealso{
+\code{\link{generate_planned_visit_dates}} for generating planned visit data
+\code{\link{check_visit_window}} for checking visit window deviations
+
+Other visit checks: 
+\code{\link{check_visit_window}()}
+}
+\concept{visit checks}

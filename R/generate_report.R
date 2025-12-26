@@ -1,0 +1,336 @@
+#' Generate markdown report from check results
+#'
+#' @param checks_df Data frame containing combined check results
+#' @param output_file Path to output markdown file (optional)
+#' @param include_no_deviation Whether to include checks with no deviations (default: FALSE)
+#' @param title Report title (default: "Study Deviation Report")
+#' @return Invisibly returns the report content as a character string
+#' @importFrom dplyr filter group_by summarize arrange n bind_rows select_if if_else
+#' @export
+generate_markdown_report <- function(checks_df, output_file = NULL,
+                                     include_no_deviation = FALSE,
+                                     title = "Study Deviation Report") {
+  # Check if knitr is available
+  if (!requireNamespace("knitr", quietly = TRUE)) {
+    stop("Package 'knitr' is required for markdown reports. Please install it.",
+      call. = FALSE
+    )
+  }
+
+  # Parameter validation
+
+  if (!is.data.frame(checks_df)) {
+    stop("'checks_df' must be a data frame", call. = FALSE)
+  }
+  if (nrow(checks_df) == 0) {
+    warning("'checks_df' is empty, report will have no content")
+  }
+  if (!is.null(output_file) && (!is.character(output_file) || length(output_file) != 1)) {
+    stop("'output_file' must be a character string or NULL", call. = FALSE)
+  }
+  if (!is.logical(include_no_deviation) || length(include_no_deviation) != 1) {
+    stop("'include_no_deviation' must be a single logical value", call. = FALSE)
+  }
+  if (!is.character(title) || length(title) != 1) {
+    stop("'title' must be a single character string", call. = FALSE)
+  }
+
+  # Initialize report content
+  report <- c()
+
+  # Add title
+  report <- c(report, paste0("# ", title), "")
+  report <- c(report, paste0("Report generated on: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S")), "")
+
+  # Calculate summary statistics
+  summary_stats <- checks_df %>%
+    group_by(check_name) %>%
+    summarize(
+      has_deviation = any(has_deviation),
+      deviation_count = sum(if_else(has_deviation, n(), 0L)),
+      .groups = "drop"
+    ) %>%
+    arrange(check_name)
+
+  # Add summary section
+  report <- c(report, "## Summary", "")
+
+  # Create summary table
+  summary_table <- knitr::kable(
+    summary_stats,
+    col.names = c("Check Type", "Has Deviation", "Deviation Count"),
+    format = "markdown"
+  )
+  report <- c(report, summary_table, "")
+
+  # Add detailed section for each check
+  report <- c(report, "## Detailed Check Results", "")
+
+  # Loop through checks in summary_stats order
+  for (i in seq_len(nrow(summary_stats))) {
+    current_check_name <- summary_stats$check_name[i]
+    current_has_deviation <- summary_stats$has_deviation[i]
+
+    # Skip if no deviation and we're not including those
+    if (!current_has_deviation && !include_no_deviation) {
+      next
+    }
+
+    # Get this check's results
+    check_df <- checks_df %>%
+      filter(check_name == !!current_check_name)
+
+    # Add check header
+    report <- c(report, paste0("### ", current_check_name), "")
+
+    # Add deviation status
+    status <- if (current_has_deviation) "YES" else "NO"
+    report <- c(report, paste0("**Has deviation:** ", status), "")
+
+    # Add messages if available
+    if (!is.null(check_df$message) && any(!is.na(check_df$message))) {
+      report <- c(report, "**Findings:**", "")
+      messages <- unique(check_df$message[!is.na(check_df$message)])
+      for (msg in messages) {
+        report <- c(report, paste0("- ", msg), "")
+      }
+    }
+
+    # Add details if available (now as a text block rather than a table)
+    if (current_has_deviation && "details" %in% names(check_df)) {
+      report <- c(report, "**Deviation Details:**", "")
+
+      # Get unique detail messages (non-NA)
+      detail_msgs <- unique(check_df$details[!is.na(check_df$details)])
+
+      if (length(detail_msgs) > 0) {
+        # Add each detail line, preserving the original format
+        for (detail in detail_msgs) {
+          # Split by newlines and add each line
+          detail_lines <- paste0(unlist(strsplit(detail, "\n")), "  ")
+          report <- c(report, detail_lines, "")
+        }
+      } else {
+        report <- c(report, "No additional details available", "")
+      }
+    }
+
+    # Add separator
+    report <- c(report, "---", "")
+  }
+
+  # Create complete report as a single string
+  report_text <- paste(report, collapse = "\n")
+
+  # Write to file if output_file is provided
+  if (!is.null(output_file)) {
+    writeLines(report_text, output_file)
+    message("Report written to: ", output_file)
+  }
+
+  # Return report invisibly
+  invisible(report_text)
+}
+
+#' Generate HTML report from check results
+#'
+#' @param checks_df Data frame containing combined check results
+#' @param output_file Path to output HTML file
+#' @param include_no_deviation Whether to include checks with no deviations (default: FALSE)
+#' @param title Report title (default: "Study Deviation Report")
+#' @param css_file Path to CSS file for styling (optional)
+#' @return Invisibly returns the output file path
+#' @export
+generate_html_report <- function(checks_df, output_file,
+                                 include_no_deviation = FALSE,
+                                 title = "Study Deviation Report",
+                                 css_file = NULL) {
+  # Check if rmarkdown is available
+  if (!requireNamespace("rmarkdown", quietly = TRUE)) {
+    stop("Package 'rmarkdown' is required for HTML reports. Please install it.",
+      call. = FALSE
+    )
+  }
+
+  # Parameter validation
+  if (!is.data.frame(checks_df)) {
+    stop("'checks_df' must be a data frame", call. = FALSE)
+  }
+  if (missing(output_file) || !is.character(output_file) || length(output_file) != 1) {
+    stop("'output_file' must be a single character string", call. = FALSE)
+  }
+  if (!is.logical(include_no_deviation) || length(include_no_deviation) != 1) {
+    stop("'include_no_deviation' must be a single logical value", call. = FALSE)
+  }
+  if (!is.character(title) || length(title) != 1) {
+    stop("'title' must be a single character string", call. = FALSE)
+  }
+  if (!is.null(css_file) && (!is.character(css_file) || length(css_file) != 1)) {
+    stop("'css_file' must be a single character string or NULL", call. = FALSE)
+  }
+
+  # Create temporary markdown file
+  temp_md <- tempfile(fileext = ".md")
+  on.exit(unlink(temp_md), add = TRUE)
+
+  # Generate markdown content
+  generate_markdown_report(
+    checks_df = checks_df,
+    output_file = temp_md,
+    include_no_deviation = include_no_deviation,
+    title = title
+  )
+
+  # Set render options
+  html_options <- list(
+    self_contained = TRUE,
+    highlight = "tango"
+  )
+
+  # Add custom CSS if provided
+  if (!is.null(css_file)) {
+    html_options$css <- css_file
+  }
+
+  # Create output directory if it doesn't exist
+  output_dir <- dirname(output_file)
+  if (!dir.exists(output_dir) && output_dir != ".") {
+    dir.create(output_dir, recursive = TRUE)
+    message("Created output directory: ", output_dir)
+  }
+
+  # Render markdown to HTML
+  rmarkdown::render(
+    input = temp_md,
+    output_file = basename(output_file),
+    output_dir = output_dir,
+    output_format = do.call(rmarkdown::html_document, html_options),
+    quiet = TRUE
+  )
+
+  # Return output file path invisibly
+  invisible(output_file)
+}
+
+#' Generate Excel report from check results
+#'
+#' @param checks_df Data frame containing combined check results
+#' @param output_file Path to output Excel file
+#' @param include_no_deviation Whether to include checks with no deviations (default: FALSE)
+#' @param title Report title (default: "Study Deviation Report")
+#' @return Invisibly returns the output file path
+#' @importFrom dplyr desc
+#' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook setColWidths createStyle addFilter addStyle
+#' @export
+generate_excel_report <- function(checks_df, output_file,
+                                  include_no_deviation = FALSE,
+                                  title = "Study Deviation Report") {
+  # Check if openxlsx is available
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop("Package 'openxlsx' is required for Excel reports. Please install it.",
+      call. = FALSE
+    )
+  }
+
+  # Parameter validation
+  if (!is.data.frame(checks_df)) {
+    stop("'checks_df' must be a data frame", call. = FALSE)
+  }
+  if (missing(output_file) || !is.character(output_file) || length(output_file) != 1) {
+    stop("'output_file' must be a single character string", call. = FALSE)
+  }
+  if (!is.logical(include_no_deviation) || length(include_no_deviation) != 1) {
+    stop("'include_no_deviation' must be a single logical value", call. = FALSE)
+  }
+  if (!is.character(title) || length(title) != 1) {
+    stop("'title' must be a single character string", call. = FALSE)
+  }
+
+  # Filter to include only deviations if needed
+  all_checks_df <- if (!include_no_deviation) {
+    checks_df %>%
+      filter(has_deviation)
+  } else {
+    checks_df
+  }
+
+  # Create workbook
+
+  wb <- openxlsx::createWorkbook()
+
+  # Add summary sheet
+  openxlsx::addWorksheet(wb, "Summary")
+
+  # Write title to summary sheet
+  openxlsx::writeData(wb, "Summary", title, startRow = 1, startCol = 1)
+  openxlsx::writeData(wb, "Summary",
+    paste0("Report generated on: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+    startRow = 2, startCol = 1
+  )
+
+  # Create summary statistics
+  summary_stats <- all_checks_df %>%
+    group_by(check_name) %>%
+    summarize(
+      has_deviation = any(has_deviation),
+      deviation_count = sum(if_else(has_deviation, n(), 0L)),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(has_deviation), desc(deviation_count))
+
+  # Write summary stats
+  openxlsx::writeData(wb, "Summary", "Check Type Summary", startRow = 4, startCol = 1)
+  openxlsx::writeData(wb, "Summary", summary_stats,
+    startRow = 5, startCol = 1,
+    colNames = TRUE, rowNames = FALSE
+  )
+
+  # Define styles
+  header_style <- openxlsx::createStyle(
+    textDecoration = "bold",
+    halign = "center",
+    border = "bottom",
+    borderStyle = "thin"
+  )
+
+  # Create all deviations sheet with all details in one place
+  openxlsx::addWorksheet(wb, "All Deviations")
+
+  # Clean data for Excel - remove columns that are all NA
+  all_deviations_df <- all_checks_df %>%
+    select_if(function(col) !all(is.na(col)))
+
+  # If SUBJID column exists but contains NA values, move non-NA values to the top
+  if ("SUBJID" %in% names(all_deviations_df)) {
+    all_deviations_df <- all_deviations_df %>%
+      arrange(desc(!is.na(SUBJID)), check_name, message, SITEID, SUBJID)
+  }
+
+  # Write the data to the sheet
+  openxlsx::writeData(wb, "All Deviations", all_deviations_df,
+    startRow = 1, startCol = 1,
+    colNames = TRUE, rowNames = FALSE
+  )
+
+  # Apply formatting to the header row
+  openxlsx::addStyle(wb, "All Deviations",
+    style = header_style,
+    rows = 1, cols = seq_len(ncol(all_deviations_df))
+  )
+
+  # Add filtering and set column widths
+  openxlsx::addFilter(wb, "All Deviations", row = 1, cols = seq_len(ncol(all_deviations_df)))
+  openxlsx::setColWidths(wb, "All Deviations", cols = seq_len(ncol(all_deviations_df)), widths = "auto")
+
+  # For the details column, make it wider to accommodate longer text
+  if ("details" %in% names(all_deviations_df)) {
+    details_col <- which(names(all_deviations_df) == "details")
+    openxlsx::setColWidths(wb, "All Deviations", cols = details_col, widths = 100)
+  }
+
+  # Save workbook
+  openxlsx::saveWorkbook(wb, output_file, overwrite = TRUE)
+
+  # Return output file path invisibly
+  invisible(output_file)
+}

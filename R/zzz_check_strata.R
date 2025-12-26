@@ -2,7 +2,7 @@
 #'
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
-#' @importFrom dplyr filter mutate left_join select right_join
+#' @importFrom dplyr filter mutate left_join select right_join rowwise
 #' @export
 check_random_deviation <- function(data) {
   # Initialize results

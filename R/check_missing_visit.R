@@ -1,107 +1,242 @@
-#' Check missing visits
+#' Check Missing Visits
 #'
-#' @param data List of data frames containing study data
-#' @return List containing check results and descriptions
-#' @importFrom dplyr filter select mutate case_when group_by summarise ungroup left_join
-#' @importFrom purrr pmap_chr
+#' @description
+#' Check for missing visits based on planned visit dates. Receives planned visit data
+#' from \code{\link{generate_planned_visit_dates}} and uses different cutoff date
+#' criteria based on visit type to determine if a visit should have been completed.
+#'
+#' @details
+#' ## Usage Workflow
+#'
+#' This function is designed to work with \code{generate_planned_visit_dates}:
+#'
+#' ```r
+#' # Step 1: Generate planned visit dates
+#' planned_dates <- generate_planned_visit_dates(
+#'   data = study_data,
+#'   visit_schedule_data = visit_codes
+#' )
+#'
+#' # Step 2: Check missing visits
+#' result <- check_missing_visit(
+#'   planned_dates = planned_dates,
+#'   cutoffdt = as.Date("2024-12-31")
+#' )
+#' ```
+#'
+#' ## Visit Completion Criteria
+#'
+#' Different visit types use different termination date criteria:
+#'
+#' ### Screening and Treatment Visits
+#' Planned date must be < min(end of treatment date, end of study date, cutoff date)
+#'
+#' ### End of Treatment and Follow-up Visits
+#' Planned date must be <= min(end of study date, cutoff date)
+#'
+#' ## Visit Type Classification
+#'
+#' Visit types are automatically identified by \code{generate_planned_visit_dates}:
+#' - screening: Screening visits
+#' - treatment: Treatment visits
+#' - end_of_treatment: End of treatment visits
+#' - follow_up: Follow-up visits
+#'
+#' @param planned_dates Data frame from \code{\link{generate_planned_visit_dates}}.
+#'   Must contain: SUBJID, VISIT, VISITNUM, visittype, planned_date, status, eot_date, eos_date
+#' @param cutoffdt Date, data cutoff date (default: current date). Used to determine if visit should be completed
+#'
+#' @return List with the following components:
+#'   \describe{
+#'     \item{has_deviation}{Logical. TRUE if there are missing visits}
+#'     \item{messages}{Character vector. Deviation description messages}
+#'     \item{details}{Data frame. Missing visit details with columns:
+#'       \itemize{
+#'         \item SUBJID: Subject ID
+#'         \item first_dose_date: Subject's first dose date
+#'         \item VISIT: Missing visit name
+#'         \item VISITNUM: Visit number
+#'         \item planned_date: Planned visit date
+#'         \item visittype: Visit type
+#'         \item eot_date: Subject's end of treatment date
+#'         \item eos_date: Subject's end of study date
+#'         \item cutoffdt: Data cutoff date
+#'         \item valid_visits_count: Total visits that should be completed
+#'         \item completed_visits_count: Actual completed visits
+#'       }
+#'     }
+#'     \item{planned_visits}{Data frame. Complete input planned visit information}
+#'   }
+#'
+#' @examples
+#' \dontrun{
+#' # Load data and visit schedule
+#' data <- read_raw_data("path/to/data")
+#' visit_codes <- read_visitcode_file("path/to/visitcode.xlsx")
+#'
+#' # Generate planned visit dates
+#' planned_dates <- generate_planned_visit_dates(
+#'   data = data,
+#'   visit_schedule_data = visit_codes
+#' )
+#'
+#' # Check missing visits with default cutoff (current date)
+#' result <- check_missing_visit(planned_dates)
+#' print(result)
+#'
+#' # Check missing visits with specific cutoff date
+#' result <- check_missing_visit(
+#'   planned_dates = planned_dates,
+#'   cutoffdt = as.Date("2024-06-30")
+#' )
+#'
+#' # Access deviation details
+#' if (result$has_deviation) {
+#'   missing_details <- result$details
+#' }
+#' }
+#'
+#' @seealso
+#' \code{\link{generate_planned_visit_dates}} for generating planned visit data
+#' \code{\link{check_visit_window}} for checking visit window deviations
+#'
+#' @family visit checks
+#'
+#' @importFrom dplyr filter mutate bind_rows
+#' @importFrom purrr map_chr map_dfr
+#' @importFrom rlang .data
+#' @importFrom magrittr %>%
 #' @export
-check_missing_visit <- function(test_data, dataset_name) {
+#'
+check_missing_visit <- function(planned_dates,
+                                cutoffdt = Sys.Date()) {
+  # Validate input parameters
+  if (!is.data.frame(planned_dates)) {
+    stop("'planned_dates' must be a data frame")
+  }
+
+  # Check required columns
+  required_cols <- c(
+    "SUBJID", "VISIT", "VISITNUM", "visittype", "planned_date",
+    "status", "eot_date", "eos_date"
+  )
+
+  missing_cols <- setdiff(required_cols, names(planned_dates))
+  if (length(missing_cols) > 0) {
+    stop("'planned_dates' is missing required columns: ", paste(missing_cols, collapse = ", "))
+  }
+
   # Initialize results
   results <- list(
     has_deviation = FALSE,
     messages = character(),
-    details = data.frame()
+    details = data.frame(),
+    planned_visits = planned_dates
   )
 
-  # Get date column name
-  date_col <- paste0(dataset_name, "DAT")
+  # Ensure cutoff date is Date type
+  if (!inherits(cutoffdt, "Date")) {
+    cutoffdt <- as.Date(cutoffdt)
+  }
 
-  # Get subject visits and V3 dates
-  subject_visits <- test_data %>%
-    filter(!is_sas_na(!!sym(date_col))) %>%
-    mutate(
-      VISDAT = as.Date(!!sym(date_col)),
-      VISITNAME = if_else(is_sas_na(VISITNAME), NA_character_, VISITNAME)
-    ) %>%
-    # Group by subject
-    group_by(SUBJID) %>%
-    summarise(
-      visit_dates = paste(format(VISDAT, "%Y-%m-%d"), collapse = ", "),
-      visit_types = paste(unique(VISITNAME), collapse = ", "),
-      has_v1 = any(VISITNAME == "筛选期V1"),
-      has_v2 = any(VISITNAME == "筛选期V2"),
-      has_v3 = any(VISITNAME == "V3"),
-      has_v4 = any(VISITNAME == "V4"),
-      has_v5 = any(VISITNAME == "V5"),
-      has_v6 = any(VISITNAME == "V6"),
-      has_v7 = any(VISITNAME == "V7"),
-      has_v8 = any(VISITNAME == "V8"),
-      has_v9 = any(VISITNAME == "V9"),
-      has_v10 = any(VISITNAME == "V10"),
-      has_v11 = any(VISITNAME == "V11"),
-      has_v12 = any(VISITNAME == "V12"),
-      has_v13 = any(VISITNAME == "V13"),
-      has_v14 = any(VISITNAME == "V14"),
-      v3_date = min(VISDAT[VISITNAME == "V3"]),
-      last_visit_date = max(VISDAT),
-      .groups = "drop"
-    ) %>%
-    mutate(
-      # Get missing visits before last visit
-      missing_visits = pmap_chr(list(
-        has_v1, has_v2, has_v3, has_v4, has_v5, has_v6, has_v7,
-        has_v8, has_v9, has_v10, has_v11, has_v12, has_v13, has_v14,
-        v3_date,
-        last_visit_date
-      ), function(...) {
-        args <- list(...)
-        visit_flags <- args[1:14]
-        v3_date <- args[[15]]
-        last_date <- args[[16]]
+  # Add visit type classification using shared function from utils.R
+  planned_dates <- planned_dates %>%
+    mutate(visit_category = map_chr(.data$visittype, match_visit_type))
 
-        if (is.na(v3_date)) {
-          return(NA_character_)
-        }
+  # Check missing visits for each subject
+  subjects <- unique(planned_dates$SUBJID)
 
-        # Define visit schedule (days from V3)
-        visit_schedule <- c(
-          V1 = -14, V2 = -7, V3 = 0,
-          V4 = 14, V5 = 30, V6 = 60, V7 = 90,
-          V8 = 104, V9 = 120, V10 = 150, V11 = 180,
-          V12 = 210, V13 = 240, V14 = 270
+  subject_visits <- map_dfr(subjects, function(subj_id) {
+    # Get planned visits for this subject
+    subj_planned <- filter(planned_dates, .data$SUBJID == subj_id)
+
+    # Calculate different termination dates for different visit types
+    # Screening and treatment: min(eotdate, eosdate, cutoffdt)
+    # End of treatment, withdrawal, follow-up: min(eosdate, cutoffdt)
+
+    # Get dates for this subject
+    first_dose_date <- unique(subj_planned$first_dose_date)[1]
+    eot_date <- unique(subj_planned$eot_date)[1]
+    eos_date <- unique(subj_planned$eos_date)[1]
+
+    # Calculate termination date for screening and treatment visits
+    trtmax_dates <- c(cutoffdt)
+    if (!is.na(eot_date)) {
+      trtmax_dates <- c(trtmax_dates, eot_date)
+    }
+    if (!is.na(eos_date)) {
+      trtmax_dates <- c(trtmax_dates, eos_date)
+    }
+    cutoffdt_trt <- min(trtmax_dates, na.rm = TRUE)
+
+    # Calculate termination date for follow-up visits
+    followup_dates <- c(cutoffdt)
+    if (!is.na(eos_date)) {
+      followup_dates <- c(followup_dates, eos_date)
+    }
+    cutoffdt_fu <- min(followup_dates, na.rm = TRUE)
+
+    # Filter visits that should be checked based on visit type
+    valid_planned_visits <- subj_planned %>%
+      filter(
+        !is.na(.data$planned_date) &
+          (
+            # Screening and treatment: planned date must be < cutoffdt_trt
+            (.data$visit_category %in% c("screening", "treatment") & .data$planned_date < cutoffdt_trt) |
+              # End of treatment and follow-up: planned date must be <= cutoffdt_fu
+              (.data$visit_category %in% c("end_of_treatment", "follow_up") & .data$planned_date <= cutoffdt_fu)
+          )
+      )
+
+    # Find missing visits (should be completed but not completed)
+    missing_visit_subset <- filter(valid_planned_visits, .data$status == "missing")
+
+    # Build result - report visits that should be completed but were not
+    if (nrow(missing_visit_subset) > 0) {
+      # Calculate completed visits count (only within valid planned visits)
+      completed_subset <- filter(valid_planned_visits, .data$status == "completed")
+      completed_count <- nrow(completed_subset)
+
+      # Create a record for each missing visit
+      return(map_dfr(seq_len(nrow(missing_visit_subset)), function(i) {
+        data.frame(
+          SUBJID = subj_id,
+          first_dose_date = first_dose_date,
+          VISIT = missing_visit_subset$VISIT[i],
+          VISITNUM = missing_visit_subset$VISITNUM[i],
+          planned_date = missing_visit_subset$planned_date[i],
+          visittype = missing_visit_subset$visittype[i],
+          eot_date = eot_date,
+          eos_date = eos_date,
+          cutoffdt = cutoffdt,
+          valid_visits_count = nrow(valid_planned_visits),
+          completed_visits_count = completed_count,
+          stringsAsFactors = FALSE
         )
+      }))
+    } else {
+      return(data.frame())
+    }
+  })
 
-        # Get missing visits that should have occurred
-        missing <- character()
-        for (i in seq_along(visit_flags)) {
-          visit_name <- names(visit_schedule)[i]
-          target_date <- v3_date + visit_schedule[i]
-          if (!visit_flags[[i]] && target_date <= last_date) {
-            missing <- c(missing, visit_name)
-          }
-        }
-
-        if (length(missing) > 0) {
-          sprintf("缺失以下访视：%s", paste(missing, collapse = "、"))
-        } else {
-          NA_character_
-        }
-      })
-    )
-
-  # Get deviations
-  deviations <- subject_visits
+  # Get deviations (subjects with missing visits)
+  if (nrow(subject_visits) > 0) {
+    deviations <- filter(subject_visits, !is.na(.data$VISIT))
+  } else {
+    deviations <- data.frame()
+  }
 
   # Compile results
   if (nrow(deviations) > 0) {
     results$has_deviation <- TRUE
-    results$messages <- "未按计划进行访视"
+    results$messages <- "基于计划访视日期检查，未按计划进行访视"
     results$details <- deviations
   }
 
   class(results) <- c("missing_visit_check", "list")
   return(results)
 }
+
 
 #' Print method for missing visit check results
 #' @param x Object of class missing_visit_check
@@ -122,13 +257,25 @@ print.missing_visit_check <- function(x, ...) {
 
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
-    formatted_details <- apply(x$details, 1, function(row) {
-      sprintf(
-        "受试者%s：%s",
-        row["SUBJID"],
-        row["CRITERION"]
-      )
-    })
+    formatted_details <- vapply(
+      seq_len(nrow(x$details)),
+      function(i) {
+        row <- x$details[i, ]
+        visit_info <- sprintf("%s(%s)", row$VISIT, row$planned_date)
+        first_dose <- if (!is.na(row$first_dose_date)) {
+          as.character(row$first_dose_date)
+        } else {
+          "未记录"
+        }
+        sprintf(
+          "受试者编号%s，首次用药时间为%s，计划进行的%s访视遗漏。",
+          row$SUBJID,
+          first_dose,
+          visit_info
+        )
+      },
+      character(1)
+    )
     cat(formatted_details, sep = "\n")
   }
 }
