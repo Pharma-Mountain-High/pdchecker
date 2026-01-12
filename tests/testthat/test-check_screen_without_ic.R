@@ -530,7 +530,7 @@ test_that("print方法正常工作 - 无偏离", {
 
   result <- check_screen_without_ic(data)
 
-  expect_output(print(result), "2.4 未签署知情同意书")
+  expect_output(print(result), "2.4.1 未签署知情同意书")
   expect_output(print(result), "Has deviation: NO")
 })
 
@@ -542,8 +542,8 @@ test_that("print方法正常工作 - 有偏离", {
 
   result <- check_screen_without_ic(data)
 
-  expect_output(print(result), "2.4 未签署知情同意书")
+  expect_output(print(result), "2.4.1 未签署知情同意书")
   expect_output(print(result), "Has deviation: YES")
   expect_output(print(result), "未签署知情同意书")
-  expect_output(print(result), "受试者002在未签署知情同意书的情况下进行了筛选期访视")
+  expect_output(print(result), "受试者002在未签署知情同意书的情况下进行了Screening访视")
 })

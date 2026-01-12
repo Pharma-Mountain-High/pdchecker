@@ -281,6 +281,6 @@ test_that("print.icf_time_deviation works correctly", {
   result <- check_icf_time_deviation(test_data)
 
   # Test that print method doesn't error
-  expect_output(print(result), "2.1 获得ICF前进行了试验相关操作")
+  expect_output(print(result), "2.1.1 获得ICF前进行了试验相关操作")
   expect_output(print(result), "Has deviation: YES")
 })
