@@ -7,17 +7,20 @@
 #' Can specify multiple variables, e.g., c("BRTHDAT", "MHSTDAT")
 #' @param exclude_datasets Character vector of dataset names to exclude from the check (default: NULL).
 #' Can specify multiple datasets, e.g., c("DM", "DS")
+#' @param pdno Character string specifying the protocol deviation number for this check (default: "2.1.1")
 #' @return A list of class "icf_time_deviation" with the following components:
 #'   \describe{
 #'     \item{has_deviation}{Logical. TRUE if any time deviations were found, FALSE otherwise}
 #'     \item{messages}{Character vector. Summary message describing the deviation}
 #'     \item{details}{Data frame. Contains detailed deviation records with columns:
 #'       \itemize{
+#'         \item PDNO: Protocol deviation number specified by \code{pdno} parameter
 #'         \item SUBJID: Subject identifier
 #'         \item action: Dataset and variable name (format: "dataset.variable")
 #'         \item event_datetime: Date when the event occurred
 #'         \item icf_datetime: Date when informed consent was obtained
 #'         \item diff_date: Numeric. Difference in days (negative values indicate event occurred before IC)
+#'         \item DESCRIPTION: Description of the deviation for each record
 #'       }
 #'     }
 #'   }
@@ -79,7 +82,8 @@ check_icf_time_deviation <- function(data,
                                      ic_dataset = "IC",
                                      ic_date_var = "ICDAT",
                                      ignore_vars = "BRTHDAT",
-                                     exclude_datasets = NULL) {
+                                     exclude_datasets = NULL,
+                                     pdno = "2.1.1") {
   # Validate parameter types
   if (!is.list(data)) {
     stop("'data' must be a list of data frames")
@@ -95,6 +99,9 @@ check_icf_time_deviation <- function(data,
   }
   if (!is.null(exclude_datasets) && !is.character(exclude_datasets)) {
     stop("'exclude_datasets' must be NULL or a character vector")
+  }
+  if (!is.character(pdno) || length(pdno) != 1) {
+    stop("'pdno' must be a single character string")
   }
 
   # Validate required datasets
@@ -116,7 +123,16 @@ check_icf_time_deviation <- function(data,
   results <- list(
     has_deviation = FALSE,
     messages = character(),
-    details = data.frame()
+    details = data.frame(
+      PDNO = character(),
+      SUBJID = character(),
+      action = character(),
+      event_datetime = as.Date(character()),
+      icf_datetime = as.Date(character()),
+      diff_date = numeric(),
+      DESCRIPTION = character(),
+      stringsAsFactors = FALSE
+    )
   )
 
   icf_times <- data[[ic_dataset]] %>%
@@ -186,7 +202,23 @@ check_icf_time_deviation <- function(data,
   if (nrow(time_deviations) > 0) {
     results$has_deviation <- TRUE
     results$messages <- "执行任何临床研究程序前未事先获得书面知情同意书"
-    results$details <- time_deviations
+    results$details <- data.frame(
+      PDNO = pdno,
+      SUBJID = time_deviations$SUBJID,
+      action = time_deviations$action,
+      event_datetime = time_deviations$event_datetime,
+      icf_datetime = time_deviations$icf_datetime,
+      diff_date = time_deviations$diff_date,
+      DESCRIPTION = sprintf(
+        "受试者%s，首次知情同意书在%s签署，但在%s进行了操作%s，早于知情同意时间%s天",
+        time_deviations$SUBJID,
+        time_deviations$icf_datetime,
+        time_deviations$event_datetime,
+        time_deviations$action,
+        as.character(abs(time_deviations$diff_date))
+      ),
+      stringsAsFactors = FALSE
+    )
   }
 
   class(results) <- c("icf_time_deviation", "list")
@@ -198,7 +230,8 @@ check_icf_time_deviation <- function(data,
 #' @param ... Additional arguments
 #' @export
 print.icf_time_deviation <- function(x, ...) {
-  cat("2.1 获得ICF前进行了试验相关操作\n")
+  pdno_display <- if (nrow(x$details) > 0) x$details$PDNO[1] else "2.1.1"
+  cat(sprintf("%s 获得ICF前进行了试验相关操作\n", pdno_display))
   cat("====================================\n")
   cat(sprintf(
     "Has deviation: %s\n",
@@ -214,12 +247,12 @@ print.icf_time_deviation <- function(x, ...) {
     cat("\nDeviation Details:\n")
     formatted_details <- apply(x$details, 1, function(row) {
       sprintf(
-        "受试者%s,首次知情同意书在%s签署，但在%s进行了操作%s，早于知情同意时间%s天",
+        "受试者%s，首次知情同意书在%s签署，但在%s进行了操作%s，早于知情同意时间%s天",
         row["SUBJID"],
         row["icf_datetime"],
         row["event_datetime"],
         row["action"],
-        row["diff_date"]
+        as.character(abs(as.numeric(row["diff_date"])))
       )
     })
     cat(formatted_details, sep = "\n")

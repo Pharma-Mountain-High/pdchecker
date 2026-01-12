@@ -10,7 +10,8 @@ check_screen_without_ic(
   ic_dataset = "IC",
   visit_var = "VISIT",
   visit_pattern = "Screening|screening",
-  ic_date_var = "ICDAT"
+  ic_date_var = "ICDAT",
+  pdno = "2.4.1"
 )
 }
 \arguments{
@@ -27,6 +28,8 @@ identify screening visits (default: "Screening|screening")}
 
 \item{ic_date_var}{Character string specifying the variable name for informed
 consent date in IC dataset (default: "ICDAT")}
+
+\item{pdno}{Character string specifying the protocol deviation number for this check (default: "2.4.1")}
 }
 \value{
 A list of class "screen_ic_check" containing:
@@ -35,9 +38,14 @@ A list of class "screen_ic_check" containing:
 \code{TRUE} if subjects with screening visits but without informed consent were found,
 \code{FALSE} otherwise.}
 \item{messages}{Character vector of deviation messages.}
-\item{details}{Data frame containing SUBJID column with subject IDs who have screening visits
-but no informed consent date (or date is NA).
-Returns empty data frame if no deviations found.}
+\item{details}{Data frame containing the following columns:
+\describe{
+\item{PDNO}{Protocol deviation number specified by \code{pdno} parameter.}
+\item{SUBJID}{Subject IDs who have screening visits but no informed consent date.}
+\item{VISIT}{Visit name from the visit dataset.}
+\item{DESCRIPTION}{Description of the deviation for each subject.}
+}
+Returns empty data frame with these columns if no deviations found.}
 }
 }
 \description{

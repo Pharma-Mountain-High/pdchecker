@@ -6,15 +6,15 @@ Protocol Deviation Checker for Clinical Trials
 
 🚧 **Under Active Development**
 
-| Module | Status | Description |
-|--------|--------|-------------|
-| Data Reading | ✅ Complete | Read SAS datasets with format mapping |
-| Visit Schedule | ✅ Complete | Parse visit schedule and window periods |
-| Date Extraction | ✅ Complete | Extract key dates (first dose, last dose, EOT, EOS) |
-| Planned Visit Generation | ✅ Complete | Generate planned visit dates with window ranges |
-| Informed Consent Checks | ✅ Complete | Check ICF-related deviations |
-| Visit Checks | ✅ Complete | Check missing visits and window deviations |
-| Test/Lab Checks | 🚧 In Progress | Check missing tests and lab results |
+| Module                   | Status         | Description                                         |
+| ------------------------ | -------------- | --------------------------------------------------- |
+| Data Reading             | ✅ Complete    | Read SAS datasets with format mapping               |
+| Visit Schedule           | ✅ Complete    | Parse visit schedule and window periods             |
+| Date Extraction          | ✅ Complete    | Extract key dates (first dose, last dose, EOT, EOS) |
+| Planned Visit Generation | ✅ Complete    | Generate planned visit dates with window ranges     |
+| Informed Consent Checks  | ✅ Complete    | Check ICF-related deviations                        |
+| Visit Checks             | ✅ Complete    | Check missing visits and window deviations          |
+| Test/Lab Checks          | 🚧 In Progress | Check missing tests and lab results                 |
 
 ## Overview
 
