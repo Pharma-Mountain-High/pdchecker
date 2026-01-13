@@ -4,13 +4,15 @@
 \alias{check_missing_visit}
 \title{Check Missing Visits}
 \usage{
-check_missing_visit(planned_dates, cutoffdt = Sys.Date())
+check_missing_visit(planned_dates, cutoffdt = Sys.Date(), pdno = "8.2.1")
 }
 \arguments{
 \item{planned_dates}{Data frame from \code{\link{generate_planned_visit_dates}}.
 Must contain: SUBJID, VISIT, VISITNUM, visittype, planned_date, status, eot_date, eos_date}
 
 \item{cutoffdt}{Date, data cutoff date (default: current date). Used to determine if visit should be completed}
+
+\item{pdno}{Character string specifying the protocol deviation number for this check (default: "8.2.1")}
 }
 \value{
 List with the following components:
@@ -19,6 +21,7 @@ List with the following components:
 \item{messages}{Character vector. Deviation description messages}
 \item{details}{Data frame. Missing visit details with columns:
 \itemize{
+\item PDNO: Protocol deviation number specified by \code{pdno} parameter
 \item SUBJID: Subject ID
 \item first_dose_date: Subject's first dose date
 \item VISIT: Missing visit name
@@ -30,6 +33,7 @@ List with the following components:
 \item cutoffdt: Data cutoff date
 \item valid_visits_count: Total visits that should be completed
 \item completed_visits_count: Actual completed visits
+\item DESCRIPTION: Description of the deviation for each record
 }
 }
 \item{planned_visits}{Data frame. Complete input planned visit information}

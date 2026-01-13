@@ -199,13 +199,6 @@ print.screen_ic_check <- function(x, ...) {
 
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
-    formatted_details <- apply(x$details, 1, function(row) {
-      sprintf(
-        "受试者%s在未签署知情同意书的情况下进行了%s访视。",
-        row["SUBJID"],
-        row["VISIT"]
-      )
-    })
-    cat(formatted_details, sep = "\n")
+    cat(x$details$DESCRIPTION, sep = "\n")
   }
 }
