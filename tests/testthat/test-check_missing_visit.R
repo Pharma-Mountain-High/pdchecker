@@ -10,6 +10,7 @@ create_test_planned_dates <- function() {
     VISITNUM = rep(c(0, 1, 2, 3, 99), 3),
     visittype = rep(c("筛选", "治疗周期1", "治疗周期1", "治疗周期2", "治疗结束"), 3),
     visitday = rep(c(NA, "1", "8", "1", "EOT"), 3),
+    visit_category = rep(c("screening", "treatment", "treatment", "treatment", "end_of_treatment"), 3),
     planned_date = c(
       # 001: 首次用药 2024-01-01
       as.Date("2024-01-01"), as.Date("2024-01-01"), as.Date("2024-01-08"),
@@ -66,6 +67,7 @@ create_empty_planned_dates <- function() {
     VISITNUM = numeric(),
     visittype = character(),
     visitday = character(),
+    visit_category = character(),
     planned_date = as.Date(character()),
     wp_start = as.Date(character()),
     wp_end = as.Date(character()),
@@ -134,9 +136,9 @@ test_that("check_missing_visit details 包含所有必需的列", {
   result <- check_missing_visit(planned_dates, cutoffdt = as.Date("2024-12-31"))
 
   expected_cols <- c(
-    "SUBJID", "first_dose_date", "VISIT", "VISITNUM", "planned_date",
+    "PDNO", "SUBJID", "first_dose_date", "VISIT", "VISITNUM", "planned_date",
     "visittype", "eot_date", "eos_date", "cutoffdt",
-    "valid_visits_count", "completed_visits_count"
+    "valid_visits_count", "completed_visits_count", "DESCRIPTION"
   )
 
   expect_true(all(expected_cols %in% names(result$details)))
@@ -342,12 +344,26 @@ test_that("print.missing_visit_check 正常工作", {
   output <- capture.output(print.missing_visit_check(result))
 
   # 检查输出内容
-  expect_true(any(grepl("8.2 按计划进行现场访视", output)))
+  expect_true(any(grepl("8.2.1 按计划进行现场访视", output)))
   expect_true(any(grepl("Has deviation", output)))
   expect_true(any(grepl("Findings", output)))
   expect_true(any(grepl("Deviation Details", output)))
   expect_true(any(grepl("受试者编号", output)))
   expect_true(any(grepl("首次用药时间", output)))
+})
+
+test_that("check_missing_visit details 包含正确的 PDNO 和 DESCRIPTION", {
+  planned_dates <- create_test_planned_dates()
+  result <- check_missing_visit(planned_dates, cutoffdt = as.Date("2024-12-31"), pdno = "8.2.2")
+
+  # 检查 PDNO
+
+  expect_true(all(result$details$PDNO == "8.2.2"))
+
+  # 检查 DESCRIPTION 包含必要信息
+  expect_true(all(grepl("受试者编号", result$details$DESCRIPTION)))
+  expect_true(all(grepl("首次用药时间", result$details$DESCRIPTION)))
+  expect_true(all(grepl("访视遗漏", result$details$DESCRIPTION)))
 })
 
 test_that("print.missing_visit_check 在无偏差时正常工作", {

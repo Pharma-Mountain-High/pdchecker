@@ -109,9 +109,11 @@ parse_window_period <- function(window_str) {
 #'   Must be a non-empty string pointing to an existing file.
 #' @param sheet_name Character. Excel sheet name (default: "Sheet1").
 #'   Ignored for CSV files.
-#' @return A tibble with all columns from input file, plus two new (or overwritten) columns:
+#' @return A tibble with all columns from input file, plus new (or overwritten) columns:
 #'   \item{type}{Window type (character): +/-, <=, >=, +, -, range, other, or NA}
 #'   \item{wpvalue}{Window value (numeric) in days. NA if unparseable (e.g., range or other types)}
+#'   \item{visit_category}{Visit category (character): screening, treatment, end_of_treatment,
+#'     follow_up, or unknown. Only generated if CYCLE column exists.}
 #'
 #' @examples
 #' \dontrun{
@@ -209,6 +211,10 @@ read_visitcode_file <- function(file_path, sheet_name = "Sheet1") {
     message("Note: Existing 'wpvalue' column will be overwritten.")
     data <- data[, !names(data) %in% "wpvalue"]
   }
+  if ("visit_category" %in% names(data)) {
+    message("Note: Existing 'visit_category' column will be overwritten.")
+    data <- data[, !names(data) %in% "visit_category"]
+  }
 
   # ---- Parse window periods (vectorized) ----
   parsed_results <- lapply(data[["WP"]], parse_window_period)
@@ -225,6 +231,11 @@ read_visitcode_file <- function(file_path, sheet_name = "Sheet1") {
       NA_real_
     }
   }, FUN.VALUE = numeric(1))
+
+  # ---- Generate visit_category from CYCLE column ----
+  if ("CYCLE" %in% names(data)) {
+    data$visit_category <- purrr::map_chr(data[["CYCLE"]], match_visit_type)
+  }
 
   return(data)
 }

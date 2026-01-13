@@ -39,6 +39,7 @@
 #' @param planned_dates Data frame from \code{\link{generate_planned_visit_dates}}.
 #'   Must contain: SUBJID, VISIT, VISITNUM, planned_date, wp_start, wp_end,
 #'   wp_type, wp_value, actual_date, status, first_dose_date
+#' @param pdno Character string specifying the protocol deviation number for this check (default: "8.4.1")
 #'
 #' @return List with the following components:
 #'   \describe{
@@ -46,6 +47,7 @@
 #'     \item{messages}{Character vector. Deviation description messages}
 #'     \item{details}{Data frame. Out-of-window visit details with columns:
 #'       \itemize{
+#'         \item PDNO: Protocol deviation number specified by \code{pdno} parameter
 #'         \item SUBJID: Subject ID
 #'         \item first_dose_date: Subject's first dose date
 #'         \item VISIT: Visit name with deviation
@@ -59,6 +61,7 @@
 #'         \item deviation_days: Days deviated from planned (positive=late, negative=early)
 #'         \item total_completed_visits: Total completed visits for subject
 #'         \item out_of_window_count: Number of out-of-window visits
+#'         \item DESCRIPTION: Description of the deviation for each record
 #'       }
 #'     }
 #'     \item{planned_visits}{Data frame. Complete input planned visit information}
@@ -100,10 +103,15 @@
 #' @importFrom magrittr %>%
 #' @export
 #'
-check_visit_window <- function(planned_dates) {
+check_visit_window <- function(planned_dates,
+                               pdno = "8.4.1") {
   # Validate input parameters
   if (!is.data.frame(planned_dates)) {
     stop("'planned_dates' must be a data frame")
+  }
+
+  if (!is.character(pdno) || length(pdno) != 1) {
+    stop("'pdno' must be a single character string")
   }
 
   # Check required columns
@@ -146,10 +154,21 @@ check_visit_window <- function(planned_dates) {
     # Check if each visit is within window
     # Within window: wp_start <= actual_date <= wp_end
     out_of_window <- subj_completed %>%
-      filter(
-        !is.na(.data$wp_start) & !is.na(.data$wp_end) &
-          (.data$actual_date < .data$wp_start | .data$actual_date > .data$wp_end)
-      )
+      # First, filter visits with valid window dates
+      filter(!is.na(.data$wp_start) & !is.na(.data$wp_end)) %>%
+      # Then, check if actual date is out of window
+      mutate(
+        is_out_of_window = case_when(
+          # Early: actual date is before window start
+          .data$actual_date < .data$wp_start ~ TRUE,
+          # Late: actual date is after window end
+          .data$actual_date > .data$wp_end ~ TRUE,
+          # Within window
+          TRUE ~ FALSE
+        )
+      ) %>%
+      filter(.data$is_out_of_window) %>%
+      select(-"is_out_of_window")
 
     # If there are out-of-window visits, build result
     if (nrow(out_of_window) > 0) {
@@ -170,7 +189,36 @@ check_visit_window <- function(planned_dates) {
         # Calculate deviation days (based on planned date)
         deviation_days <- as.numeric(actual_date - planned_date)
 
+        # Build description text
+        first_dose_str <- if (!is.na(first_dose_date)) {
+          as.character(first_dose_date)
+        } else {
+          "未记录"
+        }
+
+        # Build window description
+        if (!is.na(wp_type) && !is.na(wp_value)) {
+          window_desc <- sprintf("%s%s", wp_type, wp_value)
+        } else {
+          window_desc <- "未定义"
+        }
+
+        deviation_text <- sprintf(
+          "偏离计划时间点%d天，不在<窗口期%s>天内",
+          abs(deviation_days),
+          window_desc
+        )
+
+        visit_info <- sprintf(
+          "%s(计划日期:%s，实际日期:%s)，%s",
+          visit_name,
+          planned_date,
+          actual_date,
+          deviation_text
+        )
+
         data.frame(
+          PDNO = pdno,
           SUBJID = subj_id,
           first_dose_date = first_dose_date,
           VISIT = visit_name,
@@ -184,6 +232,12 @@ check_visit_window <- function(planned_dates) {
           deviation_days = deviation_days,
           total_completed_visits = nrow(subj_completed),
           out_of_window_count = nrow(out_of_window),
+          DESCRIPTION = sprintf(
+            "受试者编号%s，首次用药时间为%s，%s",
+            subj_id,
+            first_dose_str,
+            visit_info
+          ),
           stringsAsFactors = FALSE
         )
       }))
@@ -209,7 +263,8 @@ check_visit_window <- function(planned_dates) {
 #' @param ... Additional arguments
 #' @export
 print.visit_window_check <- function(x, ...) {
-  cat("8.4 访视超窗检查\n")
+  pdno_display <- if (nrow(x$details) > 0) x$details$PDNO[1] else "8.4.1"
+  cat(sprintf("%s 访视超窗检查\n", pdno_display))
   cat("====================================\n")
   cat(sprintf(
     "Has deviation: %s\n",
@@ -223,51 +278,6 @@ print.visit_window_check <- function(x, ...) {
 
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
-    formatted_details <- vapply(
-      seq_len(nrow(x$details)),
-      function(i) {
-        row <- x$details[i, ]
-        first_dose <- if (!is.na(row$first_dose_date)) {
-          as.character(row$first_dose_date)
-        } else {
-          "未记录"
-        }
-
-        # Build window description
-        wp_type <- row$wp_type
-        wp_value <- row$wp_value
-        if (!is.na(wp_type) && !is.na(wp_value)) {
-          window_desc <- sprintf("%s%s", wp_type, wp_value)
-        } else {
-          window_desc <- "未定义"
-        }
-
-        # Calculate absolute deviation days
-        deviation_days <- abs(as.numeric(row$deviation_days))
-
-        deviation_text <- sprintf(
-          "偏离计划时间点%d天，不在<窗口期%s>天内",
-          deviation_days,
-          window_desc
-        )
-
-        visit_info <- sprintf(
-          "%s(计划日期:%s,实际日期:%s),%s",
-          row$VISIT,
-          row$planned_date,
-          row$actual_date,
-          deviation_text
-        )
-
-        sprintf(
-          "受试者编号%s，首次用药时间为%s，%s",
-          row$SUBJID,
-          first_dose,
-          visit_info
-        )
-      },
-      character(1)
-    )
-    cat(formatted_details, sep = "\n")
+    cat(x$details$DESCRIPTION, sep = "\n")
   }
 }

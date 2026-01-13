@@ -245,16 +245,6 @@ print.icf_time_deviation <- function(x, ...) {
 
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
-    formatted_details <- apply(x$details, 1, function(row) {
-      sprintf(
-        "受试者%s，首次知情同意书在%s签署，但在%s进行了操作%s，早于知情同意时间%s天",
-        row["SUBJID"],
-        row["icf_datetime"],
-        row["event_datetime"],
-        row["action"],
-        as.character(abs(as.numeric(row["diff_date"])))
-      )
-    })
-    cat(formatted_details, sep = "\n")
+    cat(x$details$DESCRIPTION, sep = "\n")
   }
 }

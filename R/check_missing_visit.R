@@ -45,6 +45,7 @@
 #' @param planned_dates Data frame from \code{\link{generate_planned_visit_dates}}.
 #'   Must contain: SUBJID, VISIT, VISITNUM, visittype, planned_date, status, eot_date, eos_date
 #' @param cutoffdt Date, data cutoff date (default: current date). Used to determine if visit should be completed
+#' @param pdno Character string specifying the protocol deviation number for this check (default: "8.2.1")
 #'
 #' @return List with the following components:
 #'   \describe{
@@ -52,6 +53,7 @@
 #'     \item{messages}{Character vector. Deviation description messages}
 #'     \item{details}{Data frame. Missing visit details with columns:
 #'       \itemize{
+#'         \item PDNO: Protocol deviation number specified by \code{pdno} parameter
 #'         \item SUBJID: Subject ID
 #'         \item first_dose_date: Subject's first dose date
 #'         \item VISIT: Missing visit name
@@ -63,6 +65,7 @@
 #'         \item cutoffdt: Data cutoff date
 #'         \item valid_visits_count: Total visits that should be completed
 #'         \item completed_visits_count: Actual completed visits
+#'         \item DESCRIPTION: Description of the deviation for each record
 #'       }
 #'     }
 #'     \item{planned_visits}{Data frame. Complete input planned visit information}
@@ -109,10 +112,15 @@
 #' @export
 #'
 check_missing_visit <- function(planned_dates,
-                                cutoffdt = Sys.Date()) {
+                                cutoffdt = Sys.Date(),
+                                pdno = "8.2.1") {
   # Validate input parameters
   if (!is.data.frame(planned_dates)) {
     stop("'planned_dates' must be a data frame")
+  }
+
+  if (!is.character(pdno) || length(pdno) != 1) {
+    stop("'pdno' must be a single character string")
   }
 
   # Check required columns
@@ -138,10 +146,6 @@ check_missing_visit <- function(planned_dates,
   if (!inherits(cutoffdt, "Date")) {
     cutoffdt <- as.Date(cutoffdt)
   }
-
-  # Add visit type classification using shared function from utils.R
-  planned_dates <- planned_dates %>%
-    mutate(visit_category = map_chr(.data$visittype, match_visit_type))
 
   # Check missing visits for each subject
   subjects <- unique(planned_dates$SUBJID)
@@ -177,16 +181,32 @@ check_missing_visit <- function(planned_dates,
     cutoffdt_fu <- min(followup_dates, na.rm = TRUE)
 
     # Filter visits that should be checked based on visit type
+    # Determine the cutoff date for each visit category
     valid_planned_visits <- subj_planned %>%
-      filter(
-        !is.na(.data$planned_date) &
-          (
-            # Screening and treatment: planned date must be < cutoffdt_trt
-            (.data$visit_category %in% c("screening", "treatment") & .data$planned_date < cutoffdt_trt) |
-              # End of treatment and follow-up: planned date must be <= cutoffdt_fu
-              (.data$visit_category %in% c("end_of_treatment", "follow_up") & .data$planned_date <= cutoffdt_fu)
-          )
-      )
+      filter(!is.na(.data$planned_date)) %>%
+      mutate(
+        should_check = case_when(
+          # Screening: planned date must be < cutoffdt_trt
+          .data$visit_category == "screening" ~
+            .data$planned_date < cutoffdt_trt,
+          # Treatment: subject must have first dose, and planned date must be < cutoffdt_trt
+          .data$visit_category == "treatment" ~
+            !is.na(first_dose_date) & .data$planned_date < cutoffdt_trt,
+          # End of treatment: planned date must be <= cutoffdt_fu
+          .data$visit_category == "end_of_treatment" ~
+            .data$planned_date <= cutoffdt_fu,
+          # End of study: planned date must be <= cutoffdt
+          .data$visit_category == "end_of_study" ~
+            .data$planned_date <= cutoffdt_fu,
+          # Follow-up: planned date must be <= cutoffdt_fu
+          .data$visit_category == "follow_up" ~
+            .data$planned_date <= cutoffdt_fu,
+          # Other categories: do not check
+          TRUE ~ FALSE
+        )
+      ) %>%
+      filter(.data$should_check) %>%
+      select(-"should_check")
 
     # Find missing visits (should be completed but not completed)
     missing_visit_subset <- filter(valid_planned_visits, .data$status == "missing")
@@ -199,18 +219,34 @@ check_missing_visit <- function(planned_dates,
 
       # Create a record for each missing visit
       return(map_dfr(seq_len(nrow(missing_visit_subset)), function(i) {
+        visit_name <- missing_visit_subset$VISIT[i]
+        visit_planned_date <- missing_visit_subset$planned_date[i]
+        first_dose_str <- if (!is.na(first_dose_date)) {
+          as.character(first_dose_date)
+        } else {
+          "未记录"
+        }
+        visit_info <- sprintf("%s(%s)", visit_name, visit_planned_date)
+
         data.frame(
+          PDNO = pdno,
           SUBJID = subj_id,
           first_dose_date = first_dose_date,
-          VISIT = missing_visit_subset$VISIT[i],
+          VISIT = visit_name,
           VISITNUM = missing_visit_subset$VISITNUM[i],
-          planned_date = missing_visit_subset$planned_date[i],
+          planned_date = visit_planned_date,
           visittype = missing_visit_subset$visittype[i],
           eot_date = eot_date,
           eos_date = eos_date,
           cutoffdt = cutoffdt,
           valid_visits_count = nrow(valid_planned_visits),
           completed_visits_count = completed_count,
+          DESCRIPTION = sprintf(
+            "受试者编号%s，首次用药时间为%s，计划进行的%s访视遗漏。",
+            subj_id,
+            first_dose_str,
+            visit_info
+          ),
           stringsAsFactors = FALSE
         )
       }))
@@ -243,7 +279,8 @@ check_missing_visit <- function(planned_dates,
 #' @param ... Additional arguments
 #' @export
 print.missing_visit_check <- function(x, ...) {
-  cat("8.2 按计划进行现场访视\n")
+  pdno_display <- if (nrow(x$details) > 0) x$details$PDNO[1] else "8.2.1"
+  cat(sprintf("%s 按计划进行现场访视\n", pdno_display))
   cat("====================================\n")
   cat(sprintf(
     "Has deviation: %s\n",
@@ -257,25 +294,6 @@ print.missing_visit_check <- function(x, ...) {
 
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
-    formatted_details <- vapply(
-      seq_len(nrow(x$details)),
-      function(i) {
-        row <- x$details[i, ]
-        visit_info <- sprintf("%s(%s)", row$VISIT, row$planned_date)
-        first_dose <- if (!is.na(row$first_dose_date)) {
-          as.character(row$first_dose_date)
-        } else {
-          "未记录"
-        }
-        sprintf(
-          "受试者编号%s，首次用药时间为%s，计划进行的%s访视遗漏。",
-          row$SUBJID,
-          first_dose,
-          visit_info
-        )
-      },
-      character(1)
-    )
-    cat(formatted_details, sep = "\n")
+    cat(x$details$DESCRIPTION, sep = "\n")
   }
 }
