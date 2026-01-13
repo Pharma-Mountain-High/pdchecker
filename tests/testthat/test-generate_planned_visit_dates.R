@@ -73,8 +73,8 @@ test_that("基本功能：正常输入返回数据框", {
 
   # 检查必要的列是否存在
   expected_cols <- c(
-    "SUBJID", "VISIT", "VISITNUM", "planned_date",
-    "wp_start", "wp_end", "actual_date", "status",
+    "SUBJID", "VISIT", "VISITNUM", "visittype", "visitday", "visit_category",
+    "planned_date", "wp_start", "wp_end", "actual_date", "status",
     "first_dose_date", "eot_date", "eos_date"
   )
   expect_true(all(expected_cols %in% names(result)))
@@ -84,6 +84,31 @@ test_that("基本功能：正常输入返回数据框", {
 
   # 检查受试者数量
   expect_equal(length(unique(result$SUBJID)), 3)
+})
+
+test_that("基本功能：包含 visit_category 列", {
+  test_data <- setup_test_data()
+
+  result <- generate_planned_visit_dates(
+    data = test_data$data,
+    visit_schedule_data = test_data$visit_schedule
+  )
+
+  # 检查 visit_category 列存在
+  expect_true("visit_category" %in% names(result))
+
+  # 检查 visit_category 值正确
+  screening <- result[result$VISIT == "筛选访视" & result$SUBJID == "001", ]
+  expect_equal(screening$visit_category[1], "screening")
+
+  treatment <- result[result$VISIT == "C1D1" & result$SUBJID == "001", ]
+  expect_equal(treatment$visit_category[1], "treatment")
+
+  eot <- result[result$VISIT == "治疗结束访视" & result$SUBJID == "001", ]
+  expect_equal(eot$visit_category[1], "end_of_treatment")
+
+  followup <- result[result$VISIT == "随访访视" & result$SUBJID == "001", ]
+  expect_equal(followup$visit_category[1], "follow_up")
 })
 
 test_that("基本功能：计算首次给药日期", {
