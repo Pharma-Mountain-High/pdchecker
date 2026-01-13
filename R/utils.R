@@ -632,6 +632,8 @@ match_visit_type <- function(visit_type) {
     return("treatment")
   } else if (grepl("治疗结束|退出", visit_type)) {
     return("end_of_treatment")
+  } else if (grepl("研究结束", visit_type)) {
+    return("end_of_study")
   } else if (grepl("随访", visit_type)) {
     return("follow_up")
   } else {

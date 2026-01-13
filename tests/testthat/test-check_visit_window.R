@@ -133,9 +133,9 @@ test_that("check_visit_window details 包含所有必需的列", {
   result <- check_visit_window(planned_dates)
 
   expected_cols <- c(
-    "SUBJID", "first_dose_date", "VISIT", "VISITNUM", "planned_date",
+    "PDNO", "SUBJID", "first_dose_date", "VISIT", "VISITNUM", "planned_date",
     "actual_date", "wp_start", "wp_end", "wp_type", "wp_value",
-    "deviation_days", "total_completed_visits", "out_of_window_count"
+    "deviation_days", "total_completed_visits", "out_of_window_count", "DESCRIPTION"
   )
 
   expect_true(all(expected_cols %in% names(result$details)))
@@ -323,12 +323,25 @@ test_that("print.visit_window_check 正常工作", {
   output <- capture.output(print.visit_window_check(result))
 
   # 检查输出内容
-  expect_true(any(grepl("8.4 访视超窗检查", output)))
+  expect_true(any(grepl("8.4.1 访视超窗检查", output)))
   expect_true(any(grepl("Has deviation", output)))
   expect_true(any(grepl("Findings", output)))
   expect_true(any(grepl("Deviation Details", output)))
   expect_true(any(grepl("受试者编号", output)))
   expect_true(any(grepl("首次用药时间", output)))
+})
+
+test_that("check_visit_window details 包含正确的 PDNO 和 DESCRIPTION", {
+  planned_dates <- create_test_visit_window_data()
+  result <- check_visit_window(planned_dates, pdno = "8.4.2")
+
+  # 检查 PDNO
+  expect_true(all(result$details$PDNO == "8.4.2"))
+
+  # 检查 DESCRIPTION 包含必要信息
+  expect_true(all(grepl("受试者编号", result$details$DESCRIPTION)))
+  expect_true(all(grepl("首次用药时间", result$details$DESCRIPTION)))
+  expect_true(all(grepl("偏离计划时间点", result$details$DESCRIPTION)))
 })
 
 test_that("print.visit_window_check 在无偏差时正常工作", {

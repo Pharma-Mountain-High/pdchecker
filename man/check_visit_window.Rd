@@ -4,12 +4,14 @@
 \alias{check_visit_window}
 \title{Check Visit Window Deviations}
 \usage{
-check_visit_window(planned_dates)
+check_visit_window(planned_dates, pdno = "8.4.1")
 }
 \arguments{
 \item{planned_dates}{Data frame from \code{\link{generate_planned_visit_dates}}.
 Must contain: SUBJID, VISIT, VISITNUM, planned_date, wp_start, wp_end,
 wp_type, wp_value, actual_date, status, first_dose_date}
+
+\item{pdno}{Character string specifying the protocol deviation number for this check (default: "8.4.1")}
 }
 \value{
 List with the following components:
@@ -18,6 +20,7 @@ List with the following components:
 \item{messages}{Character vector. Deviation description messages}
 \item{details}{Data frame. Out-of-window visit details with columns:
 \itemize{
+\item PDNO: Protocol deviation number specified by \code{pdno} parameter
 \item SUBJID: Subject ID
 \item first_dose_date: Subject's first dose date
 \item VISIT: Visit name with deviation
@@ -31,6 +34,7 @@ List with the following components:
 \item deviation_days: Days deviated from planned (positive=late, negative=early)
 \item total_completed_visits: Total completed visits for subject
 \item out_of_window_count: Number of out-of-window visits
+\item DESCRIPTION: Description of the deviation for each record
 }
 }
 \item{planned_visits}{Data frame. Complete input planned visit information}

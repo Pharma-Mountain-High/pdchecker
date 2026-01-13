@@ -63,6 +63,7 @@
 #'     \item{VISITNUM}{Numeric. Visit number}
 #'     \item{visittype}{Character. Visit type (cycle information)}
 #'     \item{visitday}{Character. Visit day}
+#'     \item{visit_category}{Character. Visit category (screening, treatment, end_of_treatment, follow_up, or unknown)}
 #'     \item{planned_date}{Date. Planned visit date}
 #'     \item{wp_start}{Date. Visit window start date}
 #'     \item{wp_end}{Date. Visit window end date}
@@ -298,6 +299,13 @@ generate_planned_visit_dates <- function(data,
   # Prepare visit information data frame
   # ============================================================================
 
+  # Use existing visit_category if available (from read_visitcode_file),
+
+  # otherwise generate it from CYCLE column
+  if (!"visit_category" %in% names(visit_schedule_data)) {
+    visit_schedule_data$visit_category <- map_chr(visit_schedule_data$CYCLE, match_visit_type)
+  }
+
   visit_info <- visit_schedule_data %>%
     mutate(
       visit = VISIT,
@@ -307,7 +315,6 @@ generate_planned_visit_dates <- function(data,
       wp = WP,
       wp_type = type,
       wp_value = as.numeric(wpvalue),
-      visit_category = map_chr(CYCLE, match_visit_type),
       is_d1 = map2_lgl(VISIT, VISITDAY, is_d1_visit)
     ) %>%
     arrange(seq_len(nrow(visit_schedule_data)))

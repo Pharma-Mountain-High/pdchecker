@@ -14,9 +14,11 @@ Must be a non-empty string pointing to an existing file.}
 Ignored for CSV files.}
 }
 \value{
-A tibble with all columns from input file, plus two new (or overwritten) columns:
+A tibble with all columns from input file, plus new (or overwritten) columns:
 \item{type}{Window type (character): +/-, <=, >=, +, -, range, other, or NA}
 \item{wpvalue}{Window value (numeric) in days. NA if unparseable (e.g., range or other types)}
+\item{visit_category}{Visit category (character): screening, treatment, end_of_treatment,
+follow_up, or unknown. Only generated if CYCLE column exists.}
 }
 \description{
 Read visit schedule Excel or CSV file and parse window period column (WP)

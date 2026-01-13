@@ -74,6 +74,7 @@ Data frame with the following columns:
 \item{VISITNUM}{Numeric. Visit number}
 \item{visittype}{Character. Visit type (cycle information)}
 \item{visitday}{Character. Visit day}
+\item{visit_category}{Character. Visit category (screening, treatment, end_of_treatment, follow_up, or unknown)}
 \item{planned_date}{Date. Planned visit date}
 \item{wp_start}{Date. Visit window start date}
 \item{wp_end}{Date. Visit window end date}
