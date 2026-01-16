@@ -28,7 +28,7 @@
 #'
 #' Different visit types use different termination date criteria:
 #'
-#' ### Screening and Treatment Visits
+#' ### Screening, Pre-treatment and Treatment Visits
 #' Planned date must be < min(end of treatment date, end of study date, cutoff date)
 #'
 #' ### End of Treatment and Follow-up Visits
@@ -38,12 +38,13 @@
 #'
 #' Visit types are automatically identified by \code{generate_planned_visit_dates}:
 #' - screening: Screening visits
+#' - pre_treatment: Pre-treatment visits
 #' - treatment: Treatment visits
 #' - end_of_treatment: End of treatment visits
 #' - follow_up: Follow-up visits
 #'
 #' @param planned_dates Data frame from \code{\link{generate_planned_visit_dates}}.
-#'   Must contain: SUBJID, VISIT, VISITNUM, visittype, planned_date, status, eot_date, eos_date
+#'   Must contain: SUBJID, VISIT, VISITNUM, visittype, visit_category, planned_date, status, eot_date, eos_date
 #' @param cutoffdt Date, data cutoff date (default: current date). Used to determine if visit should be completed
 #' @param pdno Character string specifying the protocol deviation number for this check (default: "8.2.1")
 #'
@@ -125,8 +126,8 @@ check_missing_visit <- function(planned_dates,
 
   # Check required columns
   required_cols <- c(
-    "SUBJID", "VISIT", "VISITNUM", "visittype", "planned_date",
-    "status", "eot_date", "eos_date"
+    "SUBJID", "VISIT", "VISITNUM", "visittype", "visit_category",
+    "planned_date", "status", "eot_date", "eos_date"
   )
 
   missing_cols <- setdiff(required_cols, names(planned_dates))
@@ -188,6 +189,9 @@ check_missing_visit <- function(planned_dates,
         should_check = case_when(
           # Screening: planned date must be < cutoffdt_trt
           .data$visit_category == "screening" ~
+            .data$planned_date < cutoffdt_trt,
+          # Pre-treatment: planned date must be < cutoffdt_trt
+          .data$visit_category == "pre_treatment" ~
             .data$planned_date < cutoffdt_trt,
           # Treatment: subject must have first dose, and planned date must be < cutoffdt_trt
           .data$visit_category == "treatment" ~
