@@ -640,9 +640,8 @@ capture_check_results <- function(..., data = NULL) {
 #' subjids <- subj_filter(data, "SUBJECT|SEX=='M';DM|AGE>=18")
 #' }
 #'
-#' @family filter utilities
 #' @importFrom dplyr filter
-#' @keywords internal
+#' @noRd
 subj_filter <- function(data, filter_cond) {
   # Validate inputs
 
