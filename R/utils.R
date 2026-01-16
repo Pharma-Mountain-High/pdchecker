@@ -615,8 +615,8 @@ capture_check_results <- function(..., data = NULL) {
 #' @param visit_type Character string, visit type description in Chinese
 #'   (e.g., "筛选" for screening, "治疗周期1" for treatment cycle 1)
 #'
-#' @return Character string, one of: "screening", "treatment", "end_of_treatment",
-#'   "follow_up", or "unknown"
+#' @return Character string, one of: "screening", "pre_treatment", "treatment",
+#'   "end_of_treatment", "follow_up", "end_of_study", or "unknown"
 #'
 #' @keywords internal
 #' @noRd
@@ -628,6 +628,8 @@ match_visit_type <- function(visit_type) {
 
   if (grepl("筛选", visit_type)) {
     return("screening")
+  } else if (grepl("预激剂量|预激|预治疗", visit_type)) {
+    return("pre_treatment")
   } else if (grepl("治疗", visit_type) && !grepl("治疗结束", visit_type)) {
     return("treatment")
   } else if (grepl("治疗结束|退出", visit_type)) {

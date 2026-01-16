@@ -356,12 +356,49 @@ calculate_visit_planned_date <- function(visit_category,
         }
       }
     }
+  } else if (visit_category == "pre_treatment") {
+    # Pre-treatment visit
+    planned_date <- calculate_pre_trt_visit_date(visit_day, first_dose_date)
   } else if (visit_category == "end_of_treatment") {
     # End of treatment visit
     planned_date <- calculate_eot_visit_date(visit_day, eot_date, eos_date)
   } else if (visit_category == "follow_up") {
     # Follow-up visit
     planned_date <- calculate_followup_visit_date(visit_day, eot_date, last_dose_date)
+  }
+
+  return(planned_date)
+}
+
+#' Calculate Pre-Treatment Visit Planned Date
+#'
+#' @description
+#' Internal function to calculate planned date for pre-treatment visits.
+#'
+#' @details
+#' ## Supported Formats
+#'
+#' | Format | Calculation | Example |
+#' |--------|-------------|---------|
+#' | First Dose | first_dose_date | first_dose_date = 2024-01-15 -> 2024-01-15 |
+#' | FD | first_dose_date | first_dose_date = 2024-01-15 -> 2024-01-15 |
+#'
+#' ## Notes
+#' - Returns NA if first_dose_date is missing
+#' - Both "First Dose" and "FD" formats are supported
+#'
+#' @param visit_day Character, visit day value (e.g., "First Dose", "FD")
+#' @param first_dose_date Date, first dose date
+#'
+#' @return Date, planned date for the pre-treatment visit
+#'
+#' @keywords internal
+#' @noRd
+calculate_pre_trt_visit_date <- function(visit_day, first_dose_date) {
+  planned_date <- NA
+
+  if (visit_day %in% c("First Dose", "FD") && !is.na(first_dose_date)) {
+    planned_date <- first_dose_date
   }
 
   return(planned_date)

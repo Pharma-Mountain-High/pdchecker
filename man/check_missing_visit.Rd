@@ -8,7 +8,7 @@ check_missing_visit(planned_dates, cutoffdt = Sys.Date(), pdno = "8.2.1")
 }
 \arguments{
 \item{planned_dates}{Data frame from \code{\link{generate_planned_visit_dates}}.
-Must contain: SUBJID, VISIT, VISITNUM, visittype, planned_date, status, eot_date, eos_date}
+Must contain: SUBJID, VISIT, VISITNUM, visittype, visit_category, planned_date, status, eot_date, eos_date}
 
 \item{cutoffdt}{Date, data cutoff date (default: current date). Used to determine if visit should be completed}
 
@@ -66,7 +66,7 @@ result <- check_missing_visit(
 \subsection{Visit Completion Criteria}{
 
 Different visit types use different termination date criteria:
-\subsection{Screening and Treatment Visits}{
+\subsection{Screening, Pre-treatment and Treatment Visits}{
 
 Planned date must be < min(end of treatment date, end of study date, cutoff date)
 }
@@ -83,6 +83,7 @@ Planned date must be <= min(end of study date, cutoff date)
 Visit types are automatically identified by \code{generate_planned_visit_dates}:
 \itemize{
 \item screening: Screening visits
+\item pre_treatment: Pre-treatment visits
 \item treatment: Treatment visits
 \item end_of_treatment: End of treatment visits
 \item follow_up: Follow-up visits
