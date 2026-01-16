@@ -19,8 +19,6 @@ prepare_test_data(
   sv_date_var = "SVDAT",
   config = NULL,
   config_cat = NULL,
-  enrl_dataset = "ENROL",
-  enrl_yn_var = "ENRYN",
   filter_cond = NULL
 )
 }
@@ -63,20 +61,15 @@ If NULL, uses all TESTCAT in config;
 If provided (e.g., c("CBC", "Chemistry")), only uses those TESTCAT records.
 Note: Only effective when config parameter is provided}
 
-\item{enrl_dataset}{Character string, enrollment dataset name (default: "ENROL").
-Used to filter enrolled subjects}
-
-\item{enrl_yn_var}{Character string, enrollment flag variable (default: "ENRYN").
-Only keeps records where this variable equals "Yes"}
-
-\item{filter_cond}{Character string, custom filter condition (default: NULL).
-Format: "dataset|condition", multiple conditions separated by semicolons:
+\item{filter_cond}{Character string, subject filter condition (default: NULL).
+Uses \code{\link{subj_filter}} to filter subjects. Format: "dataset|condition",
+multiple conditions separated by semicolons (intersection/AND logic):
 \itemize{
+\item "ENROL|ENRYN=='是'" - Filter enrolled subjects
 \item "SUBJECT|SEX=='M'" - Filter males from SUBJECT dataset
 \item "SUBJECT|AGE>=18" - Filter age >= 18 from SUBJECT
-\item "SUBJECT|SEX=='M' & AGE>=18" - Multiple conditions on same dataset
-\item "SUBJECT|SEX=='M';DM|AGE>18" - Filter from multiple datasets (intersection)
-If NULL, no custom filtering
+\item "ENROL|ENRYN=='是';SUBJECT|SEX=='M'" - Enrolled males (intersection)
+If NULL, no subject filtering is applied
 }}
 }
 \value{

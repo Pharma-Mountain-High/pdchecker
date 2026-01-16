@@ -605,6 +605,127 @@ capture_check_results <- function(..., data = NULL) {
   return(combined_df)
 }
 
+#' Filter subjects by custom conditions across datasets
+#'
+#' @description
+#' Filter subjects based on custom conditions applied to one or more datasets.
+#' Multiple conditions are combined using intersection (AND logic).
+#'
+#' @details
+#' ## Condition Format
+#'
+#' Conditions are specified in the format "dataset|expression", where:
+#' - dataset: Name of the dataset in the data list
+#' - expression: R expression to filter the dataset (e.g., "SEX=='M'")
+#'
+#' Multiple conditions can be separated by semicolons:
+#' - "SUBJECT|SEX=='M'" - Filter males from SUBJECT dataset
+#' - "SUBJECT|AGE>=18" - Filter age >= 18
+#' - "SUBJECT|SEX=='M';DM|AGE>18" - Filter from multiple datasets (intersection)
+#'
+#' @param data List containing clinical trial datasets. Each dataset must contain
+#'   a SUBJID column for subject identification
+#' @param filter_cond Character string specifying filter conditions.
+#'   Format: "dataset|condition" or "dataset1|cond1;dataset2|cond2" for multiple
+#'
+#' @return Character vector of subject IDs that match all conditions, or NULL
+#'   if no valid conditions are provided
+#'
+#' @examples
+#' \dontrun{
+#' # Filter males only
+#' subjids <- subj_filter(data, "SUBJECT|SEX=='M'")
+#'
+#' # Filter by multiple conditions (intersection)
+#' subjids <- subj_filter(data, "SUBJECT|SEX=='M';DM|AGE>=18")
+#' }
+#'
+#' @family filter utilities
+#' @importFrom dplyr filter
+#' @keywords internal
+subj_filter <- function(data, filter_cond) {
+  # Validate inputs
+
+  if (!is.list(data)) {
+    stop("data must be a list")
+  }
+
+  if (is.null(filter_cond) || filter_cond == "") {
+    return(NULL)
+  }
+
+  # Parse multiple conditions separated by semicolons
+  filter_conditions <- strsplit(filter_cond, ";", fixed = TRUE)[[1]]
+  filter_conditions <- trimws(filter_conditions)
+
+  all_filtered_subjids <- list()
+
+  for (i in seq_along(filter_conditions)) {
+    filter_item <- filter_conditions[i]
+    filter_parts <- strsplit(filter_item, "\\|", fixed = FALSE)[[1]]
+
+    if (length(filter_parts) != 2) {
+      stop(paste0(
+        "filter_cond format error, condition ", i, " should be 'dataset|condition', ",
+        "e.g., 'SUBJECT|SEX==\"M\"'"
+      ))
+    }
+
+    filter_ds_name <- trimws(filter_parts[1])
+    filter_expr <- trimws(filter_parts[2])
+
+    if (!filter_ds_name %in% names(data)) {
+      stop(paste0("Dataset specified in filter_cond does not exist: ", filter_ds_name))
+    }
+
+    filter_ds <- data[[filter_ds_name]]
+
+    if (!"SUBJID" %in% names(filter_ds)) {
+      stop(paste0("Dataset ", filter_ds_name, " is missing SUBJID column"))
+    }
+
+    tryCatch(
+      {
+        filtered_ds <- filter_ds %>%
+          filter(eval(parse(text = filter_expr)))
+
+        subjids <- unique(filtered_ds$SUBJID)
+
+        if (length(subjids) == 0) {
+          warning(paste0("Filter condition '", filter_item, "' matched no subjects"))
+        }
+
+        all_filtered_subjids[[i]] <- subjids
+      },
+      error = function(e) {
+        stop(paste0(
+          "Filter condition '", filter_item, "' failed: ", e$message,
+          "\nPlease check the filter expression syntax"
+        ))
+      }
+    )
+  }
+
+  # Intersect all results
+  if (length(all_filtered_subjids) > 0) {
+    filtered_subjids <- all_filtered_subjids[[1]]
+    if (length(all_filtered_subjids) > 1) {
+      for (i in 2:length(all_filtered_subjids)) {
+        filtered_subjids <- intersect(filtered_subjids, all_filtered_subjids[[i]])
+      }
+    }
+
+    if (length(filtered_subjids) == 0) {
+      warning("Intersection of all filter conditions is empty")
+    }
+
+    return(filtered_subjids)
+  }
+
+  return(NULL)
+}
+
+
 #' Match visit type based on visit type string
 #'
 #' @description

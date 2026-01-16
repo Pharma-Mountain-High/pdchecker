@@ -4,7 +4,13 @@
 \alias{check_missing_test}
 \title{Check Missing Tests}
 \usage{
-check_missing_test(data, test_var = NULL, test = NULL, missing_de = TRUE)
+check_missing_test(
+  data,
+  test_var = NULL,
+  test = NULL,
+  missing_de = TRUE,
+  pdno = "8.3.1"
+)
 }
 \arguments{
 \item{data}{Data frame, test data to check.
@@ -19,6 +25,8 @@ E.g., "RBC Count", "WBC Count". Ignored if test_var is NULL}
 \item{missing_de}{Logical, whether to check individual TESTDE missing (default: TRUE).
 If TRUE, checks all three missing types;
 If FALSE, only checks first two types (TESTCAT empty, entire TESTCAT missing)}
+
+\item{pdno}{Character string specifying the protocol deviation number for this check (default: "8.3.1")}
 }
 \value{
 List with the following components:
@@ -27,13 +35,15 @@ List with the following components:
 \item{messages}{Character vector. Deviation description messages}
 \item{details}{Data frame. Missing test details with columns:
 \itemize{
+\item PDNO: Protocol deviation number specified by \code{pdno} parameter
 \item SUBJID: Subject ID
 \item VISIT: Visit name
 \item VISITNUM: Visit number
 \item visit_date: Actual visit date
+\item TBNAME: Test dataset name (e.g., LB, VS, EG)
 \item test_name: Test name
-\item missing_reason: Missing reason
 \item missing_type: Missing type
+\item DESCRIPTION: Detailed description of the missing test
 }
 }
 }
