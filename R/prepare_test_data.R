@@ -75,12 +75,11 @@
 #'   If provided (e.g., c("CBC", "Chemistry")), only uses those TESTCAT records.
 #'   Note: Only effective when config parameter is provided
 #' @param filter_cond Character string, subject filter condition (default: NULL).
-#'   Uses \code{\link{subj_filter}} to filter subjects. Format: "dataset|condition",
 #'   multiple conditions separated by semicolons (intersection/AND logic):
-#'   - "ENROL|ENRYN=='是'" - Filter enrolled subjects
+#'   - "ENROL|ENRYN=='Y'" - Filter enrolled subjects
 #'   - "SUBJECT|SEX=='M'" - Filter males from SUBJECT dataset
 #'   - "SUBJECT|AGE>=18" - Filter age >= 18 from SUBJECT
-#'   - "ENROL|ENRYN=='是';SUBJECT|SEX=='M'" - Enrolled males (intersection)
+#'   - "ENROL|ENRYN=='Y';SUBJECT|SEX=='M'" - Enrolled males (intersection)
 #'   If NULL, no subject filtering is applied
 #'
 #' @return Data frame with column order:
