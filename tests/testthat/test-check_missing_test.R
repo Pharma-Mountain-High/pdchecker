@@ -81,6 +81,7 @@ test_that("check_missing_test() 基本功能正常", {
   result <- check_missing_test(data = test_data)
 
   # 检查返回的是列表
+
   expect_true(is.list(result))
 
   # 检查返回的组件
@@ -112,8 +113,8 @@ test_that("check_missing_test() 检测到缺失时返回正确结果", {
 
   # 检查 details 的列
   expected_cols <- c(
-    "SUBJID", "VISIT", "VISITNUM", "visit_date",
-    "test_name", "missing_reason", "missing_type"
+    "PDNO", "SUBJID", "VISIT", "VISITNUM", "visit_date",
+    "TBNAME", "test_name", "missing_type", "DESCRIPTION"
   )
   expect_true(all(expected_cols %in% names(result$details)))
 })
@@ -136,6 +137,54 @@ test_that("check_missing_test() 没有缺失时返回正确结果", {
 
 
 # =============================================================================
+# 测试 pdno 参数
+# =============================================================================
+
+test_that("pdno 参数默认值为 '8.3.1'", {
+  test_data <- create_prepared_test_data()
+
+  result <- check_missing_test(data = test_data)
+
+  if (nrow(result$details) > 0) {
+    expect_true(all(result$details$PDNO == "8.3.1"))
+  }
+})
+
+
+test_that("pdno 参数可以自定义", {
+  test_data <- create_prepared_test_data()
+
+  result <- check_missing_test(data = test_data, pdno = "8.3.2")
+
+  if (nrow(result$details) > 0) {
+    expect_true(all(result$details$PDNO == "8.3.2"))
+  }
+})
+
+
+test_that("pdno 参数验证正确", {
+  test_data <- create_prepared_test_data()
+
+  # pdno 必须是单个字符串
+
+  expect_error(
+    check_missing_test(data = test_data, pdno = 123),
+    "'pdno' must be a single character string"
+  )
+
+  expect_error(
+    check_missing_test(data = test_data, pdno = c("8.3.1", "8.3.2")),
+    "'pdno' must be a single character string"
+  )
+
+  expect_error(
+    check_missing_test(data = test_data, pdno = NULL),
+    "'pdno' must be a single character string"
+  )
+})
+
+
+# =============================================================================
 # 测试三种缺失情况
 # =============================================================================
 
@@ -145,18 +194,22 @@ test_that("检测情况1：TESTCAT为空（访视无检查记录）", {
   result <- check_missing_test(data = test_data)
 
   # 应该检测到 TESTCAT 为空的情况
-  testcat_empty <- result$details[result$details$missing_type == "TESTCAT为空", ]
+  testcat_empty <- result$details[result$details$missing_type == "TESTCAT_EMPTY", ]
   expect_gt(nrow(testcat_empty), 0)
 
   # 检查 002 的 V2（TESTCAT 为 NA）
   subj002_v2 <- testcat_empty[testcat_empty$SUBJID == "002" & testcat_empty$VISIT == "V2", ]
   expect_equal(nrow(subj002_v2), 1)
 
-  # 检查缺失原因
-  expect_true(grepl("未进行.*检查", subj002_v2$missing_reason))
-
   # 检查 test_name 格式
   expect_true(grepl("全部", subj002_v2$test_name))
+
+  # 检查 TBNAME 列
+  expect_equal(subj002_v2$TBNAME, "LB")
+
+  # 检查 DESCRIPTION 列
+  expect_true(grepl("受试者002", subj002_v2$DESCRIPTION))
+  expect_true(grepl("缺失", subj002_v2$DESCRIPTION))
 })
 
 
@@ -166,18 +219,19 @@ test_that("检测情况2：TESTCAT不为空但整个检查项缺失", {
   result <- check_missing_test(data = test_data)
 
   # 应该检测到整个 TESTCAT 缺失的情况
-  testcat_missing <- result$details[result$details$missing_type == "TESTCAT缺失", ]
+  testcat_missing <- result$details[result$details$missing_type == "TESTCAT_MISSING", ]
   expect_gt(nrow(testcat_missing), 0)
 
   # 检查 002 的 V3（TESTYN = "否"）
   subj002_v3 <- testcat_missing[testcat_missing$SUBJID == "002" & testcat_missing$VISIT == "V3", ]
   expect_equal(nrow(subj002_v3), 1)
 
-  # 检查缺失原因
-  expect_equal(subj002_v3$missing_reason, "整个检查类别未进行")
-
   # 检查 test_name 是 TESTCAT 的值
   expect_equal(subj002_v3$test_name, "血常规")
+
+  # 检查 DESCRIPTION 列
+  expect_true(grepl("受试者002", subj002_v3$DESCRIPTION))
+  expect_true(grepl("血常规", subj002_v3$DESCRIPTION))
 })
 
 
@@ -187,19 +241,19 @@ test_that("检测情况3：单个TESTDE指标缺失", {
   result <- check_missing_test(data = test_data, missing_de = TRUE)
 
   # 应该检测到 TESTDE 缺失的情况
-  testde_missing <- result$details[result$details$missing_type == "TESTDE缺失", ]
+  testde_missing <- result$details[result$details$missing_type == "TESTDE_MISSING", ]
   expect_gt(nrow(testde_missing), 0)
 
   # 检查 003 的 V2（ORRES = NA，但 TESTDAT 有值）
   subj003_v2 <- testde_missing[testde_missing$SUBJID == "003" & testde_missing$VISIT == "V2", ]
   expect_equal(nrow(subj003_v2), 1)
 
-  # 检查缺失原因
-  expect_equal(subj003_v2$missing_reason, "具体检查指标缺失")
-
   # 检查 test_name 格式（TESTCAT-TESTDE）
   expect_true(grepl("-", subj003_v2$test_name))
   expect_true(grepl("血生化", subj003_v2$test_name))
+
+  # 检查 DESCRIPTION 列
+  expect_true(grepl("受试者003", subj003_v2$DESCRIPTION))
 })
 
 
@@ -213,7 +267,7 @@ test_that("missing_de = FALSE 时不检查单个指标缺失", {
   result <- check_missing_test(data = test_data, missing_de = FALSE)
 
   # 不应该有 TESTDE 缺失的记录
-  testde_missing <- result$details[result$details$missing_type == "TESTDE缺失", ]
+  testde_missing <- result$details[result$details$missing_type == "TESTDE_MISSING", ]
   expect_equal(nrow(testde_missing), 0)
 
   # 应该在消息中说明
@@ -227,7 +281,7 @@ test_that("missing_de = TRUE 时检查单个指标缺失", {
   result <- check_missing_test(data = test_data, missing_de = TRUE)
 
   # 应该有 TESTDE 缺失的记录
-  testde_missing <- result$details[result$details$missing_type == "TESTDE缺失", ]
+  testde_missing <- result$details[result$details$missing_type == "TESTDE_MISSING", ]
   expect_gt(nrow(testde_missing), 0)
 })
 
@@ -250,7 +304,7 @@ test_that("test_var 和 test 参数可以筛选特定检查项", {
   if (nrow(result$details) > 0) {
     # 检查 TESTCAT 不为空的记录都是"血常规"
     non_empty_testcat <- result$details |>
-      dplyr::filter(!is.na(missing_type), missing_type != "TESTCAT为空")
+      dplyr::filter(!is.na(missing_type), missing_type != "TESTCAT_EMPTY")
     if (nrow(non_empty_testcat) > 0) {
       # test_name 应该包含"血常规"或者是"全部LB"
       expect_true(all(grepl("血常规|全部", result$details$test_name)))
@@ -327,12 +381,12 @@ test_that("所有检查都完整时返回空结果", {
 test_that("data 不是 data frame 时报错", {
   expect_error(
     check_missing_test(data = list(a = 1, b = 2)),
-    "data 必须是 data frame 类型"
+    "'data' must be a data frame"
   )
 
   expect_error(
     check_missing_test(data = "not a dataframe"),
-    "data 必须是 data frame 类型"
+    "'data' must be a data frame"
   )
 })
 
@@ -345,7 +399,7 @@ test_that("缺少必要列时报错", {
 
   expect_error(
     check_missing_test(data = test_data_incomplete),
-    "检查项数据集缺少必要的列.*TESTCAT"
+    "'data' is missing required columns.*TESTCAT"
   )
 })
 
@@ -358,7 +412,7 @@ test_that("缺少多个必要列时报错", {
 
   expect_error(
     check_missing_test(data = test_data_incomplete),
-    "检查项数据集缺少必要的列"
+    "'data' is missing required columns"
   )
 })
 
@@ -382,8 +436,8 @@ test_that("返回的 details 包含所有必要的列", {
 
   if (nrow(result$details) > 0) {
     expected_cols <- c(
-      "SUBJID", "VISIT", "VISITNUM", "visit_date",
-      "test_name", "missing_reason", "missing_type"
+      "PDNO", "SUBJID", "VISIT", "VISITNUM", "visit_date",
+      "TBNAME", "test_name", "missing_type", "DESCRIPTION"
     )
     expect_true(all(expected_cols %in% names(result$details)))
   }
@@ -396,7 +450,7 @@ test_that("返回的 missing_type 只包含预期的值", {
   result <- check_missing_test(data = test_data)
 
   if (nrow(result$details) > 0) {
-    valid_types <- c("TESTCAT为空", "TESTCAT缺失", "TESTDE缺失")
+    valid_types <- c("TESTCAT_EMPTY", "TESTCAT_MISSING", "TESTDE_MISSING")
     expect_true(all(result$details$missing_type %in% valid_types))
   }
 })
@@ -409,6 +463,20 @@ test_that("visit_date 是 Date 类型", {
 
   if (nrow(result$details) > 0) {
     expect_true(inherits(result$details$visit_date, "Date"))
+  }
+})
+
+
+test_that("DESCRIPTION 列格式正确", {
+  test_data <- create_prepared_test_data()
+
+  result <- check_missing_test(data = test_data)
+
+  if (nrow(result$details) > 0) {
+    # 检查 DESCRIPTION 包含必要信息
+    expect_true(all(grepl("受试者", result$details$DESCRIPTION)))
+    expect_true(all(grepl("访视", result$details$DESCRIPTION)))
+    expect_true(all(grepl("缺失", result$details$DESCRIPTION)))
   }
 })
 
@@ -470,8 +538,8 @@ test_that("print.missing_test_check 方法正常工作", {
   # 应该有输出
   expect_gt(length(output), 0)
 
-  # 应该包含标题
-  expect_true(any(grepl("检查项缺失检查", output)))
+  # 应该包含 pdno 和标题
+  expect_true(any(grepl("8.3.1 检查项缺失检查", output)))
 
   # 应该包含 has_deviation 状态
   expect_true(any(grepl("Has deviation", output)))
@@ -491,9 +559,20 @@ test_that("print 方法显示缺失详情", {
     # 应该包含详细信息
     expect_true(any(grepl("Deviation Details", output)))
 
-    # 应该包含受试者信息
+    # 应该包含受试者信息（来自 DESCRIPTION）
     expect_true(any(grepl("受试者", output)))
   }
+})
+
+
+test_that("print 方法使用自定义 pdno", {
+  test_data <- create_prepared_test_data()
+  result <- check_missing_test(data = test_data, pdno = "8.3.5")
+
+  output <- capture.output(print(result))
+
+  # 应该显示自定义的 pdno
+  expect_true(any(grepl("8.3.5", output)))
 })
 
 
@@ -539,7 +618,7 @@ test_that("同一受试者同一访视的 TESTCAT 为空只输出一条记录", 
   result <- check_missing_test(data = test_data)
 
   # TESTCAT 为空的情况应该只有一条记录
-  testcat_empty <- result$details[result$details$missing_type == "TESTCAT为空", ]
+  testcat_empty <- result$details[result$details$missing_type == "TESTCAT_EMPTY", ]
   expect_equal(nrow(testcat_empty), 1)
 })
 
@@ -563,7 +642,7 @@ test_that("同一受试者同一访视同一 TESTCAT 缺失只输出一条记录
   result <- check_missing_test(data = test_data, missing_de = FALSE)
 
   # TESTCAT 缺失应该只有一条记录
-  testcat_missing <- result$details[result$details$missing_type == "TESTCAT缺失", ]
+  testcat_missing <- result$details[result$details$missing_type == "TESTCAT_MISSING", ]
   expect_equal(nrow(testcat_missing), 1)
 })
 
@@ -587,7 +666,7 @@ test_that("单个 TESTDE 缺失每个指标输出一条记录", {
   result <- check_missing_test(data = test_data, missing_de = TRUE)
 
   # 应该有三条 TESTDE 缺失记录
-  testde_missing <- result$details[result$details$missing_type == "TESTDE缺失", ]
+  testde_missing <- result$details[result$details$missing_type == "TESTDE_MISSING", ]
   expect_equal(nrow(testde_missing), 3)
 
   # 每条记录的 TESTDE 应该不同
@@ -606,4 +685,45 @@ test_that("返回对象具有正确的类", {
   # 检查类
   expect_true("missing_test_check" %in% class(result))
   expect_true("list" %in% class(result))
+})
+
+
+# =============================================================================
+# 测试 TBNAME 列
+# =============================================================================
+
+test_that("details 包含正确的 TBNAME 值", {
+  test_data <- create_prepared_test_data()
+  result <- check_missing_test(data = test_data)
+
+  if (nrow(result$details) > 0) {
+    # TBNAME 应该是 LB
+    expect_true(all(result$details$TBNAME == "LB"))
+  }
+})
+
+
+test_that("不同 TBNAME 正确区分", {
+  # 创建包含多个 TBNAME 的数据
+  test_data <- data.frame(
+    SUBJID = c("001", "001"),
+    VISIT = c("V1", "V1"),
+    VISITNUM = c("1", "1"),
+    SVDAT = as.Date(c("2024-01-01", "2024-01-01")),
+    TBNAME = c("LB", "VS"),
+    TESTCAT = c(NA, NA), # 都为空
+    TESTDE = c(NA, NA),
+    TESTYN = c(NA, NA),
+    TESTDAT = as.Date(c(NA, NA)),
+    ORRES = c(NA, NA),
+    stringsAsFactors = FALSE
+  )
+
+  result <- check_missing_test(data = test_data)
+
+  # 应该有两条记录，分别对应 LB 和 VS
+  testcat_empty <- result$details[result$details$missing_type == "TESTCAT_EMPTY", ]
+  expect_equal(nrow(testcat_empty), 2)
+  expect_true("LB" %in% testcat_empty$TBNAME)
+  expect_true("VS" %in% testcat_empty$TBNAME)
 })

@@ -78,6 +78,7 @@
 #' @param missing_de Logical, whether to check individual TESTDE missing (default: TRUE).
 #'   If TRUE, checks all three missing types;
 #'   If FALSE, only checks first two types (TESTCAT empty, entire TESTCAT missing)
+#' @param pdno Character string specifying the protocol deviation number for this check (default: "8.3.1")
 #'
 #' @return List with the following components:
 #'   \describe{
@@ -85,198 +86,176 @@
 #'     \item{messages}{Character vector. Deviation description messages}
 #'     \item{details}{Data frame. Missing test details with columns:
 #'       \itemize{
+#'         \item PDNO: Protocol deviation number specified by \code{pdno} parameter
 #'         \item SUBJID: Subject ID
 #'         \item VISIT: Visit name
 #'         \item VISITNUM: Visit number
 #'         \item visit_date: Actual visit date
+#'         \item TBNAME: Test dataset name (e.g., LB, VS, EG)
 #'         \item test_name: Test name
-#'         \item missing_reason: Missing reason
 #'         \item missing_type: Missing type
+#'         \item DESCRIPTION: Detailed description of the missing test
 #'       }
 #'     }
 #'   }
 #'
 #' @importFrom dplyr filter select mutate group_by summarise ungroup bind_rows sym
+#' @importFrom rlang .data
 #' @importFrom magrittr %>%
 #' @export
 #'
 check_missing_test <- function(data,
                                test_var = NULL,
                                test = NULL,
-                               missing_de = TRUE) {
-  # 验证输入参数
+                               missing_de = TRUE,
+                               pdno = "8.3.1") {
+  # ============================================================================
+  # Part 1: Validate input parameters
+  # ============================================================================
   if (!is.data.frame(data)) {
-    stop("data 必须是 data frame 类型，请使用 prepare_test_data 函数准备数据")
+    stop("'data' must be a data frame prepared by prepare_test_data()")
   }
 
-  # 检查检查项数据集必要的列（由 prepare_test_data 生成，列名已标准化）
-  test_required_cols <- c("SUBJID", "VISIT", "VISITNUM", "SVDAT", "TBNAME", "TESTCAT", "TESTDAT", "TESTYN", "ORRES")
-  test_missing_cols <- setdiff(test_required_cols, names(data))
-  if (length(test_missing_cols) > 0) {
-    stop(paste0(
-      "检查项数据集缺少必要的列: ",
-      paste(test_missing_cols, collapse = ", "),
-      "\n请使用 prepare_test_data 函数准备数据"
-    ))
+  if (!is.character(pdno) || length(pdno) != 1) {
+    stop("'pdno' must be a single character string")
   }
 
-  # Initialize results
+  # Check required columns (standardized by prepare_test_data)
+  required_cols <- c(
+    "SUBJID", "VISIT", "VISITNUM", "SVDAT", "TBNAME",
+    "TESTCAT", "TESTDAT", "TESTYN", "ORRES"
+  )
+  missing_cols <- setdiff(required_cols, names(data))
+  if (length(missing_cols) > 0) {
+    stop(
+      "'data' is missing required columns: ", paste(missing_cols, collapse = ", "),
+      "\nPlease use prepare_test_data() to prepare data"
+    )
+  }
+
+  # ============================================================================
+  # Part 2: Initialize results
+  # ============================================================================
   results <- list(
     has_deviation = FALSE,
     messages = character(),
     details = data.frame()
   )
 
-  # 根据是否指定test_var筛选检查项数据
+  # ============================================================================
+  # Part 3: Filter and prepare data
+  # ============================================================================
+  # Filter by specific test if test_var and test are provided
   if (!is.null(test_var) && !is.null(test) && test_var %in% names(data)) {
-    # 筛选特定检查项
     test_data_filtered <- data %>%
       filter(!!sym(test_var) == test)
-    test_name <- test
   } else {
-    # 检查所有检查项
     test_data_filtered <- data
-    test_name <- "所有检查项"
   }
 
-  # 获取实际进行了访视的记录（SVDAT不为空）
-  # data 已经是 prepare_test_data 处理后的数据，包含了 SV 和检查项数据
+  # Get records with actual visits (SVDAT not empty)
   visits_with_tests <- test_data_filtered %>%
     filter(!is_sas_na(SVDAT)) %>%
     mutate(visit_date = as.Date(SVDAT)) %>%
     filter(!is.na(visit_date))
 
-  # 如果没有实际访视记录，直接返回
+  # Return early if no actual visit records
   if (nrow(visits_with_tests) == 0) {
+    class(results) <- c("missing_test_check", "list")
     return(results)
   }
 
-  # 区分三种缺失情况：
-  # 1. TESTCAT为空：访视没有对应的检查记录
-  # 2. TESTCAT不为空，但整个TESTCAT缺失：TESTDAT为空 或 TESTYN=否或空
-  # 3. TESTCAT不为空，但单个TESTDE指标缺失：TESTDAT不为空 且 ORRES为空
-
-  # 情况1：TESTCAT为空（访视没有对应的检查记录）
+  # ============================================================================
+  # Part 4: Check missing tests (three types)
+  # ============================================================================
+  # Type 1: TESTCAT is empty (visit has no test records)
   testcat_empty <- visits_with_tests %>%
     filter(is.na(TESTCAT) | TESTCAT == "") %>%
     group_by(SUBJID, VISIT, VISITNUM, visit_date, TBNAME) %>%
-    summarise(
-      missing_type = "TESTCAT为空",
-      .groups = "drop"
-    ) %>%
+    summarise(.groups = "drop") %>%
     mutate(
-      TBNAME = as.character(TBNAME), # 确保 TBNAME 是字符型
-      TESTCAT = NA_character_,
-      TESTDE = NA_character_,
-      test_name = paste0("全部", as.character(TBNAME)),
-      missing_reason = paste0("未进行", as.character(TBNAME), "检查")
+      missing_type = "TESTCAT_EMPTY",
+      test_name = paste0("全部", as.character(TBNAME))
     )
 
-  # 情况2：TESTCAT不为空，但整个TESTCAT缺失（按TESTCAT分组，每个TESTCAT只输出一条）
+  # Type 2: TESTCAT not empty, but entire TESTCAT missing
   testcat_missing <- visits_with_tests %>%
     filter(!is.na(TESTCAT) & TESTCAT != "") %>%
     filter(is_sas_na(TESTDAT) | is.na(TESTDAT) | is_sas_na(TESTYN) | TESTYN != "是") %>%
     group_by(SUBJID, VISIT, VISITNUM, visit_date, TESTCAT, TBNAME) %>%
-    summarise(
-      missing_type = "TESTCAT缺失",
-      .groups = "drop"
-    ) %>%
+    summarise(.groups = "drop") %>%
     mutate(
-      TBNAME = as.character(TBNAME), # 确保 TBNAME 是字符型
-      TESTCAT = as.character(TESTCAT), # 确保 TESTCAT 是字符型
-      TESTDE = NA_character_,
-      test_name = as.character(TESTCAT),
-      missing_reason = "整个检查类别未进行"
+      missing_type = "TESTCAT_MISSING",
+      test_name = as.character(TESTCAT)
     )
 
-  # 情况3：TESTCAT不为空，单个TESTDE指标缺失（按TESTDE分组，每个TESTDE输出一条）
-  # 根据 missing_de 参数决定是否检查单个指标缺失
+  # Type 3: Individual TESTDE missing (only if missing_de = TRUE)
   if (missing_de) {
     testde_missing <- visits_with_tests %>%
       filter(!is.na(TESTCAT) & TESTCAT != "") %>%
       filter(!is_sas_na(TESTDAT) & !is.na(TESTDAT)) %>%
       filter(is_sas_na(ORRES) | is.na(ORRES) | ORRES == "") %>%
       group_by(SUBJID, VISIT, VISITNUM, visit_date, TESTCAT, TESTDE, TBNAME) %>%
-      summarise(
-        missing_type = "TESTDE缺失",
-        .groups = "drop"
-      ) %>%
+      summarise(.groups = "drop") %>%
       mutate(
-        TBNAME = as.character(TBNAME), # 确保 TBNAME 是字符型
-        TESTCAT = as.character(TESTCAT), # 确保 TESTCAT 是字符型
-        TESTDE = as.character(TESTDE), # 确保 TESTDE 是字符型
-        test_name = paste0(as.character(TESTCAT), "-", as.character(TESTDE)),
-        missing_reason = "具体检查指标缺失"
+        missing_type = "TESTDE_MISSING",
+        test_name = paste0(as.character(TESTCAT), "-", as.character(TESTDE))
       )
   } else {
-    # 如果不检查单个指标，创建空数据框
-    testde_missing <- data.frame(
-      SUBJID = character(),
-      VISIT = character(),
-      VISITNUM = character(), # 统一为字符型，与其他数据框保持一致
-      visit_date = as.Date(character()),
-      TESTCAT = character(),
-      TESTDE = character(),
-      TBNAME = character(),
-      missing_type = character(),
-      test_name = character(),
-      missing_reason = character(),
-      stringsAsFactors = FALSE
-    )
+    testde_missing <- data.frame()
   }
 
-  # 合并三种缺失情况
+  # Combine all missing types
   all_missing <- bind_rows(testcat_empty, testcat_missing, testde_missing)
 
-  # 构建缺失记录
-  if (nrow(all_missing) > 0) {
-    missing_tests_list <- lapply(seq_len(nrow(all_missing)), function(i) {
-      row <- all_missing[i, ]
+  # Return early if no missing records
+  if (nrow(all_missing) == 0) {
+    class(results) <- c("missing_test_check", "list")
+    return(results)
+  }
 
-      data.frame(
-        SUBJID = row$SUBJID,
-        VISIT = row$VISIT,
-        VISITNUM = row$VISITNUM,
-        visit_date = row$visit_date,
-        test_name = row$test_name,
-        missing_reason = row$missing_reason,
-        missing_type = row$missing_type,
-        stringsAsFactors = FALSE
+  # ============================================================================
+  # Part 5: Build results
+  # ============================================================================
+  # Build details data frame with DESCRIPTION
+  details <- all_missing %>%
+    mutate(
+      PDNO = pdno,
+      DESCRIPTION = sprintf(
+        "受试者%s，在访视%s（%s），计划进行的[%s]缺失。",
+        .data$SUBJID, .data$VISIT, .data$visit_date, .data$test_name
       )
-    })
-  } else {
-    missing_tests_list <- list()
+    ) %>%
+    select(
+      "PDNO", "SUBJID", "VISIT", "VISITNUM", "visit_date",
+      "TBNAME", "test_name", "missing_type", "DESCRIPTION"
+    )
+
+  # Count by missing type
+  n_testcat_empty <- sum(details$missing_type == "TESTCAT_EMPTY")
+  n_testcat <- sum(details$missing_type == "TESTCAT_MISSING")
+  n_testde <- sum(details$missing_type == "TESTDE_MISSING")
+
+  # Build messages
+
+  msg_parts <- character()
+  if (n_testcat_empty > 0) {
+    msg_parts <- c(msg_parts, paste0("访视无检查记录 ", n_testcat_empty, " 条"))
+  }
+  if (n_testcat > 0) {
+    msg_parts <- c(msg_parts, paste0("整体检查项缺失 ", n_testcat, " 条"))
+  }
+  if (n_testde > 0) {
+    msg_parts <- c(msg_parts, paste0("具体指标缺失 ", n_testde, " 条"))
+  }
+  if (!missing_de && length(msg_parts) > 0) {
+    msg_parts <- c(msg_parts, "（仅检查整体检查项缺失）")
   }
 
-  # 合并所有缺失检查记录
-  if (length(missing_tests_list) > 0) {
-    missing_tests <- bind_rows(missing_tests_list)
-    results$has_deviation <- TRUE
-
-    # 根据缺失类型生成消息
-    n_testcat_empty <- sum(missing_tests$missing_type == "TESTCAT为空")
-    n_testcat <- sum(missing_tests$missing_type == "TESTCAT缺失")
-    n_testde <- sum(missing_tests$missing_type == "TESTDE缺失")
-
-    msg_parts <- character()
-    if (n_testcat_empty > 0) {
-      msg_parts <- c(msg_parts, paste0("访视无检查记录 ", n_testcat_empty, " 条"))
-    }
-    if (n_testcat > 0) {
-      msg_parts <- c(msg_parts, paste0("整体检查项缺失 ", n_testcat, " 条"))
-    }
-    if (n_testde > 0) {
-      msg_parts <- c(msg_parts, paste0("具体指标缺失 ", n_testde, " 条"))
-    }
-
-    # 如果用户设置了 missing_de = FALSE，在消息中说明
-    if (!missing_de && length(msg_parts) > 0) {
-      msg_parts <- c(msg_parts, "（仅检查整体检查项缺失）")
-    }
-
-    results$messages <- paste(msg_parts, collapse = "；")
-    results$details <- missing_tests
-  }
+  # Compile results
+  results$has_deviation <- TRUE
+  results$messages <- paste(msg_parts, collapse = "；")
+  results$details <- details
 
   class(results) <- c("missing_test_check", "list")
   return(results)
@@ -288,7 +267,8 @@ check_missing_test <- function(data,
 #' @param ... Additional arguments
 #' @export
 print.missing_test_check <- function(x, ...) {
-  cat("检查项缺失检查\n")
+  pdno_display <- if (nrow(x$details) > 0) x$details$PDNO[1] else "8.3.1"
+  cat(sprintf("%s 检查项缺失检查\n", pdno_display))
   cat("====================================\n")
   cat(sprintf(
     "Has deviation: %s\n",
@@ -302,15 +282,6 @@ print.missing_test_check <- function(x, ...) {
 
   if (nrow(x$details) > 0) {
     cat("\nDeviation Details:\n")
-    formatted_details <- apply(x$details, 1, function(row) {
-      sprintf(
-        "受试者%s，在访视%s（%s），计划进行的[%s]-缺失。",
-        row["SUBJID"],
-        row["VISIT"],
-        row["visit_date"],
-        row["test_name"]
-      )
-    })
-    cat(formatted_details, sep = "\n")
+    cat(x$details$DESCRIPTION, sep = "\n")
   }
 }
