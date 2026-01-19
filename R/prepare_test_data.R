@@ -87,6 +87,7 @@
 #'     \item{SUBJID}{Subject ID (from SV dataset)}
 #'     \item{VISIT}{Visit name (from SV dataset)}
 #'     \item{VISITNUM}{Visit number (from SV dataset)}
+#'     \item{SVDAT}{Visit date (from SV dataset)}
 #'     \item{TBNAME}{Dataset name (derived, mapped from tb_name_var or test_dataset)}
 #'     \item{TESTCAT}{Test category (derived, mapped from test_cat_var)}
 #'     \item{TESTDE}{Test name (derived, mapped from test_de_var)}
@@ -185,7 +186,8 @@ prepare_test_data <- function(data,
       VISITNUM = !!sym(sv_visitnum_var),
       SVDAT = !!sym(sv_date_var)
     ) %>%
-    mutate(VISITNUM = as.character(VISITNUM))
+    mutate(VISITNUM = as.character(VISITNUM)) %>%
+    filter(!is_sas_na(SVDAT))
 
   # Apply subject filter
   if (!is.null(final_subjids) && length(final_subjids) > 0) {
@@ -355,7 +357,7 @@ prepare_test_data <- function(data,
   merged_data$TBNAME <- ifelse(is.na(merged_data$TBNAME), fill_value, merged_data$TBNAME)
 
   # Reorder columns
-  key_cols <- c("SUBJID", "VISIT", "VISITNUM")
+  key_cols <- c("SUBJID", "VISIT", "VISITNUM", "SVDAT")
   derived_cols <- c("TBNAME", "TESTCAT", "TESTDE", "TESTYN", "TESTDAT", "ORRES")
   other_cols <- setdiff(names(merged_data), c(key_cols, derived_cols))
 
