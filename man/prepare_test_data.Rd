@@ -77,6 +77,7 @@ Data frame with column order:
 \item{SUBJID}{Subject ID (from SV dataset)}
 \item{VISIT}{Visit name (from SV dataset)}
 \item{VISITNUM}{Visit number (from SV dataset)}
+\item{SVDAT}{Visit date (from SV dataset)}
 \item{TBNAME}{Dataset name (derived, mapped from tb_name_var or test_dataset)}
 \item{TESTCAT}{Test category (derived, mapped from test_cat_var)}
 \item{TESTDE}{Test name (derived, mapped from test_de_var)}

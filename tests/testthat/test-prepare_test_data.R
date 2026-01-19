@@ -639,11 +639,11 @@ test_that("column order is correct", {
   )
 
   # Check column order: key columns first, then derived columns
-  first_cols <- names(result)[1:9]
+  first_cols <- names(result)[1:10]
   expect_equal(
     first_cols,
     c(
-      "SUBJID", "VISIT", "VISITNUM", "TBNAME", "TESTCAT", "TESTDE",
+      "SUBJID", "VISIT", "VISITNUM", "SVDAT", "TBNAME", "TESTCAT", "TESTDE",
       "TESTYN", "TESTDAT", "ORRES"
     )
   )
