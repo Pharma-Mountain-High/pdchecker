@@ -24,7 +24,7 @@ test_that("check_icf_time_deviation works with valid deviations", {
   expect_true(result$has_deviation)
   expect_equal(length(result$messages), 1)
   expect_true(nrow(result$details) >= 1)
-  expect_true(all(c("SUBJID", "action", "event_datetime", "icf_datetime", "diff_date") %in% names(result$details)))
+  expect_true(all(c("SUBJID", "action", "event_datetime", "icf_datetime", "diff_date", "TBNAME") %in% names(result$details)))
   expect_true(all(result$details$diff_date < 0)) # All differences should be negative
   expect_true("001" %in% result$details$SUBJID) # Subject 001 should have deviation
 })
@@ -283,4 +283,112 @@ test_that("print.icf_time_deviation works correctly", {
   # Test that print method doesn't error
   expect_output(print(result), "2.1.1 获得ICF前进行了试验相关操作")
   expect_output(print(result), "Has deviation: YES")
+})
+
+test_that("check_icf_time_deviation TBNAME column is empty when tb_name_var is NULL", {
+  test_data <- list(
+    IC = data.frame(
+      SUBJID = c("001", "002"),
+      ICDAT = c("2024-01-10", "2024-01-15"),
+      stringsAsFactors = FALSE
+    ),
+    VS = data.frame(
+      SUBJID = c("001", "002"),
+      VSDAT = c("2024-01-05", "2024-01-20"),
+      FORMNAME = c("Vital Signs Form", "Vital Signs Form"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  # Default tb_name_var is NULL, TBNAME should be empty
+
+  result <- check_icf_time_deviation(test_data)
+
+  expect_s3_class(result, "icf_time_deviation")
+  expect_true("TBNAME" %in% names(result$details))
+  expect_true(all(result$details$TBNAME == ""))
+})
+
+test_that("check_icf_time_deviation TBNAME column contains values when tb_name_var is specified", {
+  test_data <- list(
+    IC = data.frame(
+      SUBJID = c("001", "002"),
+      ICDAT = c("2024-01-10", "2024-01-15"),
+      stringsAsFactors = FALSE
+    ),
+    VS = data.frame(
+      SUBJID = c("001", "002"),
+      VSDAT = c("2024-01-05", "2024-01-20"),
+      FORMNAME = c("Vital Signs Form", "Vital Signs Form 2"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- check_icf_time_deviation(test_data, tb_name_var = "FORMNAME")
+
+  expect_s3_class(result, "icf_time_deviation")
+  expect_true(result$has_deviation)
+  expect_true("TBNAME" %in% names(result$details))
+  expect_equal(result$details$TBNAME[result$details$SUBJID == "001"], "Vital Signs Form")
+})
+
+test_that("check_icf_time_deviation handles tb_name_var when variable not in all datasets", {
+  test_data <- list(
+    IC = data.frame(
+      SUBJID = c("001", "002"),
+      ICDAT = c("2024-01-10", "2024-01-15"),
+      stringsAsFactors = FALSE
+    ),
+    VS = data.frame(
+      SUBJID = c("001", "002"),
+      VSDAT = c("2024-01-05", "2024-01-20"),
+      FORMNAME = c("Vital Signs Form", "Vital Signs Form"),
+      stringsAsFactors = FALSE
+    ),
+    AE = data.frame(
+      SUBJID = c("001"),
+      AEDAT = c("2024-01-08"),
+      # No FORMNAME variable in AE dataset
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- check_icf_time_deviation(test_data, tb_name_var = "FORMNAME")
+
+  expect_s3_class(result, "icf_time_deviation")
+  expect_true(result$has_deviation)
+  expect_true("TBNAME" %in% names(result$details))
+
+  # VS dataset should have TBNAME value
+  vs_rows <- grepl("^VS\\.", result$details$action)
+  expect_true(all(result$details$TBNAME[vs_rows] == "Vital Signs Form"))
+
+  # AE dataset should have empty TBNAME (variable not present)
+  ae_rows <- grepl("^AE\\.", result$details$action)
+  expect_true(all(result$details$TBNAME[ae_rows] == ""))
+})
+
+test_that("check_icf_time_deviation validates tb_name_var parameter", {
+  test_data <- list(
+    IC = data.frame(
+      SUBJID = c("001"),
+      ICDAT = c("2024-01-10"),
+      stringsAsFactors = FALSE
+    ),
+    VS = data.frame(
+      SUBJID = c("001"),
+      VSDAT = c("2024-01-05"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  # tb_name_var must be NULL or a single character string
+  expect_error(
+    check_icf_time_deviation(test_data, tb_name_var = 123),
+    "'tb_name_var' must be NULL or a single character string"
+  )
+  expect_error(
+    check_icf_time_deviation(test_data, tb_name_var = c("A", "B")),
+    "'tb_name_var' must be NULL or a single character string"
+  )
 })

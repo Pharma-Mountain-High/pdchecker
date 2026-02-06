@@ -10,6 +10,7 @@ check_icf_time_deviation(
   ic_date_var = "ICDAT",
   ignore_vars = "BRTHDAT",
   exclude_datasets = NULL,
+  tb_name_var = NULL,
   pdno = "2.1.1"
 )
 }
@@ -26,6 +27,9 @@ Can specify multiple variables, e.g., c("BRTHDAT", "MHSTDAT")}
 \item{exclude_datasets}{Character vector of dataset names to exclude from the check (default: NULL).
 Can specify multiple datasets, e.g., c("DM", "DS")}
 
+\item{tb_name_var}{Character string specifying the variable name to use as TBNAME in the output (default: NULL).
+If NULL, the TBNAME column in the output will be empty.}
+
 \item{pdno}{Character string specifying the protocol deviation number for this check (default: "2.1.1")}
 }
 \value{
@@ -41,6 +45,7 @@ A list of class "icf_time_deviation" with the following components:
 \item event_datetime: Date when the event occurred
 \item icf_datetime: Date when informed consent was obtained
 \item diff_date: Numeric. Difference in days (negative values indicate event occurred before IC)
+\item TBNAME: Table name from the variable specified by \code{tb_name_var}, empty if \code{tb_name_var} is NULL
 \item DESCRIPTION: Description of the deviation for each record
 }
 }

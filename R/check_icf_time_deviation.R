@@ -7,6 +7,8 @@
 #' Can specify multiple variables, e.g., c("BRTHDAT", "MHSTDAT")
 #' @param exclude_datasets Character vector of dataset names to exclude from the check (default: NULL).
 #' Can specify multiple datasets, e.g., c("DM", "DS")
+#' @param tb_name_var Character string specifying the variable name to use as TBNAME in the output (default: NULL).
+#' If NULL, the TBNAME column in the output will be empty.
 #' @param pdno Character string specifying the protocol deviation number for this check (default: "2.1.1")
 #' @return A list of class "icf_time_deviation" with the following components:
 #'   \describe{
@@ -20,6 +22,7 @@
 #'         \item event_datetime: Date when the event occurred
 #'         \item icf_datetime: Date when informed consent was obtained
 #'         \item diff_date: Numeric. Difference in days (negative values indicate event occurred before IC)
+#'         \item TBNAME: Table name from the variable specified by \code{tb_name_var}, empty if \code{tb_name_var} is NULL
 #'         \item DESCRIPTION: Description of the deviation for each record
 #'       }
 #'     }
@@ -83,6 +86,7 @@ check_icf_time_deviation <- function(data,
                                      ic_date_var = "ICDAT",
                                      ignore_vars = "BRTHDAT",
                                      exclude_datasets = NULL,
+                                     tb_name_var = NULL,
                                      pdno = "2.1.1") {
   # Validate parameter types
   if (!is.list(data)) {
@@ -99,6 +103,9 @@ check_icf_time_deviation <- function(data,
   }
   if (!is.null(exclude_datasets) && !is.character(exclude_datasets)) {
     stop("'exclude_datasets' must be NULL or a character vector")
+  }
+  if (!is.null(tb_name_var) && (!is.character(tb_name_var) || length(tb_name_var) != 1)) {
+    stop("'tb_name_var' must be NULL or a single character string")
   }
   if (!is.character(pdno) || length(pdno) != 1) {
     stop("'pdno' must be a single character string")
@@ -130,6 +137,7 @@ check_icf_time_deviation <- function(data,
       event_datetime = as.Date(character()),
       icf_datetime = as.Date(character()),
       diff_date = numeric(),
+      TBNAME = character(),
       DESCRIPTION = character(),
       stringsAsFactors = FALSE
     )
@@ -162,8 +170,14 @@ check_icf_time_deviation <- function(data,
 
     if (length(date_cols) > 0) {
       for (col in date_cols) {
+        # Determine columns to select based on tb_name_var
+        select_cols <- c("SUBJID", col)
+        if (!is.null(tb_name_var) && tb_name_var %in% names(df)) {
+          select_cols <- c(select_cols, tb_name_var)
+        }
+
         df_times <- df %>%
-          select(SUBJID, all_of(col)) %>%
+          select(all_of(select_cols)) %>%
           mutate(
             dataset = dataset_name,
             variable = col,
@@ -172,11 +186,16 @@ check_icf_time_deviation <- function(data,
               as.Date(.data[[col]]),
               error = function(e) as.Date(NA),
               warning = function(w) as.Date(NA)
-            )
+            ),
+            TBNAME = if (!is.null(tb_name_var) && tb_name_var %in% names(df)) {
+              as.character(.data[[tb_name_var]])
+            } else {
+              ""
+            }
           ) %>%
           left_join(icf_times, by = "SUBJID") %>%
           filter(!is.na(event_datetime) & !is.na(icf_datetime) & event_datetime < icf_datetime) %>%
-          select(SUBJID, action, event_datetime, icf_datetime) %>%
+          select(SUBJID, action, event_datetime, icf_datetime, TBNAME) %>%
           mutate(diff_date = as.numeric(difftime(event_datetime, icf_datetime, units = "days")))
 
         if (nrow(df_times) > 0) {
@@ -191,7 +210,7 @@ check_icf_time_deviation <- function(data,
   if (length(time_deviations_list) > 0) {
     time_deviations <- bind_rows(time_deviations_list) %>%
       arrange(SUBJID, action, event_datetime) %>%
-      group_by(SUBJID, action) %>%
+      group_by(SUBJID, action, TBNAME) %>%
       slice(1) %>%
       ungroup()
   } else {
@@ -209,12 +228,13 @@ check_icf_time_deviation <- function(data,
       event_datetime = time_deviations$event_datetime,
       icf_datetime = time_deviations$icf_datetime,
       diff_date = time_deviations$diff_date,
+      TBNAME = time_deviations$TBNAME,
       DESCRIPTION = sprintf(
-        "受试者%s，首次知情同意书在%s签署，但在%s进行了操作%s，早于知情同意时间%s天",
+        "受试者%s，首次知情同意书在%s签署，但在%s进行了操作[%s]，早于知情同意时间%s天",
         time_deviations$SUBJID,
         time_deviations$icf_datetime,
         time_deviations$event_datetime,
-        time_deviations$action,
+        time_deviations$TBNAME,
         as.character(abs(time_deviations$diff_date))
       ),
       stringsAsFactors = FALSE
