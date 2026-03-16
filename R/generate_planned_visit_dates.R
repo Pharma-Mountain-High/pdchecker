@@ -30,7 +30,9 @@
 #' | +Nd | `[planned, planned + N]` |
 #' | -Nd | `[planned - N, planned]` |
 #' @param data List containing all clinical trial datasets
-#' @param visit_schedule_data Data frame, visit schedule data from \code{\link{read_visitcode_file}}.
+#' @param visitcode Data frame, visit schedule data from \code{\link{read_visitcode_file}}
+#'   (default: NULL). If NULL, the function will look for a variable named \code{visitcode}
+#'   in the calling environment. If not found, an error will be raised.
 #'   Must contain columns: VISIT, VISITNUM (numeric), WP, CYCLE, VISITDAY, type, wpvalue (numeric)
 #' @param ex_datasets Character vector, exposure dataset names (default: "EX").
 #'   Multiple datasets can be specified, e.g., c("EX1", "EX2")
@@ -117,23 +119,27 @@
 #'   )
 #' )
 #'
-#' # Generate planned visit dates
+#' # Generate planned visit dates (using default visitcode variable)
+#' visitcode <- visit_schedule
+#' result <- generate_planned_visit_dates(data = data)
+#'
+#' # Or explicitly pass visitcode
 #' result <- generate_planned_visit_dates(
 #'   data = data,
-#'   visit_schedule_data = visit_schedule
+#'   visitcode = visit_schedule
 #' )
 #'
 #' # With custom cycle days (21-day cycle)
 #' result <- generate_planned_visit_dates(
 #'   data = data,
-#'   visit_schedule_data = visit_schedule,
+#'   visitcode = visit_schedule,
 #'   cycle_days = 21
 #' )
 #'
 #' # With multiple exposure datasets
 #' result <- generate_planned_visit_dates(
 #'   data = data,
-#'   visit_schedule_data = visit_schedule,
+#'   visitcode = visit_schedule,
 #'   ex_datasets = c("EX1", "EX2"),
 #'   ex_date_var = c("EXSTDAT1", "EXSTDAT2")
 #' )
@@ -158,7 +164,7 @@
 #' @importFrom magrittr %>%
 #' @export
 generate_planned_visit_dates <- function(data,
-                                         visit_schedule_data,
+                                         visitcode = NULL,
                                          ex_datasets = "EX",
                                          ex_date_var = "EXSTDAT",
                                          ex_end_date_var = NULL,
@@ -180,16 +186,27 @@ generate_planned_visit_dates <- function(data,
     stop("'data' must be a list")
   }
 
-  # Validate visit_schedule_data parameter
-  if (is.null(visit_schedule_data) || !is.data.frame(visit_schedule_data)) {
-    stop("'visit_schedule_data' must be a data frame")
+  # Validate visitcode parameter
+  # If NULL, try to get from caller's environment
+  if (is.null(visitcode)) {
+    if (exists("visitcode", envir = parent.frame(), inherits = TRUE)) {
+      visitcode <- get("visitcode", envir = parent.frame(), inherits = TRUE)
+    } else {
+      stop(
+        "'visitcode' is required. Use read_visitcode_file() to create it, ",
+        "or pass it explicitly via the visitcode parameter."
+      )
+    }
+  }
+  if (!is.data.frame(visitcode)) {
+    stop("'visitcode' must be a data frame")
   }
 
-  # Validate visit_schedule_data required columns
+  # Validate visitcode required columns
   required_visit_cols <- c("VISIT", "VISITNUM", "WP", "CYCLE", "VISITDAY", "type", "wpvalue")
-  missing_visit_cols <- setdiff(required_visit_cols, names(visit_schedule_data))
+  missing_visit_cols <- setdiff(required_visit_cols, names(visitcode))
   if (length(missing_visit_cols) > 0) {
-    stop("visit_schedule_data is missing required columns: ", paste(missing_visit_cols, collapse = ", "))
+    stop("visitcode is missing required columns: ", paste(missing_visit_cols, collapse = ", "))
   }
 
   # Validate character string parameters
@@ -300,13 +317,12 @@ generate_planned_visit_dates <- function(data,
   # ============================================================================
 
   # Use existing visit_category if available (from read_visitcode_file),
-
   # otherwise generate it from CYCLE column
-  if (!"visit_category" %in% names(visit_schedule_data)) {
-    visit_schedule_data$visit_category <- map_chr(visit_schedule_data$CYCLE, match_visit_type)
+  if (!"visit_category" %in% names(visitcode)) {
+    visitcode$visit_category <- map_chr(visitcode$CYCLE, match_visit_type)
   }
 
-  visit_info <- visit_schedule_data %>%
+  visit_info <- visitcode %>%
     mutate(
       visit = VISIT,
       visitnum = VISITNUM,
@@ -317,7 +333,7 @@ generate_planned_visit_dates <- function(data,
       wp_value = as.numeric(wpvalue),
       is_d1 = map2_lgl(VISIT, VISITDAY, is_d1_visit)
     ) %>%
-    arrange(seq_len(nrow(visit_schedule_data)))
+    arrange(seq_len(nrow(visitcode)))
 
   # ============================================================================
   # Get actual visit data
