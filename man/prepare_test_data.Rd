@@ -50,16 +50,19 @@ If NULL or empty, TBNAME column uses test_dataset value (e.g., "LB")}
 
 \item{sv_date_var}{Character string, visit date variable in visit dataset (default: "SVDAT")}
 
-\item{config}{Character string or Data frame, test-visit configuration (default: NULL).
-If string, represents Excel config file path; if data frame, used directly.
-Config must contain: TESTCAT (test category), VISITNUM (comma-separated visit numbers).
-If provided, generates expected visit-test combinations as skeleton,
-showing empty records (TESTDAT=NA) even when original data has no records}
+\item{config}{Data frame, test-visit configuration (required, default: NULL).
+If NULL, the function will look for a variable named \code{testconfig} in the
+calling environment; if not found, an error is raised.
+Must be a data frame, typically created by \code{\link{read_testconfig_file}}
+which expands VISITNUM to one per row.
+Config must contain: TESTCAT (test category), VISITNUM (visit number, one per row).
+Generates expected visit-test combinations as skeleton,
+showing empty records (TESTDAT=NA) even when original data has no records.
+Use \code{\link{read_testconfig_file}} to read config from Excel/CSV files}
 
 \item{config_cat}{Character vector, test categories to filter from config (default: NULL).
 If NULL, uses all TESTCAT in config;
-If provided (e.g., c("CBC", "Chemistry")), only uses those TESTCAT records.
-Note: Only effective when config parameter is provided}
+If provided (e.g., c("CBC", "Chemistry")), only uses those TESTCAT records}
 
 \item{filter_cond}{Character string, subject filter condition (default: NULL).
 multiple conditions separated by semicolons (intersection/AND logic):
@@ -98,15 +101,25 @@ for subsequent missing test checks.
 
 This function is used for data preparation before \code{\link{check_missing_test}}:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Step 1: Prepare test data
-prepared_data <- prepare_test_data(
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Step 1: Read config file once (if using config)
+testconfig <- read_testconfig_file("test_config.xlsx")
+
+# Step 2: Prepare test data (can reuse testconfig multiple times)
+lb_prepared <- prepare_test_data(
   data = list(LB = lb_data, SV = sv_data),
-  test_dataset = "LB"
+  test_dataset = "LB",
+  config = testconfig
 )
 
-# Step 2: Check missing
+eg_prepared <- prepare_test_data(
+  data = list(EG = eg_data, SV = sv_data),
+  test_dataset = "EG",
+  config = testconfig
+)
+
+# Step 3: Check missing
 result <- check_missing_test(
-  data = prepared_data,
+  data = lb_prepared,
   sv_data = sv_data,
   test_var = "LBTEST",
   test = "CBC"

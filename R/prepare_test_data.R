@@ -11,15 +11,25 @@
 #' This function is used for data preparation before \code{\link{check_missing_test}}:
 #'
 #' ```r
-#' # Step 1: Prepare test data
-#' prepared_data <- prepare_test_data(
+#' # Step 1: Read config file once (if using config)
+#' testconfig <- read_testconfig_file("test_config.xlsx")
+#'
+#' # Step 2: Prepare test data (can reuse testconfig multiple times)
+#' lb_prepared <- prepare_test_data(
 #'   data = list(LB = lb_data, SV = sv_data),
-#'   test_dataset = "LB"
+#'   test_dataset = "LB",
+#'   config = testconfig
 #' )
 #'
-#' # Step 2: Check missing
+#' eg_prepared <- prepare_test_data(
+#'   data = list(EG = eg_data, SV = sv_data),
+#'   test_dataset = "EG",
+#'   config = testconfig
+#' )
+#'
+#' # Step 3: Check missing
 #' result <- check_missing_test(
-#'   data = prepared_data,
+#'   data = lb_prepared,
 #'   sv_data = sv_data,
 #'   test_var = "LBTEST",
 #'   test = "CBC"
@@ -65,15 +75,18 @@
 #' @param sv_visit_var Character string, visit name variable in visit dataset (default: "VISIT")
 #' @param sv_visitnum_var Character string, visit number variable in visit dataset (default: "VISITNUM")
 #' @param sv_date_var Character string, visit date variable in visit dataset (default: "SVDAT")
-#' @param config Character string or Data frame, test-visit configuration (default: NULL).
-#'   If string, represents Excel config file path; if data frame, used directly.
-#'   Config must contain: TESTCAT (test category), VISITNUM (comma-separated visit numbers).
-#'   If provided, generates expected visit-test combinations as skeleton,
-#'   showing empty records (TESTDAT=NA) even when original data has no records
+#' @param config Data frame, test-visit configuration (required, default: NULL).
+#'   If NULL, the function will look for a variable named \code{testconfig} in the
+#'   calling environment; if not found, an error is raised.
+#'   Must be a data frame, typically created by \code{\link{read_testconfig_file}}
+#'   which expands VISITNUM to one per row.
+#'   Config must contain: TESTCAT (test category), VISITNUM (visit number, one per row).
+#'   Generates expected visit-test combinations as skeleton,
+#'   showing empty records (TESTDAT=NA) even when original data has no records.
+#'   Use \code{\link{read_testconfig_file}} to read config from Excel/CSV files
 #' @param config_cat Character vector, test categories to filter from config (default: NULL).
 #'   If NULL, uses all TESTCAT in config;
-#'   If provided (e.g., c("CBC", "Chemistry")), only uses those TESTCAT records.
-#'   Note: Only effective when config parameter is provided
+#'   If provided (e.g., c("CBC", "Chemistry")), only uses those TESTCAT records
 #' @param filter_cond Character string, subject filter condition (default: NULL).
 #'   multiple conditions separated by semicolons (intersection/AND logic):
 #'   - "ENROL|ENRYN=='Y'" - Filter enrolled subjects
@@ -203,87 +216,77 @@ prepare_test_data <- function(data,
   # Process config and merge data
   # ============================================================================
 
-  if (!is.null(config)) {
-    # Read config
-    if (is.character(config)) {
-      if (!requireNamespace("readxl", quietly = TRUE)) {
-        stop("Package 'readxl' is required to read Excel config files")
-      }
-      config_df <- readxl::read_excel(config)
-    } else if (is.data.frame(config)) {
-      config_df <- config
+  # Try to get config from caller's environment if NULL
+  if (is.null(config)) {
+    if (exists("testconfig", envir = parent.frame(), inherits = TRUE)) {
+      config <- get("testconfig", envir = parent.frame(), inherits = TRUE)
     } else {
-      stop("'config' must be a character string (file path) or a data frame")
-    }
-
-    # Validate config columns
-    if (!"TESTCAT" %in% names(config_df) || !"VISITNUM" %in% names(config_df)) {
-      stop("Config must contain TESTCAT and VISITNUM columns")
-    }
-
-    # Parse config: expand VISITNUM string to list
-    config_list <- lapply(seq_len(nrow(config_df)), function(i) {
-      testcat <- config_df$TESTCAT[i]
-      visitnum_str <- as.character(config_df$VISITNUM[i])
-      visitnums <- as.numeric(unlist(strsplit(visitnum_str, "[,，]")))
-      visitnums <- visitnums[!is.na(visitnums)]
-
-      data.frame(
-        TESTCAT = testcat,
-        VISITNUM = as.character(visitnums),
-        stringsAsFactors = FALSE
+      stop(
+        "'config' is required. Use read_testconfig_file() to create testconfig, ",
+        "or pass it explicitly via the config parameter."
       )
-    })
-    config_expanded <- bind_rows(config_list)
-
-    # Filter by config_cat
-    if (!is.null(config_cat) && length(config_cat) > 0) {
-      config_expanded <- config_expanded %>%
-        filter(TESTCAT %in% config_cat)
-
-      if (nrow(config_expanded) == 0) {
-        warning("No matching TESTCAT found after filtering by config_cat")
-      }
     }
-
-    # Generate skeleton
-    skeleton <- sv_data_subset %>%
-      inner_join(config_expanded, by = "VISITNUM") %>%
-      select(SUBJID, VISIT, VISITNUM, SVDAT, TESTCAT)
-
-    # Standardize test data columns
-    test_data_standard <- test_data %>%
-      rename(
-        VISIT = !!sym(sv_visit_var),
-        VISITNUM = !!sym(sv_visitnum_var)
-      ) %>%
-      mutate(VISITNUM = as.character(VISITNUM))
-
-    # Handle test_cat_var
-    if (!is.null(test_cat_var) && test_cat_var != "" && test_cat_var %in% names(test_data_standard)) {
-      test_data_standard <- test_data_standard %>%
-        rename(TESTCAT_orig = !!sym(test_cat_var))
-    } else {
-      test_data_standard$TESTCAT_orig <- NA_character_
-    }
-
-    # Merge with skeleton
-    merged_data <- skeleton %>%
-      left_join(
-        test_data_standard,
-        by = c("SUBJID", "VISIT", "VISITNUM", "TESTCAT" = "TESTCAT_orig")
-      )
-  } else {
-    # Merge without config
-    test_data_for_join <- test_data
-    test_data_for_join[[sv_visitnum_var]] <- as.character(test_data_for_join[[sv_visitnum_var]])
-
-    merged_data <- sv_data_subset %>%
-      left_join(
-        test_data_for_join,
-        by = c("SUBJID", "VISIT" = sv_visit_var, "VISITNUM" = sv_visitnum_var)
-      )
   }
+
+  # Validate config type
+  if (!is.data.frame(config)) {
+    stop("'config' must be a data frame. Use read_testconfig_file() to read from Excel/CSV files.")
+  }
+
+  # Validate config columns
+  if (!"TESTCAT" %in% names(config) || !"VISITNUM" %in% names(config)) {
+    stop("Config must contain TESTCAT and VISITNUM columns")
+  }
+
+  # Ensure VISITNUM is character
+  config_expanded <- config
+  config_expanded$VISITNUM <- as.character(config_expanded$VISITNUM)
+
+  # Filter by config_cat
+  if (!is.null(config_cat) && length(config_cat) > 0) {
+    config_expanded <- config_expanded %>%
+      filter(TESTCAT %in% config_cat)
+
+    if (nrow(config_expanded) == 0) {
+      warning("No matching TESTCAT found after filtering by config_cat")
+    }
+  }
+
+  # Generate skeleton
+  # Remove VISIT from config if exists (VISIT should come from sv_data_subset)
+  if ("VISIT" %in% names(config_expanded)) {
+    config_for_join <- config_expanded %>%
+      select(-VISIT)
+  } else {
+    config_for_join <- config_expanded
+  }
+
+  skeleton <- sv_data_subset %>%
+    inner_join(config_for_join, by = "VISITNUM") %>%
+    select(SUBJID, VISIT, VISITNUM, SVDAT, TESTCAT)
+
+  # Standardize test data columns
+  test_data_standard <- test_data %>%
+    rename(
+      VISIT = !!sym(sv_visit_var),
+      VISITNUM = !!sym(sv_visitnum_var)
+    ) %>%
+    mutate(VISITNUM = as.character(VISITNUM))
+
+  # Handle test_cat_var
+  if (!is.null(test_cat_var) && test_cat_var != "" && test_cat_var %in% names(test_data_standard)) {
+    test_data_standard <- test_data_standard %>%
+      rename(TESTCAT_orig = !!sym(test_cat_var))
+  } else {
+    test_data_standard$TESTCAT_orig <- NA_character_
+  }
+
+  # Merge with skeleton
+  merged_data <- skeleton %>%
+    left_join(
+      test_data_standard,
+      by = c("SUBJID", "VISIT", "VISITNUM", "TESTCAT" = "TESTCAT_orig")
+    )
 
   # ============================================================================
   # Create derived columns

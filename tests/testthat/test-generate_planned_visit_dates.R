@@ -65,7 +65,7 @@ test_that("基本功能：正常输入返回数据框", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 检查返回类型
@@ -91,7 +91,7 @@ test_that("基本功能：包含 visit_category 列", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 检查 visit_category 列存在
@@ -116,7 +116,7 @@ test_that("基本功能：计算首次给药日期", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 检查受试者001的首次给药日期（应为2024-01-01）
@@ -135,7 +135,7 @@ test_that("筛选期访视计划日期等于首次给药日期", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 筛选访视的计划日期应等于首次给药日期
@@ -151,7 +151,7 @@ test_that("治疗期D1访视计划日期计算正确", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule,
+    visitcode = test_data$visit_schedule,
     cycle_days = 28
   )
 
@@ -174,7 +174,7 @@ test_that("治疗期非D1访视计划日期计算正确", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # C1D8 应等于 C1D1 + 7天
@@ -194,7 +194,7 @@ test_that("治疗结束访视计划日期计算正确", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 检查EOT访视日期
@@ -209,7 +209,7 @@ test_that("窗口期计算：± 类型", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 筛选访视窗口期为 ±3d
@@ -227,7 +227,7 @@ test_that("窗口期计算：+ 类型", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 治疗结束访视窗口期为 +7d
@@ -246,7 +246,7 @@ test_that("访视状态：已完成访视标记为completed", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # C1D1有实际访视记录，应标记为completed
@@ -260,7 +260,7 @@ test_that("访视状态：未完成访视标记为missing", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # C1D15没有实际访视记录，应标记为missing
@@ -283,7 +283,7 @@ test_that("多数据集支持：多个EX数据集使用相同日期列", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule,
+    visitcode = test_data$visit_schedule,
     ex_datasets = c("EX", "EX1"),
     ex_date_var = "EXSTDAT" # 单个值，应用于所有数据集
   )
@@ -305,7 +305,7 @@ test_that("多数据集支持：多个EX数据集使用不同日期列", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule,
+    visitcode = test_data$visit_schedule,
     ex_datasets = c("EX", "EX1"),
     ex_date_var = c("EXSTDAT", "STDAT") # 一一对应
   )
@@ -317,7 +317,7 @@ test_that("多数据集支持：多个EX数据集使用不同日期列", {
 
 # ===== 参数验证测试 =====
 
-test_that("参数验证：visit_schedule_data缺少必要列时报错", {
+test_that("参数验证：visitcode缺少必要列时报错", {
   test_data <- setup_test_data()
 
   # 删除必要的列
@@ -326,9 +326,9 @@ test_that("参数验证：visit_schedule_data缺少必要列时报错", {
   expect_error(
     generate_planned_visit_dates(
       data = test_data$data,
-      visit_schedule_data = incomplete_schedule
+      visitcode = incomplete_schedule
     ),
-    "visit_schedule_data is missing required columns"
+    "visitcode is missing required columns"
   )
 })
 
@@ -338,7 +338,7 @@ test_that("参数验证：ex_date_var长度不匹配时报错", {
   expect_error(
     generate_planned_visit_dates(
       data = test_data$data,
-      visit_schedule_data = test_data$visit_schedule,
+      visitcode = test_data$visit_schedule,
       ex_datasets = c("EX", "EX1"),
       ex_date_var = c("EXSTDAT", "STDAT", "EXTRA") # 长度不匹配
     ),
@@ -352,7 +352,7 @@ test_that("参数验证：访视数据集不存在时报错", {
   expect_error(
     generate_planned_visit_dates(
       data = test_data$data,
-      visit_schedule_data = test_data$visit_schedule,
+      visitcode = test_data$visit_schedule,
       sv_dataset = "NONEXISTENT"
     ),
     "Missing visit dataset"
@@ -368,7 +368,7 @@ test_that("参数验证：访视数据集缺少必要列时报错", {
   expect_error(
     generate_planned_visit_dates(
       data = test_data$data,
-      visit_schedule_data = test_data$visit_schedule
+      visitcode = test_data$visit_schedule
     ),
     "is missing required columns"
   )
@@ -393,7 +393,7 @@ test_that("边界情况：受试者没有用药记录", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 该受试者的first_dose_date应为NA
@@ -409,7 +409,7 @@ test_that("边界情况：自定义周期天数", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule,
+    visitcode = test_data$visit_schedule,
     cycle_days = 21 # 21天周期
   )
 
@@ -431,7 +431,7 @@ test_that("边界情况：自定义访视数据集列名", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule,
+    visitcode = test_data$visit_schedule,
     sv_visit_var = "VISITNAME",
     sv_visitnum_var = "VISITCODE",
     sv_date_var = "VISITDATE"
@@ -450,7 +450,7 @@ test_that("边界情况：缺少EOT数据集", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # EOT相关访视的计划日期应为NA
@@ -487,7 +487,7 @@ test_that("边界情况：日期列包含SAS缺失值", {
   expect_no_error({
     result <- generate_planned_visit_dates(
       data = test_data$data,
-      visit_schedule_data = test_data$visit_schedule
+      visitcode = test_data$visit_schedule
     )
   })
 
@@ -503,7 +503,7 @@ test_that("返回结果包含所有访视", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 每个受试者应该有完整的访视记录
@@ -519,7 +519,7 @@ test_that("返回结果按受试者和日期排序", {
 
   result <- generate_planned_visit_dates(
     data = test_data$data,
-    visit_schedule_data = test_data$visit_schedule
+    visitcode = test_data$visit_schedule
   )
 
   # 检查是否按SUBJID排序
@@ -569,7 +569,7 @@ test_that("D1计划日期：C2D1基于C1D1实际日期计算", {
 
   result <- generate_planned_visit_dates(
     data = data_list,
-    visit_schedule_data = visit_schedule,
+    visitcode = visit_schedule,
     cycle_days = 28
   )
 
@@ -616,7 +616,7 @@ test_that("非D1访视：基于当前周期D1实际日期计算", {
 
   result <- generate_planned_visit_dates(
     data = data_list,
-    visit_schedule_data = visit_schedule
+    visitcode = visit_schedule
   )
 
   # C1D8应基于C1D1实际日期(2024-01-05) + 7天
@@ -667,7 +667,7 @@ test_that("随访访视：基于EOT日期计算", {
 
   result <- generate_planned_visit_dates(
     data = data_list,
-    visit_schedule_data = visit_schedule
+    visitcode = visit_schedule
   )
 
   # 随访1应为EOT + 30天
@@ -708,7 +708,7 @@ test_that("随访访视：基于末次给药日期计算（LD+N格式）", {
 
   result <- generate_planned_visit_dates(
     data = data_list,
-    visit_schedule_data = visit_schedule
+    visitcode = visit_schedule
   )
 
   # 安全性随访应为末次给药日期(2024-02-01) + 30天
@@ -755,7 +755,7 @@ test_that("EOT访视：使用EOT日期", {
 
   result <- generate_planned_visit_dates(
     data = data_list,
-    visit_schedule_data = visit_schedule
+    visitcode = visit_schedule
   )
 
   # 治疗结束访视计划日期应为EOT日期
@@ -797,7 +797,7 @@ test_that("EOT访视：使用EOS日期", {
 
   result <- generate_planned_visit_dates(
     data = data_list,
-    visit_schedule_data = visit_schedule
+    visitcode = visit_schedule
   )
 
   # 研究结束访视计划日期应为EOS日期
@@ -839,7 +839,7 @@ test_that("窗口期计算：- 类型（负向窗口）", {
 
   result <- generate_planned_visit_dates(
     data = data_list,
-    visit_schedule_data = visit_schedule
+    visitcode = visit_schedule
   )
 
   c1d1 <- result[result$VISIT == "C1D1", ]
@@ -889,7 +889,7 @@ test_that("处理非数字visitday不产生警告", {
   expect_no_warning({
     result <- generate_planned_visit_dates(
       data = data_list,
-      visit_schedule_data = visit_schedule
+      visitcode = visit_schedule
     )
   })
 
@@ -930,7 +930,7 @@ test_that("多周期场景：C3D1基于C2D1实际日期计算", {
 
   result <- generate_planned_visit_dates(
     data = data_list,
-    visit_schedule_data = visit_schedule,
+    visitcode = visit_schedule,
     cycle_days = 28
   )
 
