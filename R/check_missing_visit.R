@@ -11,11 +11,9 @@
 #' This function is designed to work with \code{generate_planned_visit_dates}:
 #'
 #' ```r
-#' # Step 1: Generate planned visit dates
-#' planned_dates <- generate_planned_visit_dates(
-#'   data = study_data,
-#'   visit_schedule_data = visit_codes
-#' )
+#' # Step 1: Read visit schedule and generate planned visit dates
+#' visitcode <- read_visitcode_file("visit_schedule.xlsx")
+#' planned_dates <- generate_planned_visit_dates(data = study_data)
 #'
 #' # Step 2: Check missing visits
 #' result <- check_missing_visit(
@@ -76,13 +74,10 @@
 #' \dontrun{
 #' # Load data and visit schedule
 #' data <- read_raw_data("path/to/data")
-#' visit_codes <- read_visitcode_file("path/to/visitcode.xlsx")
+#' visitcode <- read_visitcode_file("path/to/visitcode.xlsx")
 #'
-#' # Generate planned visit dates
-#' planned_dates <- generate_planned_visit_dates(
-#'   data = data,
-#'   visit_schedule_data = visit_codes
-#' )
+#' # Generate planned visit dates (uses visitcode variable automatically)
+#' planned_dates <- generate_planned_visit_dates(data = data)
 #'
 #' # Check missing visits with default cutoff (current date)
 #' result <- check_missing_visit(planned_dates)

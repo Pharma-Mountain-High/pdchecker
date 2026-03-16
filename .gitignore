@@ -7,3 +7,5 @@ CICD-GUIDE.md
 
 # Node.js dependencies (used by pre-commit hooks like prettier)
 node_modules/
+
+vignettes/

@@ -50,11 +50,9 @@ and checks if actual visit dates are within the window range (wp_start to wp_end
 
 This function is designed to work with \code{generate_planned_visit_dates}:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Step 1: Generate planned visit dates
-planned_dates <- generate_planned_visit_dates(
-  data = study_data,
-  visit_schedule_data = visit_codes
-)
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{# Step 1: Read visit schedule and generate planned visit dates
+visitcode <- read_visitcode_file("visit_schedule.xlsx")
+planned_dates <- generate_planned_visit_dates(data = study_data)
 
 # Step 2: Check visit window deviations
 result <- check_visit_window(
@@ -86,13 +84,10 @@ Windows are calculated by \code{generate_planned_visit_dates} based on visit sch
 \dontrun{
 # Load data and visit schedule
 data <- read_raw_data("path/to/data")
-visit_codes <- read_visitcode_file("path/to/visitcode.xlsx")
+visitcode <- read_visitcode_file("path/to/visitcode.xlsx")
 
-# Generate planned visit dates
-planned_dates <- generate_planned_visit_dates(
-  data = data,
-  visit_schedule_data = visit_codes
-)
+# Generate planned visit dates (uses visitcode variable automatically)
+planned_dates <- generate_planned_visit_dates(data = data)
 
 # Check visit window deviations
 result <- check_visit_window(planned_dates)

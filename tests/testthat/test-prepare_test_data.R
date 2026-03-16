@@ -4,6 +4,17 @@
 # Create test data
 # =============================================================================
 
+# Create default config for tests
+# Config defines which TESTCAT should be checked at which VISITNUM
+# Each row is one TESTCAT-VISITNUM combination
+create_default_config <- function() {
+  data.frame(
+    TESTCAT = c("CBC", "CBC", "CBC", "Chemistry", "Chemistry", "Chemistry"),
+    VISITNUM = c("1", "2", "3", "1", "2", "3"),
+    stringsAsFactors = FALSE
+  )
+}
+
 create_test_data <- function() {
   # Visit data
   sv_data <- data.frame(
@@ -74,6 +85,7 @@ create_test_data <- function() {
 
 test_that("prepare_test_data() basic functionality works", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -82,7 +94,8 @@ test_that("prepare_test_data() basic functionality works", {
     test_yn_var = "YN",
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
-    test_de_var = "LBTEST"
+    test_de_var = "LBTEST",
+    config = config_df
   )
 
   # Check returned data frame is not empty
@@ -107,34 +120,7 @@ test_that("prepare_test_data() basic functionality works", {
 
 test_that("prepare_test_data() correctly merges visit and test data", {
   test_data <- create_test_data()
-
-  result <- prepare_test_data(
-    data = test_data,
-    test_dataset = "LB",
-    test_date_var = "LBDAT",
-    test_yn_var = "YN",
-    test_result_var = "ORRES",
-    test_cat_var = "LBCAT",
-    test_de_var = "LBTEST"
-  )
-
-  # Check row count equals visit records (left_join based on visits)
-  expect_equal(nrow(result), nrow(test_data$SV))
-
-  # Check all visit records are in result
-  expect_setequal(
-    paste(result$SUBJID, result$VISIT),
-    paste(test_data$SV$SUBJID, test_data$SV$VISIT)
-  )
-})
-
-
-# =============================================================================
-# Test filter_cond parameter (single dataset filter)
-# =============================================================================
-
-test_that("filter_cond single dataset filter: filter male subjects", {
-  test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -144,6 +130,40 @@ test_that("filter_cond single dataset filter: filter male subjects", {
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df
+  )
+
+  # With config, row count = subjects × visits × TESTCAT combinations
+  # 3 subjects × 3 visits × 2 TESTCAT = 18 rows
+  n_subjects <- length(unique(test_data$SV$SUBJID))
+  n_visits <- length(unique(config_df$VISITNUM))
+  n_testcat <- length(unique(config_df$TESTCAT))
+  expected_rows <- n_subjects * n_visits * n_testcat
+  expect_equal(nrow(result), expected_rows)
+
+  # Check all subjects and visits are represented
+  expect_setequal(unique(result$SUBJID), unique(test_data$SV$SUBJID))
+  expect_setequal(unique(result$VISITNUM), unique(config_df$VISITNUM))
+})
+
+
+# =============================================================================
+# Test filter_cond parameter (single dataset filter)
+# =============================================================================
+
+test_that("filter_cond single dataset filter: filter male subjects", {
+  test_data <- create_test_data()
+  config_df <- create_default_config()
+
+  result <- prepare_test_data(
+    data = test_data,
+    test_dataset = "LB",
+    test_date_var = "LBDAT",
+    test_yn_var = "YN",
+    test_result_var = "ORRES",
+    test_cat_var = "LBCAT",
+    test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = "SUBJECT|SEX=='M'"
   )
 
@@ -156,6 +176,7 @@ test_that("filter_cond single dataset filter: filter male subjects", {
 
 test_that("filter_cond single dataset filter: filter subjects with age > 30", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -165,6 +186,7 @@ test_that("filter_cond single dataset filter: filter subjects with age > 30", {
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = "SUBJECT|AGE>30"
   )
 
@@ -176,6 +198,7 @@ test_that("filter_cond single dataset filter: filter subjects with age > 30", {
 
 test_that("filter_cond single dataset filter: combined conditions", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -185,6 +208,7 @@ test_that("filter_cond single dataset filter: combined conditions", {
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = "SUBJECT|SEX=='M' & AGE>=25 & AGE<=30"
   )
 
@@ -200,6 +224,7 @@ test_that("filter_cond single dataset filter: combined conditions", {
 
 test_that("filter_cond multiple dataset filter: intersection of two conditions", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -209,6 +234,7 @@ test_that("filter_cond multiple dataset filter: intersection of two conditions",
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = "SUBJECT|SEX=='M';DM|AGE>=30"
   )
 
@@ -222,6 +248,7 @@ test_that("filter_cond multiple dataset filter: intersection of two conditions",
 
 test_that("filter_cond multiple dataset filter: intersection of three conditions", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -231,6 +258,7 @@ test_that("filter_cond multiple dataset filter: intersection of three conditions
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = "SUBJECT|SEX=='M';DM|AGE>=25;DM|BMI<26"
   )
 
@@ -245,6 +273,7 @@ test_that("filter_cond multiple dataset filter: intersection of three conditions
 
 test_that("filter_cond multiple dataset filter: conditions with whitespace", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -254,6 +283,7 @@ test_that("filter_cond multiple dataset filter: conditions with whitespace", {
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = " SUBJECT | SEX=='M' ; DM | AGE>=30 "
   )
 
@@ -268,6 +298,7 @@ test_that("filter_cond multiple dataset filter: conditions with whitespace", {
 
 test_that("filter_cond can be used for enrollment filtering", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -277,6 +308,7 @@ test_that("filter_cond can be used for enrollment filtering", {
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = "ENROL|ENRYN=='Yes'"
   )
 
@@ -289,6 +321,7 @@ test_that("filter_cond can be used for enrollment filtering", {
 
 test_that("filter_cond enrollment and custom filter combined", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -298,6 +331,7 @@ test_that("filter_cond enrollment and custom filter combined", {
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = "ENROL|ENRYN=='Yes';SUBJECT|SEX=='M'"
   )
 
@@ -318,8 +352,8 @@ test_that("config generates visit-test skeleton", {
 
   # Create config data frame
   config_df <- data.frame(
-    TESTCAT = c("CBC", "Chemistry"),
-    VISITNUM = c("1,2,3", "1,2"),
+    TESTCAT = c("CBC", "CBC", "CBC", "Chemistry", "Chemistry"),
+    VISITNUM = c("1", "2", "3", "1", "2"),
     stringsAsFactors = FALSE
   )
 
@@ -348,8 +382,8 @@ test_that("config_cat parameter filters specific test categories", {
   test_data <- create_test_data()
 
   config_df <- data.frame(
-    TESTCAT = c("CBC", "Chemistry", "Urinalysis"),
-    VISITNUM = c("1,2", "1,2", "1,2"),
+    TESTCAT = c("CBC", "CBC", "Chemistry", "Chemistry", "Urinalysis", "Urinalysis"),
+    VISITNUM = c("1", "2", "1", "2", "1", "2"),
     stringsAsFactors = FALSE
   )
 
@@ -378,12 +412,14 @@ test_that("config_cat parameter filters specific test categories", {
 
 test_that("filter_cond format error throws error", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   # Format error: missing | separator
   expect_error(
     prepare_test_data(
       data = test_data,
       test_dataset = "LB",
+      config = config_df,
       filter_cond = "SUBJECT SEX=='M'" # Missing |
     ),
     "filter_cond format error"
@@ -393,11 +429,13 @@ test_that("filter_cond format error throws error", {
 
 test_that("filter_cond non-existent dataset throws error", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   expect_error(
     prepare_test_data(
       data = test_data,
       test_dataset = "LB",
+      config = config_df,
       filter_cond = "NONEXIST|SEX=='M'" # Dataset doesn't exist
     ),
     "Dataset specified in filter_cond does not exist"
@@ -407,6 +445,7 @@ test_that("filter_cond non-existent dataset throws error", {
 
 test_that("filter_cond dataset missing SUBJID throws error", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   # Create a dataset without SUBJID
   test_data$NOSUBJID <- data.frame(
@@ -419,6 +458,7 @@ test_that("filter_cond dataset missing SUBJID throws error", {
     prepare_test_data(
       data = test_data,
       test_dataset = "LB",
+      config = config_df,
       filter_cond = "NOSUBJID|VALUE>1"
     ),
     "is missing SUBJID column"
@@ -428,11 +468,13 @@ test_that("filter_cond dataset missing SUBJID throws error", {
 
 test_that("filter_cond syntax error throws error", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   expect_error(
     prepare_test_data(
       data = test_data,
       test_dataset = "LB",
+      config = config_df,
       filter_cond = "SUBJECT|NONEXIST_COL=='M'" # Column doesn't exist
     ),
     "failed"
@@ -442,10 +484,12 @@ test_that("filter_cond syntax error throws error", {
 
 test_that("missing required parameter throws error", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   expect_error(
     prepare_test_data(
-      data = test_data
+      data = test_data,
+      config = config_df
       # Missing test_dataset
     ),
     "'test_dataset' parameter is required"
@@ -455,11 +499,13 @@ test_that("missing required parameter throws error", {
 
 test_that("non-existent test_dataset throws error", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   expect_error(
     prepare_test_data(
       data = test_data,
-      test_dataset = "NONEXIST"
+      test_dataset = "NONEXIST",
+      config = config_df
     ),
     "Test dataset not found in data"
   )
@@ -468,14 +514,30 @@ test_that("non-existent test_dataset throws error", {
 
 test_that("non-existent visit dataset throws error", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
   test_data$SV <- NULL # Remove visit dataset
 
   expect_error(
     prepare_test_data(
       data = test_data,
-      test_dataset = "LB"
+      test_dataset = "LB",
+      config = config_df
     ),
     "Visit dataset not found in data"
+  )
+})
+
+
+test_that("missing config throws error", {
+  test_data <- create_test_data()
+
+  # config is required, should error if not provided and testconfig not in env
+  expect_error(
+    prepare_test_data(
+      data = test_data,
+      test_dataset = "LB"
+    ),
+    "'config' is required"
   )
 })
 
@@ -486,6 +548,7 @@ test_that("non-existent visit dataset throws error", {
 
 test_that("filter_cond NULL does not filter", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -495,6 +558,7 @@ test_that("filter_cond NULL does not filter", {
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = NULL
   )
 
@@ -506,6 +570,7 @@ test_that("filter_cond NULL does not filter", {
 
 test_that("filter_cond empty string does not filter", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -515,6 +580,7 @@ test_that("filter_cond empty string does not filter", {
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     filter_cond = ""
   )
 
@@ -526,6 +592,7 @@ test_that("filter_cond empty string does not filter", {
 
 test_that("filter_cond matching no subjects gives warning", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   expect_warning(
     prepare_test_data(
@@ -536,6 +603,7 @@ test_that("filter_cond matching no subjects gives warning", {
       test_result_var = "ORRES",
       test_cat_var = "LBCAT",
       test_de_var = "LBTEST",
+      config = config_df,
       # No subject has age > 100
       filter_cond = "SUBJECT|AGE>100"
     ),
@@ -546,6 +614,7 @@ test_that("filter_cond matching no subjects gives warning", {
 
 test_that("filter_cond intersection empty gives warning", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   expect_warning(
     prepare_test_data(
@@ -556,6 +625,7 @@ test_that("filter_cond intersection empty gives warning", {
       test_result_var = "ORRES",
       test_cat_var = "LBCAT",
       test_de_var = "LBTEST",
+      config = config_df,
       filter_cond = "SUBJECT|SEX=='M';SUBJECT|SEX=='F'" # Intersection is empty
     ),
     "Intersection of all filter conditions is empty"
@@ -569,6 +639,7 @@ test_that("filter_cond intersection empty gives warning", {
 
 test_that("TBNAME is correctly mapped", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -578,6 +649,7 @@ test_that("TBNAME is correctly mapped", {
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
     test_de_var = "LBTEST",
+    config = config_df,
     tb_name_var = NULL # Use test_dataset as TBNAME
   )
 
@@ -587,6 +659,7 @@ test_that("TBNAME is correctly mapped", {
 
 test_that("TESTCAT is correctly mapped", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -595,7 +668,8 @@ test_that("TESTCAT is correctly mapped", {
     test_yn_var = "YN",
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
-    test_de_var = "LBTEST"
+    test_de_var = "LBTEST",
+    config = config_df
   )
 
   # Check TESTCAT column is correctly created
@@ -607,6 +681,7 @@ test_that("TESTCAT is correctly mapped", {
 
 test_that("TESTDE is correctly mapped", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -615,7 +690,8 @@ test_that("TESTDE is correctly mapped", {
     test_yn_var = "YN",
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
-    test_de_var = "LBTEST"
+    test_de_var = "LBTEST",
+    config = config_df
   )
 
   # Check TESTDE column is correctly created
@@ -627,6 +703,7 @@ test_that("TESTDE is correctly mapped", {
 
 test_that("column order is correct", {
   test_data <- create_test_data()
+  config_df <- create_default_config()
 
   result <- prepare_test_data(
     data = test_data,
@@ -635,7 +712,8 @@ test_that("column order is correct", {
     test_yn_var = "YN",
     test_result_var = "ORRES",
     test_cat_var = "LBCAT",
-    test_de_var = "LBTEST"
+    test_de_var = "LBTEST",
+    config = config_df
   )
 
   # Check column order: key columns first, then derived columns

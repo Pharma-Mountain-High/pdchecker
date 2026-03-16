@@ -6,7 +6,7 @@
 \usage{
 generate_planned_visit_dates(
   data,
-  visit_schedule_data,
+  visitcode = NULL,
   ex_datasets = "EX",
   ex_date_var = "EXSTDAT",
   ex_end_date_var = NULL,
@@ -24,7 +24,9 @@ generate_planned_visit_dates(
 \arguments{
 \item{data}{List containing all clinical trial datasets}
 
-\item{visit_schedule_data}{Data frame, visit schedule data from \code{\link{read_visitcode_file}}.
+\item{visitcode}{Data frame, visit schedule data from \code{\link{read_visitcode_file}}
+(default: NULL). If NULL, the function will look for a variable named \code{visitcode}
+in the calling environment. If not found, an error will be raised.
 Must contain columns: VISIT, VISITNUM (numeric), WP, CYCLE, VISITDAY, type, wpvalue (numeric)}
 
 \item{ex_datasets}{Character vector, exposure dataset names (default: "EX").
@@ -160,23 +162,27 @@ data <- list(
   )
 )
 
-# Generate planned visit dates
+# Generate planned visit dates (using default visitcode variable)
+visitcode <- visit_schedule
+result <- generate_planned_visit_dates(data = data)
+
+# Or explicitly pass visitcode
 result <- generate_planned_visit_dates(
   data = data,
-  visit_schedule_data = visit_schedule
+  visitcode = visit_schedule
 )
 
 # With custom cycle days (21-day cycle)
 result <- generate_planned_visit_dates(
   data = data,
-  visit_schedule_data = visit_schedule,
+  visitcode = visit_schedule,
   cycle_days = 21
 )
 
 # With multiple exposure datasets
 result <- generate_planned_visit_dates(
   data = data,
-  visit_schedule_data = visit_schedule,
+  visitcode = visit_schedule,
   ex_datasets = c("EX1", "EX2"),
   ex_date_var = c("EXSTDAT1", "EXSTDAT2")
 )

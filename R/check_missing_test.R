@@ -10,7 +10,10 @@
 #' It is recommended to first prepare data using \code{\link{prepare_test_data}}:
 #'
 #' ```r
-#' # Step 1: Prepare test data
+#' # Step 1: Read config file (required)
+#' testconfig <- read_testconfig_file("config/test_config.xlsx")
+#'
+#' # Step 2: Prepare test data (uses testconfig automatically)
 #' prepared_data <- prepare_test_data(
 #'   data = list(LB = lb_data, SV = sv_data),
 #'   test_dataset = "LB",
@@ -18,7 +21,7 @@
 #'   test_result_var = "ORRES"
 #' )
 #'
-#' # Step 2: Check all tests (including overall missing and individual missing)
+#' # Step 3: Check all tests (including overall missing and individual missing)
 #' result <- check_missing_test(data = prepared_data)
 #'
 #' # Or check specific tests (e.g., RBC count)
@@ -33,14 +36,6 @@
 #'   data = prepared_data,
 #'   missing_de = FALSE
 #' )
-#'
-#' # If limiting check scope, use config file in prepare_test_data
-#' prepared_data_with_config <- prepare_test_data(
-#'   data = list(LB = lb_data, SV = sv_data),
-#'   test_dataset = "LB",
-#'   config = "config/test_config.xlsx"
-#' )
-#' result <- check_missing_test(data = prepared_data_with_config)
 #' ```
 #'
 #' ## Missing Test Logic
