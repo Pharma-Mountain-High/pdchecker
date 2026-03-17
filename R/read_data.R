@@ -207,7 +207,7 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
   }
 
   # Report any failed reads
-  failed_files <- names(which(sapply(data_list, is.null)))
+  failed_files <- names(which(vapply(data_list, is.null, logical(1))))
   if (length(failed_files) > 0) {
     warning(
       "Failed to read the following files:\n",
@@ -216,7 +216,8 @@ read_raw_data <- function(folder, iwrs_file = NULL, format_file = NULL) {
   }
 
   # Print empty datasets
-  empty_data <- names(which(sapply(data_list[!names(data_list) %in% failed_files], function(df) nrow(df) == 0)))
+  non_failed <- data_list[!names(data_list) %in% failed_files]
+  empty_data <- names(which(vapply(non_failed, function(df) nrow(df) == 0, logical(1))))
   if (length(empty_data) > 0) {
     warning(
       "The following datasets are empty:\n",
@@ -400,7 +401,7 @@ read_raw_data_with_formats <- function(data_dir, catalog_file, iwrs_file = NULL,
   }
 
   # Report any failed reads
-  failed_files <- names(which(sapply(data_list, is.null)))
+  failed_files <- names(which(vapply(data_list, is.null, logical(1))))
   if (length(failed_files) > 0) {
     warning(
       "Failed to read the following files:\n",
@@ -409,7 +410,8 @@ read_raw_data_with_formats <- function(data_dir, catalog_file, iwrs_file = NULL,
   }
 
   # Print empty datasets
-  empty_data <- names(which(sapply(data_list[!names(data_list) %in% failed_files], function(df) nrow(df) == 0)))
+  non_failed <- data_list[!names(data_list) %in% failed_files]
+  empty_data <- names(which(vapply(non_failed, function(df) nrow(df) == 0, logical(1))))
   if (length(empty_data) > 0) {
     warning(
       "The following datasets are empty:\n",
