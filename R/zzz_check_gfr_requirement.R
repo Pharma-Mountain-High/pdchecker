@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select mutate
-#' @export
+#' @noRd
 check_gfr_requirement <- function(data) {
   # Initialize results
   results <- list(
@@ -50,7 +50,7 @@ check_gfr_requirement <- function(data) {
 #' Print method for eGFR requirement check results
 #' @param x Object of class gfr_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.gfr_check <- function(x, ...) {
   cat("3.1不符合入选标准却入组\n")
   cat("====================================\n")

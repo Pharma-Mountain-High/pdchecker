@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select mutate case_when left_join pull
-#' @export
+#' @noRd
 check_ascvd_ldl_random <- function(data) {
   # Initialize results
   results <- list(
@@ -80,7 +80,7 @@ check_ascvd_ldl_random <- function(data) {
 #' Print method for ASCVD and LDL-C check results
 #' @param x Object of class ascvd_ldl_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.ascvd_ldl_check <- function(x, ...) {
   cat("5.3不符合随机标准却随机\n")
   cat("====================================\n")

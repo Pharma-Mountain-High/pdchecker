@@ -4,7 +4,7 @@
 #' @param dataset_name Name of the dataset (e.g., "LB", "VS", "HT")
 #' @return List containing check results and descriptions
 #' @importFrom dplyr slice_tail case_when group_by summarise ungroup semi_join bind_rows first sym
-#' @export
+#' @noRd
 check_test_window <- function(test_data, dataset_name) {
   # Initialize results
   results <- list(
@@ -130,7 +130,7 @@ check_test_window <- function(test_data, dataset_name) {
 #' Print method for missing test check results
 #' @param x Object of class missing_test_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.test_window_check <- function(x, ...) {
   cat("8.1 未做或缺失；收集记录不符合方案规定\n")
   cat("====================================\n")

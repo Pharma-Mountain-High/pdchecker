@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter mutate left_join select right_join rowwise
-#' @export
+#' @noRd
 check_random_deviation <- function(data) {
   # Initialize results
   results <- list(
@@ -76,7 +76,7 @@ check_random_deviation <- function(data) {
 #' Print method for randomization deviation check results
 #' @param x Object of class rand_deviation
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.rand_deviation <- function(x, ...) {
   cat("1.1 随机分层因素出现错误\n")
   cat("====================================\n")

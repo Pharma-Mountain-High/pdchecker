@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select mutate case_when left_join if_else bind_rows
-#' @export
+#' @noRd
 check_statin_random <- function(data) {
   # Initialize results
   results <- list(
@@ -148,7 +148,7 @@ check_statin_random <- function(data) {
 #' Print method for statin therapy check results
 #' @param x Object of class statin_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.statin_check <- function(x, ...) {
   cat("5.3不符合随机标准却随机\n")
   cat("====================================\n")

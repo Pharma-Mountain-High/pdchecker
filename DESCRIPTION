@@ -1,23 +1,31 @@
 Package: pdchecker
-Title: What the Package Does (One Line, Title Case)
+Title: Protocol Deviation Checker for Clinical Trials
 Version: 0.0.0.9000
 Authors@R:
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+    person("Qinghuan", "Wang", , "qinghuan.wang@qilu-pharma.com", role = c("aut", "cre"))
+Description: Automates the detection of protocol deviations in clinical
+    trials. Provides tools to read SAS and Excel datasets, parse visit
+    schedules with window periods, generate planned visit dates per
+    subject, and perform checks on informed consent timing, visit
+    compliance, and laboratory test completeness. Results can be exported
+    as Markdown, HTML, or Excel reports.
 License: Apache License (>= 2)
+URL: https://github.com/Pharma-Mountain-High/pdchecker
+BugReports: https://github.com/Pharma-Mountain-High/pdchecker/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
+Config/testthat/edition: 3
 Imports:
     dplyr,
     haven,
     magrittr,
+    openxlsx,
+    purrr,
     readr,
     readxl,
     rlang,
-    tibble,
-    openxlsx,
-    purrr
+    tibble
 Suggests:
     knitr,
     mockery,

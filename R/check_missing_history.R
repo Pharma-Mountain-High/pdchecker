@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List of data frames with missing history information
 #' @importFrom dplyr filter select mutate left_join arrange bind_rows
-#' @export
+#' @noRd
 check_missing_history <- function(data) {
   # Initialize results
   results <- list(
@@ -76,7 +76,7 @@ check_missing_history <- function(data) {
 #' @param x Object of class missing_history_check
 #' @param ... Additional arguments
 #' @return Invisible x
-#' @export
+#' @noRd
 print.missing_history_check <- function(x, ...) {
   cat("5.2 个人史记录不完整\n")
   cat("====================================\n")
