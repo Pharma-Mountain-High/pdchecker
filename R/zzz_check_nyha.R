@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select mutate
-#' @export
+#' @noRd
 check_nyha_requirement <- function(data) {
   # Initialize results
   results <- list(
@@ -53,7 +53,7 @@ check_nyha_requirement <- function(data) {
 #' Print method for NYHA requirement check results
 #' @param x Object of class nyha_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.nyha_check <- function(x, ...) {
   cat("4.1 符合排除标准存在以下心血管疾病或治疗史却入组\n")
   cat("====================================\n")

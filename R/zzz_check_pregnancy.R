@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select mutate
-#' @export
+#' @noRd
 check_pregnancy_exclusion <- function(data) {
   # Initialize results
   results <- list(
@@ -58,7 +58,7 @@ check_pregnancy_exclusion <- function(data) {
 #' Print method for pregnancy test check results
 #' @param x Object of class pregnancy_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.pregnancy_check <- function(x, ...) {
   cat("4.4符合排除标准实验室检查要求却入组\n")
   cat("====================================\n")

@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select mutate case_when group_by summarise ungroup rename
-#' @export
+#' @noRd
 check_medication_window <- function(data) {
   # Initialize results
   results <- list(
@@ -88,7 +88,7 @@ check_medication_window <- function(data) {
 #' Print method for medication window check results
 #' @param x Object of class medication_window_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.medication_window_check <- function(x, ...) {
   cat("6.3 受试者未按时用药\n")
   cat("====================================\n")

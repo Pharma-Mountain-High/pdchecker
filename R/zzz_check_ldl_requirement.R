@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select left_join mutate case_when row_number n
-#' @export
+#' @noRd
 check_ldl_requirement <- function(data) {
   # Initialize results
   results <- list(
@@ -92,7 +92,7 @@ check_ldl_requirement <- function(data) {
 #' Print method for LDL-C requirement check results
 #' @param x Object of class ldl_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.ldl_check <- function(x, ...) {
   cat("3.1不符合入选标准却入组\n")
   cat("====================================\n")

@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select mutate case_when group_by summarise ungroup left_join n_distinct rowwise
-#' @export
+#' @noRd
 check_dose_site_requirement <- function(data) {
   # Initialize results
   results <- list(
@@ -72,7 +72,7 @@ check_dose_site_requirement <- function(data) {
 #' Print method for dose and site check results
 #' @param x Object of class dose_site_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.dose_site_check <- function(x, ...) {
   cat("6.4 药物用量出现错误\n")
   cat("====================================\n")

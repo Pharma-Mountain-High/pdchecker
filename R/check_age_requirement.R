@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select
-#' @export
+#' @noRd
 check_age_requirement <- function(data) {
   # Initialize results
   results <- list(
@@ -36,7 +36,7 @@ check_age_requirement <- function(data) {
 #' Print method for age requirement check results
 #' @param x Object of class age_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.age_check <- function(x, ...) {
   cat("3.1不符合入选标准却入组\n")
   cat("====================================\n")

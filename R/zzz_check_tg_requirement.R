@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @return List containing check results and descriptions
 #' @importFrom dplyr filter select mutate if_else
-#' @export
+#' @noRd
 check_tg_requirement <- function(data) {
   # Initialize results
   results <- list(
@@ -56,7 +56,7 @@ check_tg_requirement <- function(data) {
 #' Print method for TG requirement check results
 #' @param x Object of class tg_check
 #' @param ... Additional arguments
-#' @export
+#' @noRd
 print.tg_check <- function(x, ...) {
   cat("3.1不符合入选标准却入组\n")
   cat("====================================\n")
