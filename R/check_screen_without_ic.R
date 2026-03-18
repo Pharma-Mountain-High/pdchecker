@@ -3,7 +3,7 @@
 #' @param data List of data frames containing study data
 #' @param sv_dataset Character string specifying which dataset to use for visit data (default: "SV")
 #' @param ic_dataset Character string specifying which dataset to use for informed consent data (default: "IC")
-#' @param visit_var Character string specifying the variable name for visit in visit dataset (default: "VISIT")
+#' @param sv_visit_var Character string specifying the variable name for visit in visit dataset (default: "VISIT")
 #' @param visit_pattern Character string or vector specifying the pattern(s) to
 #'   identify screening visits (default: "Screening|screening")
 #' @param ic_date_var Character string specifying the variable name for informed
@@ -71,7 +71,7 @@
 #' )
 #' result3 <- check_screen_without_ic(
 #'   data3,
-#'   visit_var = "VISITNAME",
+#'   sv_visit_var = "VISITNAME",
 #'   visit_pattern = "Scr",
 #'   ic_date_var = "ICFDAT"
 #' )
@@ -84,11 +84,11 @@
 #' @importFrom rlang .data
 #' @export
 check_screen_without_ic <- function(data,
-                                    sv_dataset = "SV",
-                                    ic_dataset = "IC",
-                                    visit_var = "VISIT",
+                                    sv_dataset = getOption("pdchecker.sv_dataset", "SV"),
+                                    ic_dataset = getOption("pdchecker.ic_dataset", "IC"),
+                                    sv_visit_var = getOption("pdchecker.sv_visit_var", "VISIT"),
                                     visit_pattern = "Screening|screening",
-                                    ic_date_var = "ICDAT",
+                                    ic_date_var = getOption("pdchecker.ic_date_var", "ICDAT"),
                                     pdno = "2.4.1") {
   # Validate parameter types
   if (!is.list(data)) {
@@ -100,8 +100,8 @@ check_screen_without_ic <- function(data,
   if (!is.character(ic_dataset) || length(ic_dataset) != 1) {
     stop("'ic_dataset' must be a single character string")
   }
-  if (!is.character(visit_var) || length(visit_var) != 1) {
-    stop("'visit_var' must be a single character string")
+  if (!is.character(sv_visit_var) || length(sv_visit_var) != 1) {
+    stop("'sv_visit_var' must be a single character string")
   }
   if (!is.character(visit_pattern) || length(visit_pattern) < 1) {
     stop("'visit_pattern' must be a character string")
@@ -133,9 +133,8 @@ check_screen_without_ic <- function(data,
     stop("Missing required datasets: ", paste(missing_datasets, collapse = ", "))
   }
 
-  # Validate that visit_var exists in sv_dataset
-  if (!visit_var %in% names(data[[sv_dataset]])) {
-    stop(sprintf("Variable '%s' not found in dataset '%s'", visit_var, sv_dataset))
+  if (!sv_visit_var %in% names(data[[sv_dataset]])) {
+    stop(sprintf("Variable '%s' not found in dataset '%s'", sv_visit_var, sv_dataset))
   }
 
   # Validate that ic_date_var exists in ic_dataset
@@ -145,8 +144,8 @@ check_screen_without_ic <- function(data,
 
   # Get screening visit records with visit info
   screening_records <- data[[sv_dataset]] %>%
-    filter(grepl(visit_pattern, .data[[visit_var]], ignore.case = TRUE)) %>%
-    select(SUBJID, VISIT = .data[[visit_var]]) %>%
+    filter(grepl(visit_pattern, .data[[sv_visit_var]], ignore.case = TRUE)) %>%
+    select(SUBJID, VISIT = .data[[sv_visit_var]]) %>%
     distinct()
 
   # Get unique subjects from IC dataset with non-empty consent date

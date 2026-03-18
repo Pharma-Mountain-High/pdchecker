@@ -826,3 +826,168 @@ calculate_window_range <- function(planned_date, window_type, window_value) {
 
   return(list(window_start = window_start, window_end = window_end))
 }
+
+
+#' Set pdchecker Global Options
+#'
+#' @description
+#' Set default parameter values for pdchecker functions. Once set, these values
+#' are used as defaults across all pdchecker functions, avoiding the need to
+#' specify them repeatedly.
+#'
+#' @param sv_dataset Character string, visit dataset name (default in functions: "SV")
+#' @param sv_visit_var Character string, visit name variable (default in functions: "VISIT")
+#' @param sv_visitnum_var Character string, visit number variable (default in functions: "VISITNUM")
+#' @param sv_date_var Character string, visit date variable (default in functions: "SVDAT")
+#' @param ex_datasets Character vector, exposure dataset names (default in functions: "EX")
+#' @param ex_date_var Character vector, dosing start date variable names (default in functions: "EXSTDAT")
+#' @param ex_end_date_var Character vector, dosing end date variable names (default in functions: NULL)
+#' @param eot_dataset Character string, end of treatment dataset name (default in functions: "EOT")
+#' @param eot_date_var Character string, end of treatment date variable (default in functions: "EOTDAT")
+#' @param ds_dataset Character string, disposition dataset name (default in functions: "DS")
+#' @param ds_date_var Character string, end of study date variable (default in functions: "DSDAT")
+#' @param ic_dataset Character string, informed consent dataset name (default in functions: "IC")
+#' @param ic_date_var Character string, informed consent date variable (default in functions: "ICDAT")
+#' @param tb_name_var Character string, dataset name variable (default in functions: NULL)
+#' @param test_date_var Character string, test date variable (default in functions: "LBDAT")
+#' @param test_yn_var Character string, test performed variable (default in functions: "YN")
+#' @param test_result_var Character string, test result variable (default in functions: "ORRES")
+#' @param test_cat_var Character string, test category variable (default in functions: "LBCAT")
+#' @param test_de_var Character string, test name variable (default in functions: NULL)
+#'
+#' @return Invisibly returns a named list of the options that were set.
+#'
+#' @examples
+#' \dontrun{
+#' # Set common options once at the beginning of your script
+#' set_pdchecker_options(
+#'   sv_dataset = "SV",
+#'   sv_visit_var = "VISIT",
+#'   sv_visitnum_var = "VISITNUM",
+#'   sv_date_var = "SVSTDTC",
+#'   ex_datasets = c("EC"),
+#'   ex_date_var = "ECSTDTC",
+#'   ic_dataset = "IC",
+#'   ic_date_var = "ICDAT"
+#' )
+#'
+#' # Now all functions will use these defaults automatically
+#' result <- generate_planned_visit_dates(data = my_data, visitcode = vc)
+#' test_data <- prepare_test_data(data = my_data, test_dataset = "LB")
+#'
+#' # You can still override any option in individual function calls
+#' result <- get_first_dose_date(data = my_data, ex_datasets = "EX2")
+#' }
+#'
+#' @seealso [get_pdchecker_options()] for viewing current option values
+#' @family options
+#' @export
+set_pdchecker_options <- function(sv_dataset = NULL,
+                                  sv_visit_var = NULL,
+                                  sv_visitnum_var = NULL,
+                                  sv_date_var = NULL,
+                                  ex_datasets = NULL,
+                                  ex_date_var = NULL,
+                                  ex_end_date_var = NULL,
+                                  eot_dataset = NULL,
+                                  eot_date_var = NULL,
+                                  ds_dataset = NULL,
+                                  ds_date_var = NULL,
+                                  ic_dataset = NULL,
+                                  ic_date_var = NULL,
+                                  tb_name_var = NULL,
+                                  test_date_var = NULL,
+                                  test_yn_var = NULL,
+                                  test_result_var = NULL,
+                                  test_cat_var = NULL,
+                                  test_de_var = NULL) {
+  args <- list(
+    sv_dataset = sv_dataset,
+    sv_visit_var = sv_visit_var,
+    sv_visitnum_var = sv_visitnum_var,
+    sv_date_var = sv_date_var,
+    ex_datasets = ex_datasets,
+    ex_date_var = ex_date_var,
+    ex_end_date_var = ex_end_date_var,
+    eot_dataset = eot_dataset,
+    eot_date_var = eot_date_var,
+    ds_dataset = ds_dataset,
+    ds_date_var = ds_date_var,
+    ic_dataset = ic_dataset,
+    ic_date_var = ic_date_var,
+    tb_name_var = tb_name_var,
+    test_date_var = test_date_var,
+    test_yn_var = test_yn_var,
+    test_result_var = test_result_var,
+    test_cat_var = test_cat_var,
+    test_de_var = test_de_var
+  )
+
+  non_null <- Filter(Negate(is.null), args)
+  if (length(non_null) == 0) {
+    message("No options specified. Use named arguments to set options.")
+    return(invisible(list()))
+  }
+
+  opts <- stats::setNames(
+    as.list(non_null),
+    paste0("pdchecker.", names(non_null))
+  )
+  do.call(options, opts)
+
+  invisible(non_null)
+}
+
+
+#' Get pdchecker Global Options
+#'
+#' @description
+#' Display the current values of all pdchecker global options.
+#'
+#' @return A named list of current pdchecker option values.
+#'   Options that have not been set will show their default values.
+#'
+#' @examples
+#' \dontrun{
+#' # View current options
+#' get_pdchecker_options()
+#'
+#' # Set some options and verify
+#' set_pdchecker_options(sv_dataset = "SV", ex_datasets = c("EC"))
+#' get_pdchecker_options()
+#' }
+#'
+#' @seealso [set_pdchecker_options()] for setting option values
+#' @family options
+#' @export
+get_pdchecker_options <- function() {
+  option_names <- c(
+    "sv_dataset", "sv_visit_var", "sv_visitnum_var", "sv_date_var",
+    "ex_datasets", "ex_date_var", "ex_end_date_var",
+    "eot_dataset", "eot_date_var",
+    "ds_dataset", "ds_date_var",
+    "ic_dataset", "ic_date_var",
+    "tb_name_var",
+    "test_date_var", "test_yn_var", "test_result_var",
+    "test_cat_var", "test_de_var"
+  )
+
+  defaults <- list(
+    sv_dataset = "SV", sv_visit_var = "VISIT",
+    sv_visitnum_var = "VISITNUM", sv_date_var = "SVDAT",
+    ex_datasets = "EX", ex_date_var = "EXSTDAT", ex_end_date_var = NULL,
+    eot_dataset = "EOT", eot_date_var = "EOTDAT",
+    ds_dataset = "DS", ds_date_var = "DSDAT",
+    ic_dataset = "IC", ic_date_var = "ICDAT",
+    tb_name_var = NULL,
+    test_date_var = "LBDAT", test_yn_var = "YN", test_result_var = "ORRES",
+    test_cat_var = "LBCAT", test_de_var = NULL
+  )
+
+  result <- lapply(option_names, function(nm) {
+    getOption(paste0("pdchecker.", nm), default = defaults[[nm]])
+  })
+  names(result) <- option_names
+
+  result
+}

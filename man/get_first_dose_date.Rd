@@ -4,7 +4,11 @@
 \alias{get_first_dose_date}
 \title{Get First Dose Date for Each Subject}
 \usage{
-get_first_dose_date(data, ex_datasets = "EX", ex_date_var = "EXSTDAT")
+get_first_dose_date(
+  data,
+  ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
+  ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT")
+)
 }
 \arguments{
 \item{data}{List containing clinical trial datasets}

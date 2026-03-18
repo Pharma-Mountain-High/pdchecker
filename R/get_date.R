@@ -122,8 +122,8 @@ expand_date_vars <- function(date_var, datasets, var_name = "date_var") {
 #' @importFrom magrittr %>%
 #' @export
 get_first_dose_date <- function(data,
-                                ex_datasets = "EX",
-                                ex_date_var = "EXSTDAT") {
+                                ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
+                                ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT")) {
   # Parameter validation
   if (!is.list(data)) {
     stop("'data' must be a list")
@@ -306,9 +306,9 @@ get_first_dose_date <- function(data,
 #' @importFrom magrittr %>%
 #' @export
 get_last_dose_date <- function(data,
-                               ex_datasets = "EX",
-                               ex_date_var = "EXSTDAT",
-                               ex_end_date_var = NULL) {
+                               ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
+                               ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT"),
+                               ex_end_date_var = getOption("pdchecker.ex_end_date_var", NULL)) {
   # Parameter validation
   if (!is.list(data)) {
     stop("'data' must be a list")
@@ -417,8 +417,8 @@ get_last_dose_date <- function(data,
 #' @importFrom magrittr %>%
 #' @export
 get_eot_date <- function(data,
-                         eot_dataset = "EOT",
-                         eot_date_var = "EOTDAT") {
+                         eot_dataset = getOption("pdchecker.eot_dataset", "EOT"),
+                         eot_date_var = getOption("pdchecker.eot_date_var", "EOTDAT")) {
   # Parameter validation
   if (!is.list(data)) {
     stop("'data' must be a list")
@@ -497,8 +497,8 @@ get_eot_date <- function(data,
 #' @importFrom magrittr %>%
 #' @export
 get_eos_date <- function(data,
-                         ds_dataset = "DS",
-                         ds_date_var = "DSDAT") {
+                         ds_dataset = getOption("pdchecker.ds_dataset", "DS"),
+                         ds_date_var = getOption("pdchecker.ds_date_var", "DSDAT")) {
   # Parameter validation
   if (!is.list(data)) {
     stop("'data' must be a list")

@@ -6,11 +6,11 @@
 \usage{
 check_screen_without_ic(
   data,
-  sv_dataset = "SV",
-  ic_dataset = "IC",
-  visit_var = "VISIT",
+  sv_dataset = getOption("pdchecker.sv_dataset", "SV"),
+  ic_dataset = getOption("pdchecker.ic_dataset", "IC"),
+  sv_visit_var = getOption("pdchecker.sv_visit_var", "VISIT"),
   visit_pattern = "Screening|screening",
-  ic_date_var = "ICDAT",
+  ic_date_var = getOption("pdchecker.ic_date_var", "ICDAT"),
   pdno = "2.4.1"
 )
 }
@@ -21,7 +21,7 @@ check_screen_without_ic(
 
 \item{ic_dataset}{Character string specifying which dataset to use for informed consent data (default: "IC")}
 
-\item{visit_var}{Character string specifying the variable name for visit in visit dataset (default: "VISIT")}
+\item{sv_visit_var}{Character string specifying the variable name for visit in visit dataset (default: "VISIT")}
 
 \item{visit_pattern}{Character string or vector specifying the pattern(s) to
 identify screening visits (default: "Screening|screening")}
@@ -97,7 +97,7 @@ data3 <- list(
 )
 result3 <- check_screen_without_ic(
   data3,
-  visit_var = "VISITNAME",
+  sv_visit_var = "VISITNAME",
   visit_pattern = "Scr",
   ic_date_var = "ICFDAT"
 )

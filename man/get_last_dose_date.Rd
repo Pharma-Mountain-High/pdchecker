@@ -6,9 +6,9 @@
 \usage{
 get_last_dose_date(
   data,
-  ex_datasets = "EX",
-  ex_date_var = "EXSTDAT",
-  ex_end_date_var = NULL
+  ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
+  ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT"),
+  ex_end_date_var = getOption("pdchecker.ex_end_date_var", NULL)
 )
 }
 \arguments{

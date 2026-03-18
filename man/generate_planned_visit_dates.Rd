@@ -7,17 +7,17 @@
 generate_planned_visit_dates(
   data,
   visitcode = NULL,
-  ex_datasets = "EX",
-  ex_date_var = "EXSTDAT",
-  ex_end_date_var = NULL,
-  sv_dataset = "SV",
-  sv_visit_var = "VISIT",
-  sv_visitnum_var = "VISITNUM",
-  sv_date_var = "SVDAT",
-  eot_dataset = "EOT",
-  eot_date_var = "EOTDAT",
-  ds_dataset = "DS",
-  ds_date_var = "DSDAT",
+  ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
+  ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT"),
+  ex_end_date_var = getOption("pdchecker.ex_end_date_var", NULL),
+  sv_dataset = getOption("pdchecker.sv_dataset", "SV"),
+  sv_visit_var = getOption("pdchecker.sv_visit_var", "VISIT"),
+  sv_visitnum_var = getOption("pdchecker.sv_visitnum_var", "VISITNUM"),
+  sv_date_var = getOption("pdchecker.sv_date_var", "SVDAT"),
+  eot_dataset = getOption("pdchecker.eot_dataset", "EOT"),
+  eot_date_var = getOption("pdchecker.eot_date_var", "EOTDAT"),
+  ds_dataset = getOption("pdchecker.ds_dataset", "DS"),
+  ds_date_var = getOption("pdchecker.ds_date_var", "DSDAT"),
   cycle_days = 28
 )
 }
