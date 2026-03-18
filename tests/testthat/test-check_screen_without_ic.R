@@ -226,7 +226,7 @@ test_that("自定义ic_dataset名称", {
   expect_equal(result$details$SUBJID, "002")
 })
 
-test_that("自定义visit_var变量名", {
+test_that("自定义sv_visit_var变量名", {
   data <- list(
     SV = data.frame(
       SUBJID = c("001", "002"),
@@ -238,7 +238,7 @@ test_that("自定义visit_var变量名", {
     )
   )
 
-  result <- check_screen_without_ic(data, visit_var = "VISITNAME")
+  result <- check_screen_without_ic(data, sv_visit_var = "VISITNAME")
 
   expect_true(result$has_deviation)
   expect_equal(nrow(result$details), 1)
@@ -279,7 +279,7 @@ test_that("同时使用多个自定义参数", {
     data,
     sv_dataset = "VS",
     ic_dataset = "CONSENT",
-    visit_var = "VSTESTCD",
+    sv_visit_var = "VSTESTCD",
     visit_pattern = "SCR",
     ic_date_var = "SIGN_DATE"
   )
@@ -326,14 +326,14 @@ test_that("缺失多个数据集时抛出错误", {
   )
 })
 
-test_that("visit_var不存在时抛出错误", {
+test_that("sv_visit_var不存在时抛出错误", {
   data <- list(
     SV = data.frame(SUBJID = c("001"), VISIT = c("Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
   )
 
   expect_error(
-    check_screen_without_ic(data, visit_var = "NONEXISTENT"),
+    check_screen_without_ic(data, sv_visit_var = "NONEXISTENT"),
     "Variable 'NONEXISTENT' not found in dataset 'SV'"
   )
 })

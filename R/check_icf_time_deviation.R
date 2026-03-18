@@ -82,11 +82,11 @@
 #' @importFrom rlang .data
 #' @export
 check_icf_time_deviation <- function(data,
-                                     ic_dataset = "IC",
-                                     ic_date_var = "ICDAT",
+                                     ic_dataset = getOption("pdchecker.ic_dataset", "IC"),
+                                     ic_date_var = getOption("pdchecker.ic_date_var", "ICDAT"),
                                      ignore_vars = "BRTHDAT",
                                      exclude_datasets = NULL,
-                                     tb_name_var = NULL,
+                                     tb_name_var = getOption("pdchecker.tb_name_var", NULL),
                                      pdno = "2.1.1") {
   # Validate parameter types
   if (!is.list(data)) {

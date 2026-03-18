@@ -4,7 +4,11 @@
 \alias{get_eot_date}
 \title{Get End of Treatment Date for Each Subject}
 \usage{
-get_eot_date(data, eot_dataset = "EOT", eot_date_var = "EOTDAT")
+get_eot_date(
+  data,
+  eot_dataset = getOption("pdchecker.eot_dataset", "EOT"),
+  eot_date_var = getOption("pdchecker.eot_date_var", "EOTDAT")
+)
 }
 \arguments{
 \item{data}{List containing clinical trial datasets}

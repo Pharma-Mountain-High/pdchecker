@@ -4,7 +4,11 @@
 \alias{get_eos_date}
 \title{Get End of Study Date for Each Subject}
 \usage{
-get_eos_date(data, ds_dataset = "DS", ds_date_var = "DSDAT")
+get_eos_date(
+  data,
+  ds_dataset = getOption("pdchecker.ds_dataset", "DS"),
+  ds_date_var = getOption("pdchecker.ds_date_var", "DSDAT")
+)
 }
 \arguments{
 \item{data}{List containing clinical trial datasets}
