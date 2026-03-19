@@ -73,6 +73,7 @@ Lifecycle
 magrittr
 MERCHANTABILITY
 MHSTDAT
+na
 navbar
 NYHA
 nyha
@@ -106,6 +107,7 @@ SV
 SVDAT
 TBNAME
 TESTCAT
+testconfig
 TESTDAT
 TESTDE
 testthat
@@ -121,6 +123,7 @@ Unmapped
 unparseable
 upvote
 visitcode
+visitday
 VISITDAY
 VISITNUM
 visittype
