@@ -10,8 +10,11 @@ create_test_checks_df <- function() {
     has_deviation = c(TRUE, TRUE, FALSE, FALSE),
     message = c("年龄不符合要求", "年龄不符合要求", "LDL正常", "LDL正常"),
     details = c("详情1", "详情2", NA, NA),
+    PDNO = c("1.1", "1.1", "2.1", "2.1"),
     SUBJID = c("001", "002", "003", "004"),
     SITEID = c("01", "01", "02", "02"),
+    TBNAME = c("DM", "DM", "LB", "LB"),
+    DESCRIPTION = c("年龄不符合要求", "年龄不符合要求", "LDL正常", "LDL正常"),
     stringsAsFactors = FALSE
   )
 }
@@ -22,8 +25,11 @@ create_empty_checks_df <- function() {
     has_deviation = logical(),
     message = character(),
     details = character(),
+    PDNO = character(),
     SUBJID = character(),
     SITEID = character(),
+    TBNAME = character(),
+    DESCRIPTION = character(),
     stringsAsFactors = FALSE
   )
 }
@@ -305,6 +311,10 @@ test_that("generate_excel_report() creates Excel file", {
   sheet_names <- names(wb)
   expect_true("Summary" %in% sheet_names)
   expect_true("All Deviations" %in% sheet_names)
+
+  # 验证 All Deviations 工作表只包含指定列
+  data <- openxlsx::read.xlsx(temp_file, sheet = "All Deviations")
+  expect_equal(names(data), c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION"))
 })
 
 test_that("generate_excel_report() respects include_no_deviation parameter", {
@@ -312,7 +322,7 @@ test_that("generate_excel_report() respects include_no_deviation parameter", {
 
   test_df <- create_test_checks_df()
 
-  # 不包含无偏差
+  # 不包含无偏差：只保留 has_deviation == TRUE 的行
   temp_file_no <- tempfile(fileext = ".xlsx")
   on.exit(unlink(temp_file_no), add = TRUE)
 
@@ -323,9 +333,10 @@ test_that("generate_excel_report() respects include_no_deviation parameter", {
   )
 
   data_no <- openxlsx::read.xlsx(temp_file_no, sheet = "All Deviations")
-  expect_true(all(data_no$has_deviation))
+  expect_equal(nrow(data_no), 2)
+  expect_equal(sort(data_no$SUBJID), c("001", "002"))
 
-  # 包含无偏差
+  # 包含无偏差：所有行都保留
   temp_file_yes <- tempfile(fileext = ".xlsx")
   on.exit(unlink(temp_file_yes), add = TRUE)
 
@@ -336,7 +347,7 @@ test_that("generate_excel_report() respects include_no_deviation parameter", {
   )
 
   data_yes <- openxlsx::read.xlsx(temp_file_yes, sheet = "All Deviations")
-  expect_true(any(!data_yes$has_deviation))
+  expect_equal(nrow(data_yes), 4)
 })
 
 # =============================================================================

@@ -365,6 +365,7 @@ prepare_test_data <- function(data,
   other_cols <- setdiff(names(merged_data), c(key_cols, derived_cols))
 
   result <- merged_data %>%
+    mutate(VISITNUM = as.numeric(VISITNUM)) %>%
     select(all_of(key_cols), all_of(derived_cols), all_of(other_cols))
 
   return(result)

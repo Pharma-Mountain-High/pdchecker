@@ -208,7 +208,7 @@ test_that("检测情况1：TESTCAT为空（访视无检查记录）", {
   expect_equal(subj002_v2$TBNAME, "LB")
 
   # 检查 DESCRIPTION 列
-  expect_true(grepl("受试者002", subj002_v2$DESCRIPTION))
+  expect_true(grepl("受试者编号002", subj002_v2$DESCRIPTION))
   expect_true(grepl("缺失", subj002_v2$DESCRIPTION))
 })
 
@@ -230,7 +230,7 @@ test_that("检测情况2：TESTCAT不为空但整个检查项缺失", {
   expect_equal(subj002_v3$test_name, "血常规")
 
   # 检查 DESCRIPTION 列
-  expect_true(grepl("受试者002", subj002_v3$DESCRIPTION))
+  expect_true(grepl("受试者编号002", subj002_v3$DESCRIPTION))
   expect_true(grepl("血常规", subj002_v3$DESCRIPTION))
 })
 
@@ -253,7 +253,7 @@ test_that("检测情况3：单个TESTDE指标缺失", {
   expect_true(grepl("血生化", subj003_v2$test_name))
 
   # 检查 DESCRIPTION 列
-  expect_true(grepl("受试者003", subj003_v2$DESCRIPTION))
+  expect_true(grepl("受试者编号003", subj003_v2$DESCRIPTION))
 })
 
 

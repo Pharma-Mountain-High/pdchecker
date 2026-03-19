@@ -219,7 +219,8 @@ generate_html_report <- function(checks_df, output_file,
 #' @param include_no_deviation Whether to include checks with no deviations (default: FALSE)
 #' @param title Report title (default: "Study Deviation Report")
 #' @return Invisibly returns the output file path
-#' @importFrom dplyr desc
+#' @importFrom dplyr desc across all_of mutate select arrange
+#' @importFrom rlang .data
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook setColWidths createStyle addFilter addStyle
 #' @export
 generate_excel_report <- function(checks_df, output_file,
@@ -296,15 +297,12 @@ generate_excel_report <- function(checks_df, output_file,
   # Create all deviations sheet with all details in one place
   openxlsx::addWorksheet(wb, "All Deviations")
 
-  # Clean data for Excel - remove columns that are all NA
+  # Keep only PDNO, SUBJID, TBNAME, DESCRIPTION
+  report_cols <- c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION")
+  available_cols <- intersect(report_cols, names(all_checks_df))
   all_deviations_df <- all_checks_df %>%
-    select_if(function(col) !all(is.na(col)))
-
-  # If SUBJID column exists but contains NA values, move non-NA values to the top
-  if ("SUBJID" %in% names(all_deviations_df)) {
-    all_deviations_df <- all_deviations_df %>%
-      arrange(desc(!is.na(SUBJID)), check_name, message, SITEID, SUBJID)
-  }
+    select(all_of(available_cols)) %>%
+    arrange(.data$PDNO, .data$SUBJID)
 
   # Write the data to the sheet
   openxlsx::writeData(wb, "All Deviations", all_deviations_df,
@@ -322,10 +320,10 @@ generate_excel_report <- function(checks_df, output_file,
   openxlsx::addFilter(wb, "All Deviations", row = 1, cols = seq_len(ncol(all_deviations_df)))
   openxlsx::setColWidths(wb, "All Deviations", cols = seq_len(ncol(all_deviations_df)), widths = "auto")
 
-  # For the details column, make it wider to accommodate longer text
-  if ("details" %in% names(all_deviations_df)) {
-    details_col <- which(names(all_deviations_df) == "details")
-    openxlsx::setColWidths(wb, "All Deviations", cols = details_col, widths = 100)
+  # Make DESCRIPTION column wider to accommodate longer text
+  if ("DESCRIPTION" %in% names(all_deviations_df)) {
+    desc_col <- which(names(all_deviations_df) == "DESCRIPTION")
+    openxlsx::setColWidths(wb, "All Deviations", cols = desc_col, widths = 100)
   }
 
   # Save workbook
