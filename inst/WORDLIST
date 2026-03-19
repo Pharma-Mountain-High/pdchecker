@@ -39,6 +39,7 @@ EXENDAT
 EXSTDAT
 FMTNAME
 fn
+FU
 GBK
 Genentech
 gfr
@@ -68,9 +69,11 @@ LDL
 ldl
 licensable
 Licensor
+Lifecycle
 magrittr
 MERCHANTABILITY
 MHSTDAT
+na
 navbar
 NYHA
 nyha
@@ -83,6 +86,7 @@ pharmaverse
 Pharmaverse
 Pre
 pre
+Rawdata
 RBC
 readr
 readxl
@@ -103,6 +107,7 @@ SV
 SVDAT
 TBNAME
 TESTCAT
+testconfig
 TESTDAT
 TESTDE
 testthat
@@ -117,10 +122,11 @@ UI
 Unmapped
 unparseable
 upvote
+visitcode
+visitday
 VISITDAY
 VISITNUM
 visittype
-visitcode
 VSDAT
 WBC
 wp

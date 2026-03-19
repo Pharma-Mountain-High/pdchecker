@@ -230,7 +230,7 @@ check_icf_time_deviation <- function(data,
       diff_date = time_deviations$diff_date,
       TBNAME = time_deviations$TBNAME,
       DESCRIPTION = sprintf(
-        "受试者%s，首次知情同意书在%s签署，但在%s进行了操作[%s]，早于知情同意时间%s天",
+        "受试者编号%s，首次知情同意书在%s签署，但在%s进行了操作[%s]，早于知情同意时间%s天",
         time_deviations$SUBJID,
         time_deviations$icf_datetime,
         time_deviations$event_datetime,

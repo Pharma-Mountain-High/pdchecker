@@ -216,8 +216,9 @@ check_missing_test <- function(data,
   details <- all_missing %>%
     mutate(
       PDNO = pdno,
+      VISITNUM = as.numeric(VISITNUM),
       DESCRIPTION = sprintf(
-        "受试者%s，在访视%s（%s），计划进行的[%s]缺失。",
+        "受试者编号%s，在访视%s（%s），计划进行的[%s]缺失。",
         .data$SUBJID, .data$VISIT, .data$visit_date, .data$test_name
       )
     ) %>%

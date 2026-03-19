@@ -26,6 +26,7 @@ Imports:
     readxl,
     rlang,
     tibble
+VignetteBuilder: knitr
 Suggests:
     knitr,
     mockery,
