@@ -118,7 +118,7 @@ check_missing_test <- function(data,
   # Check required columns (standardized by prepare_test_data)
   required_cols <- c(
     "SUBJID", "VISIT", "VISITNUM", "SVDAT", "TBNAME",
-    "TESTCAT", "TESTDAT", "TESTYN", "ORRES"
+    "TESTCAT", "TESTCAT_ORIG", "TESTDAT", "TESTYN", "ORRES"
   )
   missing_cols <- setdiff(required_cols, names(data))
   if (length(missing_cols) > 0) {
@@ -165,7 +165,7 @@ check_missing_test <- function(data,
   # ============================================================================
   # Type 1: TESTCAT is empty (visit has no test records)
   testcat_empty <- visits_with_tests %>%
-    filter(is.na(TESTCAT) | TESTCAT == "") %>%
+    filter(is.na(TESTCAT_ORIG) | TESTCAT_ORIG == "") %>%
     group_by(SUBJID, VISIT, VISITNUM, visit_date, TBNAME) %>%
     summarise(.groups = "drop") %>%
     mutate(
@@ -175,7 +175,7 @@ check_missing_test <- function(data,
 
   # Type 2: TESTCAT not empty, but entire TESTCAT missing
   testcat_missing <- visits_with_tests %>%
-    filter(!is.na(TESTCAT) & TESTCAT != "") %>%
+    filter(!is.na(TESTCAT_ORIG) & TESTCAT_ORIG != "") %>%
     filter(is_sas_na(TESTDAT) | is.na(TESTDAT) | is_sas_na(TESTYN) | TESTYN != "是") %>%
     group_by(SUBJID, VISIT, VISITNUM, visit_date, TESTCAT, TBNAME) %>%
     summarise(.groups = "drop") %>%
@@ -187,7 +187,7 @@ check_missing_test <- function(data,
   # Type 3: Individual TESTDE missing (only if missing_de = TRUE)
   if (missing_de) {
     testde_missing <- visits_with_tests %>%
-      filter(!is.na(TESTCAT) & TESTCAT != "") %>%
+      filter(!is.na(TESTCAT_ORIG) & TESTCAT_ORIG != "") %>%
       filter(!is_sas_na(TESTDAT) & !is.na(TESTDAT)) %>%
       filter(is_sas_na(ORRES) | is.na(ORRES) | ORRES == "") %>%
       group_by(SUBJID, VISIT, VISITNUM, visit_date, TESTCAT, TESTDE, TBNAME) %>%

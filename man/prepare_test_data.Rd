@@ -82,7 +82,8 @@ Data frame with column order:
 \item{VISITNUM}{Visit number (from SV dataset)}
 \item{SVDAT}{Visit date (from SV dataset)}
 \item{TBNAME}{Dataset name (derived, mapped from tb_name_var or test_dataset)}
-\item{TESTCAT}{Test category (derived, mapped from test_cat_var)}
+\item{TESTCAT}{Test category (from config skeleton, always populated)}
+\item{TESTCAT_ORIG}{Original test category from test dataset. }
 \item{TESTDE}{Test name (derived, mapped from test_de_var)}
 \item{TESTYN}{Test performed flag (derived, mapped from test_yn_var)}
 \item{TESTDAT}{Test date (derived, mapped from test_date_var)}
