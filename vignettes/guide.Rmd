@@ -1,6 +1,9 @@
 ---
 title: "pdchecker 包使用手册"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
 vignette: >
   %\VignetteIndexEntry{pdchecker 包使用手册}
   %\VignetteEngine{knitr::rmarkdown}
@@ -17,49 +20,6 @@ vignette: >
 - **访视合规类检查**：检测遗漏访视、访视超窗等问题
 - **检查项缺失类检查**：检测实验室检查、体征检查等缺失情况
 - **报告生成**：将检查结果导出为 Excel、HTML 或 Markdown 格式报告
-
----
-
-## 目录
-
-- [2. 准备工作](#2-准备工作)
-  - [2.1 read_raw_data() — 读取 SAS 数据](#21-read_raw_data--读取-sas-数据)
-  - [2.2 read_raw_data_with_formats() — 使用 SAS catalog 读取](#22-read_raw_data_with_formats--使用-sas-catalog-读取)
-  - [2.3 read_visitcode_file() — 读取访视计划文件](#23-read_visitcode_file--读取访视计划文件)
-  - [2.4 read_testconfig_file() — 读取检查配置文件](#24-read_testconfig_file--读取检查配置文件)
-  - [2.5 set_pdchecker_options() / get_pdchecker_options() — 全局选项配置](#25-set_pdchecker_options--get_pdchecker_options--全局选项配置)
-- [3. 日期提取函数](#3-日期提取函数)
-  - [3.1 get_first_dose_date() — 首次给药日期](#31-get_first_dose_date--首次给药日期)
-  - [3.2 get_last_dose_date() — 末次给药日期](#32-get_last_dose_date--末次给药日期)
-  - [3.3 get_eot_date() — 治疗结束日期](#33-get_eot_date--治疗结束日期)
-  - [3.4 get_eos_date() — 研究结束日期](#34-get_eos_date--研究结束日期)
-- [4. 数据准备函数](#4-数据准备函数)
-  - [4.1 generate_planned_visit_dates() — 生成计划访视日期](#41-generate_planned_visit_dates--生成计划访视日期)
-  - [4.2 prepare_test_data() — 准备检查项数据](#42-prepare_test_data--准备检查项数据)
-- [5. 知情同意类检查](#5-知情同意类检查)
-  - [5.1 check_icf_time_deviation() — ICF 签署前操作](#51-check_icf_time_deviation--icf-签署前操作)
-  - [5.2 check_screen_without_ic() — 未签署知情同意](#52-check_screen_without_ic--未签署知情同意)
-- [6. 访视合规类检查](#6-访视合规类检查)
-  - [6.1 check_missing_visit() — 遗漏访视](#61-check_missing_visit--遗漏访视)
-  - [6.2 check_visit_window() — 访视超窗](#62-check_visit_window--访视超窗)
-- [7. 检查项缺失类检查](#7-检查项缺失类检查)
-  - [7.1 check_missing_test() — 检查项缺失](#71-check_missing_test--检查项缺失)
-- [8. 结果汇总与报告生成](#8-结果汇总与报告生成)
-  - [8.1 combine_check_results() — 合并检查结果](#81-combine_check_results--合并检查结果)
-  - [8.2 capture_check_results() — 批量执行检查](#82-capture_check_results--批量执行检查)
-  - [8.3 generate_excel_report() — Excel 报告](#83-generate_excel_report--excel-报告)
-  - [8.4 generate_html_report() — HTML 报告](#84-generate_html_report--html-报告)
-  - [8.5 generate_markdown_report() — Markdown 报告](#85-generate_markdown_report--markdown-报告)
-- [9. 工具函数](#9-工具函数)
-  - [9.1 is_sas_na() — SAS 缺失值判断](#91-is_sas_na--sas-缺失值判断)
-  - [9.2 as_check_df() — 检查结果转数据框](#92-as_check_df--检查结果转数据框)
-  - [9.3 apply_format_mapping() — 格式映射](#93-apply_format_mapping--格式映射)
-- [附录](#附录)
-  - [A.1 全局选项完整列表](#a1-全局选项完整列表)
-  - [A.2 返回值字段说明](#a2-返回值字段说明)
-  - [A.3 常见问题](#a3-常见问题)
-
----
 
 ## 2. 准备工作
 

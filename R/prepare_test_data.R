@@ -102,7 +102,8 @@
 #'     \item{VISITNUM}{Visit number (from SV dataset)}
 #'     \item{SVDAT}{Visit date (from SV dataset)}
 #'     \item{TBNAME}{Dataset name (derived, mapped from tb_name_var or test_dataset)}
-#'     \item{TESTCAT}{Test category (derived, mapped from test_cat_var)}
+#'     \item{TESTCAT}{Test category (from config skeleton, always populated)}
+#'     \item{TESTCAT_ORIG}{Original test category from test dataset. }
 #'     \item{TESTDE}{Test name (derived, mapped from test_de_var)}
 #'     \item{TESTYN}{Test performed flag (derived, mapped from test_yn_var)}
 #'     \item{TESTDAT}{Test date (derived, mapped from test_date_var)}
@@ -278,8 +279,14 @@ prepare_test_data <- function(data,
     test_data_standard <- test_data_standard %>%
       rename(TESTCAT_orig = !!sym(test_cat_var))
   } else {
+    if (!is.null(test_cat_var) && test_cat_var != "" && !test_cat_var %in% names(test_data_standard)) {
+      warning(paste0("Column not found in test dataset: ", test_cat_var, ", TESTCAT will be set to NA"))
+    }
     test_data_standard$TESTCAT_orig <- NA_character_
   }
+
+  # Keep a copy of TESTCAT_orig before join (NA after join indicates skeleton-only row)
+  test_data_standard$TESTCAT_ORIG <- test_data_standard$TESTCAT_orig
 
   # Merge with skeleton
   merged_data <- skeleton %>%
@@ -299,17 +306,7 @@ prepare_test_data <- function(data,
     merged_data$TBNAME <- test_dataset
   }
 
-  # TESTCAT
-  if (!"TESTCAT" %in% names(merged_data)) {
-    if (!is.null(test_cat_var) && test_cat_var != "" && test_cat_var %in% names(merged_data)) {
-      merged_data$TESTCAT <- merged_data[[test_cat_var]]
-    } else {
-      if (!is.null(test_cat_var) && test_cat_var != "" && !test_cat_var %in% names(merged_data)) {
-        warning(paste0("Column not found in test dataset: ", test_cat_var, ", TESTCAT will be set to NA"))
-      }
-      merged_data$TESTCAT <- NA
-    }
-  }
+  # TESTCAT already exists from skeleton (via config), no additional handling needed
 
   # TESTDE
   if (!is.null(test_de_var) && test_de_var != "" && test_de_var %in% names(merged_data)) {
@@ -361,7 +358,7 @@ prepare_test_data <- function(data,
 
   # Reorder columns
   key_cols <- c("SUBJID", "VISIT", "VISITNUM", "SVDAT")
-  derived_cols <- c("TBNAME", "TESTCAT", "TESTDE", "TESTYN", "TESTDAT", "ORRES")
+  derived_cols <- c("TBNAME", "TESTCAT", "TESTCAT_ORIG", "TESTDE", "TESTYN", "TESTDAT", "ORRES")
   other_cols <- setdiff(names(merged_data), c(key_cols, derived_cols))
 
   result <- merged_data %>%

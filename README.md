@@ -13,7 +13,7 @@
 
 ```r
 # install.packages("devtools")
-devtools::install_github("Pharma-Mountain-High/pdchecker")
+devtools::install_github("Pharma-Mountain-High/pdchecker", build_vignettes = TRUE)
 ```
 
 **方式二：下载压缩包本地安装**
@@ -22,6 +22,22 @@ devtools::install_github("Pharma-Mountain-High/pdchecker")
 
 ```r
 install.packages("pdchecker_0.0.0.9000.tar.gz", repos = NULL, type = "source")
+```
+
+> **注意**：通过方式一安装时需要加 `build_vignettes = TRUE` 参数，否则用户手册不会被构建，`vignette("guide")` 将无法使用。
+
+## 用户手册
+
+安装包后可查阅完整的用户手册，其中包含每个函数的详细参数说明、返回值描述和使用示例：
+
+```r
+vignette("guide", package = "pdchecker")
+```
+
+也可以在帮助系统中浏览：
+
+```r
+browseVignettes("pdchecker")
 ```
 
 ## 快速开始

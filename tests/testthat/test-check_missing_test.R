@@ -5,8 +5,9 @@
 # =============================================================================
 
 create_prepared_test_data <- function() {
-  # 模拟 prepare_test_data 返回的标准化数据
-  # 包含3个受试者，每人3次访视
+  # 模拟 prepare_test_data 返回的标准化数据（骨架 + left join）
+  # TESTCAT 来自骨架（config），永远有值
+  # TESTCAT_ORIG 来自原始检查数据，NA 表示骨架行（无匹配的检查记录）
   data.frame(
     SUBJID = rep(c("001", "002", "003"), each = 3),
     VISIT = rep(c("V1", "V2", "V3"), times = 3),
@@ -19,8 +20,13 @@ create_prepared_test_data <- function() {
     TBNAME = "LB",
     TESTCAT = c(
       "血常规", "血常规", "血常规", # 001: 都有检查分类
-      "血常规", NA, "血常规", # 002: V2没有检查分类（情况1）
+      "血常规", "血常规", "血常规", # 002: 骨架行 TESTCAT 也有值
       "血常规", "血生化", "血常规" # 003: 都有检查分类
+    ),
+    TESTCAT_ORIG = c(
+      "血常规", "血常规", "血常规", # 001: 都有原始数据
+      "血常规", NA, "血常规", # 002: V2 无匹配的检查记录（情况1/2）
+      "血常规", "血生化", "血常规" # 003: 都有原始数据
     ),
     TESTDE = c(
       "白细胞", "白细胞", "白细胞", # 001
@@ -29,18 +35,18 @@ create_prepared_test_data <- function() {
     ),
     TESTYN = c(
       "是", "是", "是", # 001: 都做了检查
-      "是", NA, "否", # 002: V3未做检查（情况2）
+      "是", NA, "否", # 002: V3 有记录但 TESTYN="否"（情况2）
       "是", "是", "是" # 003: 都做了检查
     ),
     TESTDAT = as.Date(c(
       "2024-01-01", "2024-01-15", "2024-02-01", # 001
-      "2024-01-02", NA, "2024-02-02", # 002: V2没有检查日期
+      "2024-01-02", NA, "2024-02-02", # 002: V2 无检查日期
       "2024-01-03", "2024-01-17", "2024-02-03" # 003
     )),
     ORRES = c(
       "5.5", "6.2", "6.0", # 001: 都有结果
-      "5.8", NA, "5.9", # 002: V2没有结果
-      "6.1", NA, "5.7" # 003: V2没有结果（情况3）
+      "5.8", NA, "5.9", # 002: V2 无结果
+      "6.1", NA, "5.7" # 003: V2 结果为空（情况3）
     ),
     stringsAsFactors = FALSE
   )
@@ -59,6 +65,7 @@ create_no_missing_data <- function() {
     )),
     TBNAME = "LB",
     TESTCAT = rep("血常规", 4),
+    TESTCAT_ORIG = rep("血常规", 4),
     TESTDE = rep("白细胞", 4),
     TESTYN = rep("是", 4),
     TESTDAT = as.Date(c(
@@ -188,16 +195,16 @@ test_that("pdno 参数验证正确", {
 # 测试三种缺失情况
 # =============================================================================
 
-test_that("检测情况1：TESTCAT为空（访视无检查记录）", {
+test_that("检测情况1：访视完全无检查记录（骨架行 TESTCAT_ORIG 全为 NA）", {
   test_data <- create_prepared_test_data()
 
   result <- check_missing_test(data = test_data)
 
-  # 应该检测到 TESTCAT 为空的情况
+  # 应该检测到访视无检查记录的情况
   testcat_empty <- result$details[result$details$missing_type == "TESTCAT_EMPTY", ]
   expect_gt(nrow(testcat_empty), 0)
 
-  # 检查 002 的 V2（TESTCAT 为 NA）
+  # 检查 002 的 V2（TESTCAT_ORIG 为 NA，骨架行无匹配数据）
   subj002_v2 <- testcat_empty[testcat_empty$SUBJID == "002" & testcat_empty$VISIT == "V2", ]
   expect_equal(nrow(subj002_v2), 1)
 
@@ -213,7 +220,7 @@ test_that("检测情况1：TESTCAT为空（访视无检查记录）", {
 })
 
 
-test_that("检测情况2：TESTCAT不为空但整个检查项缺失", {
+test_that("检测情况2：有部分检查记录但特定 TESTCAT 缺失", {
   test_data <- create_prepared_test_data()
 
   result <- check_missing_test(data = test_data)
@@ -599,16 +606,17 @@ test_that("正确处理 SAS 缺失值", {
 # 测试数据一致性
 # =============================================================================
 
-test_that("同一受试者同一访视的 TESTCAT 为空只输出一条记录", {
-  # 创建有重复访视的数据
+test_that("同一受试者同一访视所有 TESTCAT 均无数据只输出一条记录", {
+  # 创建骨架行数据：多个 TESTCAT 都没有匹配的检查记录
   test_data <- data.frame(
     SUBJID = rep("001", 6),
     VISIT = rep("V1", 6),
     VISITNUM = rep("1", 6),
     SVDAT = rep(as.Date("2024-01-01"), 6),
     TBNAME = "LB",
-    TESTCAT = rep(NA, 6), # 全部为空
-    TESTDE = c("白细胞", "红细胞", "血小板", "血红蛋白", "中性粒细胞", "淋巴细胞"),
+    TESTCAT = c("血常规", "血常规", "血常规", "血生化", "血生化", "血生化"),
+    TESTCAT_ORIG = rep(NA, 6),
+    TESTDE = rep(NA, 6),
     TESTYN = rep(NA, 6),
     TESTDAT = rep(NA, 6),
     ORRES = rep(NA, 6),
@@ -617,14 +625,14 @@ test_that("同一受试者同一访视的 TESTCAT 为空只输出一条记录", 
 
   result <- check_missing_test(data = test_data)
 
-  # TESTCAT 为空的情况应该只有一条记录
+  # 全部无数据的情况应该只有一条 TESTCAT_EMPTY 记录
   testcat_empty <- result$details[result$details$missing_type == "TESTCAT_EMPTY", ]
   expect_equal(nrow(testcat_empty), 1)
 })
 
 
 test_that("同一受试者同一访视同一 TESTCAT 缺失只输出一条记录", {
-  # 创建同一 TESTCAT 有多条记录的数据
+  # 创建同一 TESTCAT 有多条记录的数据（有原始数据但 TESTYN="否"）
   test_data <- data.frame(
     SUBJID = rep("001", 3),
     VISIT = rep("V1", 3),
@@ -632,8 +640,9 @@ test_that("同一受试者同一访视同一 TESTCAT 缺失只输出一条记录
     SVDAT = rep(as.Date("2024-01-01"), 3),
     TBNAME = "LB",
     TESTCAT = rep("血常规", 3),
+    TESTCAT_ORIG = rep("血常规", 3),
     TESTDE = c("白细胞", "红细胞", "血小板"),
-    TESTYN = rep("否", 3), # 整个检查都没做
+    TESTYN = rep("否", 3),
     TESTDAT = rep(NA, 3),
     ORRES = rep(NA, 3),
     stringsAsFactors = FALSE
@@ -656,10 +665,11 @@ test_that("单个 TESTDE 缺失每个指标输出一条记录", {
     SVDAT = rep(as.Date("2024-01-01"), 3),
     TBNAME = "LB",
     TESTCAT = rep("血常规", 3),
+    TESTCAT_ORIG = rep("血常规", 3),
     TESTDE = c("白细胞", "红细胞", "血小板"),
     TESTYN = rep("是", 3),
     TESTDAT = rep(as.Date("2024-01-01"), 3),
-    ORRES = rep(NA, 3), # 三个结果都为空
+    ORRES = rep(NA, 3),
     stringsAsFactors = FALSE
   )
 
@@ -704,14 +714,15 @@ test_that("details 包含正确的 TBNAME 值", {
 
 
 test_that("不同 TBNAME 正确区分", {
-  # 创建包含多个 TBNAME 的数据
+  # 创建包含多个 TBNAME 的骨架行数据
   test_data <- data.frame(
     SUBJID = c("001", "001"),
     VISIT = c("V1", "V1"),
     VISITNUM = c("1", "1"),
     SVDAT = as.Date(c("2024-01-01", "2024-01-01")),
     TBNAME = c("LB", "VS"),
-    TESTCAT = c(NA, NA), # 都为空
+    TESTCAT = c("血常规", "心电图"),
+    TESTCAT_ORIG = c(NA, NA),
     TESTDE = c(NA, NA),
     TESTYN = c(NA, NA),
     TESTDAT = as.Date(c(NA, NA)),
