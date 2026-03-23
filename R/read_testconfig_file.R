@@ -23,7 +23,7 @@
 #'
 #' ## VISITNUM Expansion
 #' The VISITNUM column in config file can contain comma-separated visit numbers
-#' (e.g., "1,2,3" or with fullwidth commas). This function expands them into separate rows:
+#' (e.g., "1,2,3"). This function expands them into separate rows:
 #'
 #' Input:
 #' | TESTCAT | VISITNUM |
