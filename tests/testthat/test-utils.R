@@ -111,6 +111,14 @@ test_that("as_check_df() handles results without details", {
   expect_equal(nrow(result_df), 1)
   expect_equal(result_df$check_name[1], "simple_check")
   expect_false(result_df$has_deviation[1])
+
+  # 验证默认包含 PDNO、SUBJID、DESCRIPTION 列（值为 NA）
+  expect_true("PDNO" %in% names(result_df))
+  expect_true("SUBJID" %in% names(result_df))
+  expect_true("DESCRIPTION" %in% names(result_df))
+  expect_true(is.na(result_df$PDNO[1]))
+  expect_true(is.na(result_df$SUBJID[1]))
+  expect_true(is.na(result_df$DESCRIPTION[1]))
 })
 
 
@@ -154,6 +162,11 @@ test_that("combine_check_results() handles NULL results", {
 
   expect_s3_class(combined, "data.frame")
   expect_gte(nrow(combined), 1)
+
+  # 验证合并后的结果也包含 PDNO、SUBJID、DESCRIPTION 列
+  expect_true("PDNO" %in% names(combined))
+  expect_true("SUBJID" %in% names(combined))
+  expect_true("DESCRIPTION" %in% names(combined))
 })
 
 

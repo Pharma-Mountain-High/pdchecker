@@ -878,6 +878,8 @@ is_sas_na("abc") # FALSE
 
 将单个 `check_*` 函数的返回值转换为标准化的数据框格式。`combine_check_results()` 内部使用此函数。
 
+返回的数据框始终包含以下列：`check_name`、`has_deviation`、`message`、`PDNO`、`SUBJID`、`DESCRIPTION`。当检查结果 `details` 为空时，`PDNO`、`SUBJID`、`DESCRIPTION` 列的值为 `NA`。
+
 **参数：**
 
 | 参数 | 类型 | 默认值 | 说明 |
