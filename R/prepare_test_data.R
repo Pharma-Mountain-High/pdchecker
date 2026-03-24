@@ -276,8 +276,7 @@ prepare_test_data <- function(data,
 
   # Handle test_cat_var
   if (!is.null(test_cat_var) && test_cat_var != "" && test_cat_var %in% names(test_data_standard)) {
-    test_data_standard <- test_data_standard %>%
-      rename(TESTCAT_orig = !!sym(test_cat_var))
+    test_data_standard$TESTCAT_orig <- test_data_standard[[test_cat_var]]
   } else {
     if (!is.null(test_cat_var) && test_cat_var != "" && !test_cat_var %in% names(test_data_standard)) {
       warning(paste0("Column not found in test dataset: ", test_cat_var, ", TESTCAT will be set to NA"))
