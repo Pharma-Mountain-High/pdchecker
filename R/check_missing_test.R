@@ -166,11 +166,11 @@ check_missing_test <- function(data,
   # Type 1: TESTCAT is empty (visit has no test records)
   testcat_empty <- visits_with_tests %>%
     filter(is.na(TESTCAT_ORIG) | TESTCAT_ORIG == "") %>%
-    group_by(SUBJID, VISIT, VISITNUM, visit_date, TBNAME) %>%
+    group_by(SUBJID, VISIT, VISITNUM, visit_date, TBNAME, TESTCAT) %>%
     summarise(.groups = "drop") %>%
     mutate(
       missing_type = "TESTCAT_EMPTY",
-      test_name = paste0("全部", as.character(TBNAME))
+      test_name = as.character(TESTCAT)
     )
 
   # Type 2: TESTCAT not empty, but entire TESTCAT missing

@@ -208,8 +208,8 @@ test_that("检测情况1：访视完全无检查记录（骨架行 TESTCAT_ORIG 
   subj002_v2 <- testcat_empty[testcat_empty$SUBJID == "002" & testcat_empty$VISIT == "V2", ]
   expect_equal(nrow(subj002_v2), 1)
 
-  # 检查 test_name 格式
-  expect_true(grepl("全部", subj002_v2$test_name))
+  # 检查 test_name 应为 TESTCAT 值
+  expect_equal(subj002_v2$test_name, "血常规")
 
   # 检查 TBNAME 列
   expect_equal(subj002_v2$TBNAME, "LB")
@@ -313,8 +313,7 @@ test_that("test_var 和 test 参数可以筛选特定检查项", {
     non_empty_testcat <- result$details |>
       dplyr::filter(!is.na(missing_type), missing_type != "TESTCAT_EMPTY")
     if (nrow(non_empty_testcat) > 0) {
-      # test_name 应该包含"血常规"或者是"全部LB"
-      expect_true(all(grepl("血常规|全部", result$details$test_name)))
+      expect_true(all(grepl("血常规", non_empty_testcat$test_name)))
     }
   }
 })
@@ -625,9 +624,9 @@ test_that("同一受试者同一访视所有 TESTCAT 均无数据只输出一条
 
   result <- check_missing_test(data = test_data)
 
-  # 全部无数据的情况应该只有一条 TESTCAT_EMPTY 记录
+  # 全部无数据的情况，按 TESTCAT 分组后应有两条 TESTCAT_EMPTY 记录（血常规、血生化）
   testcat_empty <- result$details[result$details$missing_type == "TESTCAT_EMPTY", ]
-  expect_equal(nrow(testcat_empty), 1)
+  expect_equal(nrow(testcat_empty), 2)
 })
 
 

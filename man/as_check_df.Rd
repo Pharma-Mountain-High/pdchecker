@@ -18,6 +18,9 @@ Data frame with standardized check results containing columns:
 \item{check_name}{Character. Name of the check}
 \item{has_deviation}{Logical. Whether deviation was found}
 \item{message}{Character. Summary message (collapsed from messages vector)}
+\item{PDNO}{Character. Protocol deviation number (NA when details is empty)}
+\item{SUBJID}{Character. Subject ID (NA when details is empty)}
+\item{DESCRIPTION}{Character. Description of the deviation (NA when details is empty)}
 \item{...}{Additional columns from details if present}
 }
 }

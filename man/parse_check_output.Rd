@@ -25,6 +25,8 @@ Data frame with standardized check results containing columns:
 \item{has_deviation}{Logical. Whether deviation was found}
 \item{message}{Character. Summary findings message}
 \item{details}{Character. Detailed deviation information}
+\item{PDNO}{Character. Protocol deviation number (NA by default)}
+\item{DESCRIPTION}{Character. Description of the deviation (NA by default)}
 }
 }
 \description{

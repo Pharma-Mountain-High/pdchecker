@@ -158,6 +158,9 @@ is_sas_na <- function(x) {
 #'   \item{check_name}{Character. Name of the check}
 #'   \item{has_deviation}{Logical. Whether deviation was found}
 #'   \item{message}{Character. Summary message (collapsed from messages vector)}
+#'   \item{PDNO}{Character. Protocol deviation number (NA when details is empty)}
+#'   \item{SUBJID}{Character. Subject ID (NA when details is empty)}
+#'   \item{DESCRIPTION}{Character. Description of the deviation (NA when details is empty)}
 #'   \item{...}{Additional columns from details if present}
 #' }
 #'
@@ -186,24 +189,19 @@ as_check_df <- function(check_result, check_name = NULL) {
     }
   }
 
-  # Initialize empty result data frame
+  # Build basic result data frame
   result_df <- data.frame(
-    check_name = character(),
-    has_deviation = logical(),
-    message = character(),
-    stringsAsFactors = FALSE
-  )
-
-  # Add main check information
-  result_df <- rbind(result_df, data.frame(
     check_name = check_name,
     has_deviation = check_result$has_deviation,
     message = ifelse(length(check_result$messages) > 0,
       paste(check_result$messages, collapse = "; "),
       NA_character_
     ),
+    PDNO = NA_character_,
+    SUBJID = NA_character_,
+    DESCRIPTION = NA_character_,
     stringsAsFactors = FALSE
-  ))
+  )
 
   # Add details if available
   if (!is.null(check_result$details) && nrow(check_result$details) > 0) {
@@ -311,6 +309,8 @@ combine_check_results <- function(...) {
 #'   \item{has_deviation}{Logical. Whether deviation was found}
 #'   \item{message}{Character. Summary findings message}
 #'   \item{details}{Character. Detailed deviation information}
+#'   \item{PDNO}{Character. Protocol deviation number (NA by default)}
+#'   \item{DESCRIPTION}{Character. Description of the deviation (NA by default)}
 #' }
 #'
 #' @examples
@@ -476,6 +476,8 @@ parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = N
               has_deviation = has_deviation,
               message = message,
               details = line, # Just include this specific line
+              PDNO = NA_character_,
+              DESCRIPTION = NA_character_,
               stringsAsFactors = FALSE
             )
           }
@@ -496,6 +498,8 @@ parse_check_output <- function(text = NULL, capture_output = FALSE, check_fn = N
     has_deviation = has_deviation,
     message = message,
     details = details,
+    PDNO = NA_character_,
+    DESCRIPTION = NA_character_,
     stringsAsFactors = FALSE
   )
 
@@ -579,6 +583,9 @@ capture_check_results <- function(..., data = NULL) {
           check_name = fn_name,
           has_deviation = FALSE,
           message = "No output captured",
+          PDNO = NA_character_,
+          SUBJID = NA_character_,
+          DESCRIPTION = NA_character_,
           stringsAsFactors = FALSE
         )
       }
