@@ -13,7 +13,7 @@
 
 ```r
 # install.packages("devtools")
-devtools::install_github("Pharma-Mountain-High/pdchecker", build_vignettes = TRUE)
+devtools::install_github("Pharma-Mountain-High/pdchecker", build_vignettes = TRUE, upgrade = "never")
 ```
 
 **方式二：下载压缩包本地安装**
@@ -21,10 +21,10 @@ devtools::install_github("Pharma-Mountain-High/pdchecker", build_vignettes = TRU
 从 [Releases](https://github.com/Pharma-Mountain-High/pdchecker/releases) 页面下载 `.tar.gz` 源码包，然后本地安装：
 
 ```r
-install.packages("pdchecker_0.0.0.9000.tar.gz", repos = NULL, type = "source")
+install.packages("pdchecker_0.1.0.tar.gz", repos = NULL, type = "source")
 ```
 
-> **注意**：通过方式一安装时需要加 `build_vignettes = TRUE` 参数，否则用户手册不会被构建，`vignette("guide")` 将无法使用。
+> **注意**：通过方式一安装时需要加 `build_vignettes = TRUE` 参数，否则用户手册不会被构建，`vignette("guide")` 将无法使用。`upgrade = "never"` 表示不自动更新已安装的依赖包，避免安装过程中弹出更新提示；如需同时更新依赖可去掉此参数。
 
 ## 用户手册
 
@@ -34,7 +34,7 @@ install.packages("pdchecker_0.0.0.9000.tar.gz", repos = NULL, type = "source")
 vignette("guide", package = "pdchecker")
 ```
 
-也可以在帮助系统中浏览：
+也可以在浏览器中浏览：
 
 ```r
 browseVignettes("pdchecker")
@@ -216,6 +216,7 @@ testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
 
 | 函数 | 说明 |
 |------|------|
+| `as_check_df()` | 将单个检查结果转换为标准化数据框 |
 | `capture_check_results()` | 批量运行多个检查函数并合并结果 |
 | `combine_check_results()` | 合并多个检查结果数据框 |
 | `generate_markdown_report()` | 生成 Markdown 格式报告 |

@@ -1,6 +1,6 @@
 Package: pdchecker
 Title: Protocol Deviation Checker for Clinical Trials
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R:
     person("Qinghuan", "Wang", , "qinghuan.wang@qilu-pharma.com", role = c("aut", "cre"))
 Description: Automates the detection of protocol deviations in clinical
@@ -9,9 +9,10 @@ Description: Automates the detection of protocol deviations in clinical
     subject, and perform checks on informed consent timing, visit
     compliance, and laboratory test completeness. Results can be exported
     as Markdown, HTML, or Excel reports.
-License: Apache License (>= 2)
+License: Apache License 2.0
 URL: https://github.com/Pharma-Mountain-High/pdchecker
 BugReports: https://github.com/Pharma-Mountain-High/pdchecker/issues
+Depends: R (>= 4.1.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3

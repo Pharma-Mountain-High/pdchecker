@@ -1,4 +1,4 @@
-# pdchecker 0.0.0.9000
+# pdchecker 0.1.0
 
 初始开发版本。
 
@@ -31,6 +31,7 @@
 
 ## 结果处理与报告
 
+- 新增 `as_check_df()`：将单个检查结果转换为标准化数据框。
 - 新增 `combine_check_results()`：合并多个检查结果为统一数据框。
 - 新增 `capture_check_results()`：批量运行多个检查函数并合并结果。
 - 新增 `generate_excel_report()`：生成包含汇总和明细两个工作表的 Excel 报告。
