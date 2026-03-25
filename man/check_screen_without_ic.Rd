@@ -4,14 +4,110 @@
 \alias{check_screen_without_ic}
 \title{Check for screened subjects without informed consent}
 \usage{
-check_screen_without_ic(data)
+check_screen_without_ic(
+  data,
+  sv_dataset = getOption("pdchecker.sv_dataset", "SV"),
+  ic_dataset = getOption("pdchecker.ic_dataset", "IC"),
+  sv_visit_var = getOption("pdchecker.sv_visit_var", "VISIT"),
+  visit_pattern = "Screening|screening",
+  ic_date_var = getOption("pdchecker.ic_date_var", "ICDAT"),
+  pdno = "2.4.1"
+)
 }
 \arguments{
 \item{data}{List of data frames containing study data}
+
+\item{sv_dataset}{Character string specifying which dataset to use for visit data (default: "SV")}
+
+\item{ic_dataset}{Character string specifying which dataset to use for informed consent data (default: "IC")}
+
+\item{sv_visit_var}{Character string specifying the variable name for visit in visit dataset (default: "VISIT")}
+
+\item{visit_pattern}{Character string or vector specifying the pattern(s) to
+identify screening visits (default: "Screening|screening")}
+
+\item{ic_date_var}{Character string specifying the variable name for informed
+consent date in IC dataset (default: "ICDAT")}
+
+\item{pdno}{Character string specifying the protocol deviation number for this check (default: "2.4.1")}
 }
 \value{
-List containing check results and descriptions
+A list of class "screen_ic_check" containing:
+\describe{
+\item{has_deviation}{Logical value indicating whether any deviation was found.
+\code{TRUE} if subjects with screening visits but without informed consent were found,
+\code{FALSE} otherwise.}
+\item{messages}{Character vector of deviation messages.}
+\item{details}{Data frame containing the following columns:
+\describe{
+\item{PDNO}{Protocol deviation number specified by \code{pdno} parameter.}
+\item{SUBJID}{Subject IDs who have screening visits but no informed consent date.}
+\item{VISIT}{Visit name from the visit dataset.}
+\item{DESCRIPTION}{Description of the deviation for each subject.}
+}
+Returns empty data frame with these columns if no deviations found.}
+}
 }
 \description{
 Check for screened subjects without informed consent
 }
+\examples{
+\dontrun{
+# Example 1: Basic usage with default parameters
+data <- list(
+  SV = data.frame(
+    SUBJID = c("001", "002", "003"),
+    VISIT = c("Screening", "Screening", "C1D1")
+  ),
+  IC = data.frame(
+    SUBJID = c("001", "002"),
+    ICDAT = c("2024-01-01", "2024-01-02")
+  )
+)
+result <- check_screen_without_ic(data)
+print(result)
+
+# Example 2: Using custom dataset names
+data2 <- list(
+  VIS = data.frame(
+    SUBJID = c("001", "002"),
+    VISIT = c("Screening", "Screening")
+  ),
+  ICF = data.frame(
+    SUBJID = c("001"),
+    ICDAT = c("2024-01-01")
+  )
+)
+result2 <- check_screen_without_ic(
+  data2,
+  sv_dataset = "VIS",
+  ic_dataset = "ICF"
+)
+
+# Example 3: Using custom variable names and visit pattern
+data3 <- list(
+  SV = data.frame(
+    SUBJID = c("001", "002", "003"),
+    VISITNAME = c("Scr", "Scr", "Treatment")
+  ),
+  IC = data.frame(
+    SUBJID = c("001", "002"),
+    ICFDAT = c("2024-01-01", "2024-01-02")
+  )
+)
+result3 <- check_screen_without_ic(
+  data3,
+  sv_visit_var = "VISITNAME",
+  visit_pattern = "Scr",
+  ic_date_var = "ICFDAT"
+)
+}
+
+}
+\seealso{
+\code{\link[=check_icf_time_deviation]{check_icf_time_deviation()}} for checking events before informed consent
+
+Other deviation checks: 
+\code{\link{check_icf_time_deviation}()}
+}
+\concept{deviation checks}

@@ -13,6 +13,8 @@ on:
       - ready_for_review
     branches:
       - main
+      - devel
+      - devel-qinghuan
   workflow_dispatch:
   workflow_call:
     secrets:

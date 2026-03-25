@@ -9,11 +9,54 @@ as_check_df(check_result, check_name = NULL)
 \arguments{
 \item{check_result}{List containing check results from any check function}
 
-\item{check_name}{Name of the check (optional, will be extracted from class if not provided)}
+\item{check_name}{Character string. Name of the check (optional, will be extracted
+from the object's class attribute if not provided)}
 }
 \value{
-Data frame with standardized check results
+Data frame with standardized check results containing columns:
+\describe{
+\item{check_name}{Character. Name of the check}
+\item{has_deviation}{Logical. Whether deviation was found}
+\item{message}{Character. Summary message (collapsed from messages vector)}
+\item{PDNO}{Character. Protocol deviation number (NA when details is empty)}
+\item{SUBJID}{Character. Subject ID (NA when details is empty)}
+\item{DESCRIPTION}{Character. Description of the deviation (NA when details is empty)}
+\item{...}{Additional columns from details if present}
+}
 }
 \description{
-Convert check results to a standardized data frame
+Converts check result objects (lists) into standardized data frames for easier
+manipulation and reporting. This function is particularly useful for combining
+results from multiple checks.
 }
+\details{
+The function expects check_result to be a list with at least the following components:
+\describe{
+\item{has_deviation}{Logical. Whether any deviation was found}
+\item{messages}{Character vector. Summary messages}
+\item{details}{Data frame (optional). Detailed deviation information}
+}
+
+If details are present and non-empty, the function returns the detailed data frame
+with added check_name and has_deviation columns. Otherwise, it returns a summary
+data frame with one row.
+}
+\examples{
+\dontrun{
+# Convert a check result to data frame
+check_result <- list(
+  has_deviation = TRUE,
+  messages = c("Found 2 deviations"),
+  details = data.frame(SUBJID = c("001", "002"), issue = c("A", "B"))
+)
+df <- as_check_df(check_result, check_name = "my_check")
+}
+
+}
+\seealso{
+Other check result utilities: 
+\code{\link{capture_check_results}()},
+\code{\link{combine_check_results}()},
+\code{\link{parse_check_output}()}
+}
+\concept{check result utilities}

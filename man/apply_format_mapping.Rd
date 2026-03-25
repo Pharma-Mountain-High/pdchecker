@@ -7,13 +7,45 @@
 apply_format_mapping(data, format_df)
 }
 \arguments{
-\item{data}{List of data frames containing study data}
+\item{data}{Data frame or list of data frames containing study data}
 
-\item{format_df}{Data frame containing format information}
+\item{format_df}{Data frame containing format mapping information with columns:
+FMTNAME, START, and LABEL}
 }
 \value{
-List of data frames with mapped values
+Data frame or list of data frames with values mapped according to format_df
 }
 \description{
-Map values in data frames based on format information
+Map values in data frames based on format information, similar to SAS formats.
+This function applies value mappings defined in a format data frame to corresponding
+columns in the input data.
 }
+\note{
+\itemize{
+\item Column name matching is case-insensitive (converted to uppercase).
+\item If format_df is NULL or empty, the original data is returned unchanged.
+\item Unmapped values are preserved as-is.
+}
+}
+\examples{
+\dontrun{
+# Create sample format mapping
+format_df <- data.frame(
+  FMTNAME = c("SEX", "SEX"),
+  START = c("1", "2"),
+  LABEL = c("Male", "Female")
+)
+
+# Apply format mapping to data
+data <- data.frame(SUBJID = c("001", "002"), SEX = c("1", "2"))
+result <- apply_format_mapping(data, format_df)
+}
+
+}
+\seealso{
+\code{\link[=read_raw_data]{read_raw_data()}} which uses this function internally
+
+Other format utilities: 
+\code{\link{is_sas_na}()}
+}
+\concept{format utilities}

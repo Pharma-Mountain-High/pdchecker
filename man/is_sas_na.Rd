@@ -2,23 +2,40 @@
 % Please edit documentation in R/utils.R
 \name{is_sas_na}
 \alias{is_sas_na}
-\title{Check if the elements could be of any SAS missing data variant}
+\title{Check if elements could be SAS missing data variants}
 \usage{
 is_sas_na(x)
 }
 \arguments{
-\item{x}{vector with data}
+\item{x}{Vector with data to check}
 }
 \value{
-logical vector
+Logical vector indicating which elements are SAS missing values
 }
 \description{
-Missing Data from sas7bdat imported datesets could be imported in different
-ways we currently check for 'NA', NA, '.', and ''.
+Missing data from sas7bdat imported datasets could be imported in different
+ways. This function checks for 'NA', NA, '.', and '' (empty string).
+}
+\note{
+The following values are considered SAS missing:
+\itemize{
+\item R's NA values
+\item The string "NA"
+\item A single period "."
+\item Empty strings "" (after trimming whitespace)
+}
 }
 \examples{
-is_sas_na(c(1,2,NA))
-
-is_sas_na(c("a", NA, "NA", ""))
+\dontrun{
+# Check for SAS missing values
+x <- c("1", ".", "", NA, "NA", "valid")
+is_sas_na(x)
+# Returns: FALSE, TRUE, TRUE, TRUE, TRUE, FALSE
 }
-\keyword{internal}
+
+}
+\seealso{
+Other format utilities: 
+\code{\link{apply_format_mapping}()}
+}
+\concept{format utilities}
