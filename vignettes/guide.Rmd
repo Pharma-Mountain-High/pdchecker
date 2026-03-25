@@ -63,16 +63,18 @@ lb <- data$LB
 
 ---
 
-### 2.2 read_raw_data_with_formats() — 使用 SAS catalog 读取
+### 2.2 read_raw_data_with_formats() — 使用 SAS catalog 读取（推荐）
 
 使用 SAS 格式目录（`.sas7bcat`）读取数据并进行编码映射，适用于数据中包含编码值需要转换的场景。
+
+> **推荐**：优先使用 `read_raw_data_with_formats()` 而非 `read_raw_data()`。该函数通过 SAS catalog 文件自动完成编码值到标签的映射，无需额外准备 Excel 格式映射文件，流程更简洁，映射也更准确。
 
 ```r
 data <- read_raw_data_with_formats(
   data_dir     = "path/to/sas/files",
   catalog_file = "path/to/formats.sas7bcat",
   iwrs_file    = "path/to/iwrs.csv",   # 可选
-  encoding     = "GBK"                 # 中文数据常用 "GBK"
+  encoding     = "UTF-8"               # 默认使用 UTF-8 编码
 )
 ```
 
