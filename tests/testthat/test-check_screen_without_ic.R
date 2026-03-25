@@ -545,5 +545,5 @@ test_that("print方法正常工作 - 有偏离", {
   expect_output(print(result), "2.4.1 未签署知情同意书")
   expect_output(print(result), "Has deviation: YES")
   expect_output(print(result), "未签署知情同意书")
-  expect_output(print(result), "受试者编号002在未签署知情同意书的情况下进行了Screening访视")
+  expect_output(print(result), "受试者编号002，在未签署知情同意书的情况下进行了Screening访视")
 })
