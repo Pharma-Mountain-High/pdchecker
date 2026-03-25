@@ -166,7 +166,7 @@ check_screen_without_ic <- function(data,
       SUBJID = missing_ic$SUBJID,
       VISIT = missing_ic$VISIT,
       DESCRIPTION = sprintf(
-        "受试者编号%s在未签署知情同意书的情况下进行了%s访视。",
+        "受试者编号%s，在未签署知情同意书的情况下进行了%s访视。",
         missing_ic$SUBJID,
         missing_ic$VISIT
       ),
