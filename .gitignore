@@ -2,6 +2,7 @@
 .Rhistory
 .pre-commit-quickref.md
 CICD-GUIDE.md
+RELEASE_GUIDE.md
 .cursorrules
 .markdownlint.yaml
 parameter_overview.md
