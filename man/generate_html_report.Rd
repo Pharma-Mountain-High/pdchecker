@@ -38,8 +38,10 @@ all_results <- combine_check_results(res_1, res_2, res_3)
 generate_html_report(all_results, output_file = "report.html")
 
 # With custom title
-generate_html_report(all_results, output_file = "report.html",
-                     title = "PD Report - Study ABC")
+generate_html_report(all_results,
+  output_file = "report.html",
+  title = "PD Report - Study ABC"
+)
 }
 
 }

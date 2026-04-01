@@ -35,8 +35,10 @@ all_results <- combine_check_results(res_1, res_2, res_3)
 generate_excel_report(all_results, output_file = "pd_report.xlsx")
 
 # Include all checks (even those without deviations)
-generate_excel_report(all_results, output_file = "full_report.xlsx",
-                      include_no_deviation = TRUE)
+generate_excel_report(all_results,
+  output_file = "full_report.xlsx",
+  include_no_deviation = TRUE
+)
 }
 
 }

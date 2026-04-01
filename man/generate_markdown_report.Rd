@@ -38,8 +38,10 @@ generate_markdown_report(all_results, output_file = "report.md")
 report_text <- generate_markdown_report(all_results)
 
 # Include checks with no deviations
-generate_markdown_report(all_results, output_file = "full_report.md",
-                         include_no_deviation = TRUE)
+generate_markdown_report(all_results,
+  output_file = "full_report.md",
+  include_no_deviation = TRUE
+)
 }
 
 }
