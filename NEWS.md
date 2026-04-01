@@ -1,4 +1,4 @@
-# pdchecker 0.1.0.9001
+# pdchecker 0.5.0
 
 初始开发版本。
 

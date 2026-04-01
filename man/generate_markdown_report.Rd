@@ -26,3 +26,32 @@ Invisibly returns the report content as a character string
 \description{
 Generate markdown report from check results
 }
+\examples{
+\dontrun{
+# Combine check results first
+all_results <- combine_check_results(res_1, res_2, res_3)
+
+# Generate markdown report to file
+generate_markdown_report(all_results, output_file = "report.md")
+
+# Get report content as string
+report_text <- generate_markdown_report(all_results)
+
+# Include checks with no deviations
+generate_markdown_report(all_results,
+  output_file = "full_report.md",
+  include_no_deviation = TRUE
+)
+}
+
+}
+\seealso{
+\code{\link{generate_html_report}} for HTML format
+\code{\link{generate_excel_report}} for Excel format
+\code{\link{combine_check_results}} for combining check results
+
+Other report generation: 
+\code{\link{generate_excel_report}()},
+\code{\link{generate_html_report}()}
+}
+\concept{report generation}

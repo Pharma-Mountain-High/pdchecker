@@ -34,8 +34,4 @@ is_sas_na(x)
 }
 
 }
-\seealso{
-Other format utilities: 
-\code{\link{apply_format_mapping}()}
-}
 \concept{format utilities}
