@@ -12,11 +12,8 @@ Description: Automates the detection of protocol deviations in clinical
 License: Apache License 2.0
 URL: https://github.com/Pharma-Mountain-High/pdchecker
 BugReports: https://github.com/Pharma-Mountain-High/pdchecker/issues
-Depends: R (>= 4.1.0)
-Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
-Config/testthat/edition: 3
+Depends: 
+    R (>= 4.1.0)
 Imports:
     dplyr,
     haven,
@@ -27,7 +24,6 @@ Imports:
     readxl,
     rlang,
     tibble
-VignetteBuilder: knitr
 Suggests:
     knitr,
     mockery,
@@ -35,3 +31,9 @@ Suggests:
     testthat (>= 3.0.0),
     withr,
     writexl
+VignetteBuilder: 
+    knitr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
