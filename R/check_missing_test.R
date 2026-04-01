@@ -94,6 +94,38 @@
 #'     }
 #'   }
 #'
+#' @examples
+#' \dontrun{
+#' # Step 1: Read config and prepare test data
+#' testconfig <- read_testconfig_file("test_config.xlsx")
+#' prepared_lb <- prepare_test_data(
+#'   data = data,
+#'   test_dataset = "LB",
+#'   test_date_var = "LBDAT",
+#'   test_result_var = "ORRES"
+#' )
+#'
+#' # Step 2: Check all missing tests
+#' result <- check_missing_test(data = prepared_lb)
+#' print(result)
+#'
+#' # Check specific test only
+#' result <- check_missing_test(
+#'   data = prepared_lb,
+#'   test_var = "TESTDE",
+#'   test = "RBC Count"
+#' )
+#'
+#' # Only check overall missing, skip individual indicators
+#' result <- check_missing_test(data = prepared_lb, missing_de = FALSE)
+#' }
+#'
+#' @seealso
+#' \code{\link{prepare_test_data}} for preparing test data
+#' \code{\link{check_missing_visit}} for checking missing visits
+#'
+#' @family test checks
+#'
 #' @importFrom dplyr filter select mutate group_by summarise ungroup bind_rows sym
 #' @importFrom rlang .data
 #' @importFrom magrittr %>%

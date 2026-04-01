@@ -25,7 +25,24 @@ vignette: >
 
 在执行方案偏离检查之前，需要完成数据读取、加载配置文件、设置全局选项（可选）等准备工作。
 
-### 2.1 read_raw_data() — 读取 SAS 数据
+### 2.1 read_raw_data_with_formats() — 使用 SAS catalog 读取（推荐）
+
+使用 SAS 格式目录（`.sas7bcat`）读取数据并进行编码映射，适用于数据中包含编码值需要转换的场景。
+
+> **推荐**：优先使用 `read_raw_data_with_formats()` 而非 `read_raw_data()`。该函数通过 SAS catalog 文件自动完成编码值到标签的映射，无需额外准备 Excel 格式映射文件，流程更简洁，映射也更准确。
+
+```r
+data <- read_raw_data_with_formats(
+  data_dir     = "path/to/sas/files",
+  catalog_file = "path/to/formats.sas7bcat",
+  iwrs_file    = "path/to/iwrs.csv",   # 可选
+  encoding     = "UTF-8"               # 默认使用 UTF-8 编码
+)
+```
+
+---
+
+### 2.2 read_raw_data() — 读取 SAS 数据
 
 扫描指定目录，批量读取所有 SAS 格式文件（`.sas7bdat`），可选附加 IWRS CSV 和 Excel 格式映射文件。
 
@@ -60,23 +77,6 @@ lb <- data$LB
 - 所有列名统一转换为大写
 - 格式映射优先级：Excel 格式文件 > SAS 格式文件
 - 读取失败的数据集会自动跳过并发出警告
-
----
-
-### 2.2 read_raw_data_with_formats() — 使用 SAS catalog 读取（推荐）
-
-使用 SAS 格式目录（`.sas7bcat`）读取数据并进行编码映射，适用于数据中包含编码值需要转换的场景。
-
-> **推荐**：优先使用 `read_raw_data_with_formats()` 而非 `read_raw_data()`。该函数通过 SAS catalog 文件自动完成编码值到标签的映射，无需额外准备 Excel 格式映射文件，流程更简洁，映射也更准确。
-
-```r
-data <- read_raw_data_with_formats(
-  data_dir     = "path/to/sas/files",
-  catalog_file = "path/to/formats.sas7bcat",
-  iwrs_file    = "path/to/iwrs.csv",   # 可选
-  encoding     = "UTF-8"               # 默认使用 UTF-8 编码
-)
-```
 
 ---
 
@@ -169,7 +169,7 @@ visitcode <- read_visitcode_file("visit_schedule.csv")
 
 ---
 
-### 2.4 read_testconfig_file() — 读取检查配置文件
+### 2.4 read_testconfig_file() — 读取检查项配置文件
 
 读取检查项配置文件，定义每个检查类别在哪些访视执行。VISITNUM 列支持逗号分隔，函数会自动展开为多行。
 
@@ -892,28 +892,6 @@ is_sas_na("abc") # FALSE
 ```r
 result <- check_icf_time_deviation(data)
 df <- as_check_df(result, check_name = "icf_time_deviation")
-```
-
----
-
-### 9.3 apply_format_mapping() — 格式映射
-
-将格式映射应用到数据集，类似 SAS 的 format 功能。
-
-**参数：**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `data` | 数据框 | 要映射的数据 |
-| `format_df` | 数据框 | 包含 `FMTNAME`、`START`、`LABEL` 列的格式映射表 |
-
-```r
-format_df <- data.frame(
-  FMTNAME = c("SEX", "SEX"),
-  START   = c("1", "2"),
-  LABEL   = c("Male", "Female")
-)
-result <- apply_format_mapping(data$DM, format_df)
 ```
 
 ---

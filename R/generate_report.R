@@ -5,6 +5,32 @@
 #' @param include_no_deviation Whether to include checks with no deviations (default: FALSE)
 #' @param title Report title (default: "Study Deviation Report")
 #' @return Invisibly returns the report content as a character string
+#'
+#' @examples
+#' \dontrun{
+#' # Combine check results first
+#' all_results <- combine_check_results(res_1, res_2, res_3)
+#'
+#' # Generate markdown report to file
+#' generate_markdown_report(all_results, output_file = "report.md")
+#'
+#' # Get report content as string
+#' report_text <- generate_markdown_report(all_results)
+#'
+#' # Include checks with no deviations
+#' generate_markdown_report(all_results,
+#'   output_file = "full_report.md",
+#'   include_no_deviation = TRUE
+#' )
+#' }
+#'
+#' @seealso
+#' \code{\link{generate_html_report}} for HTML format
+#' \code{\link{generate_excel_report}} for Excel format
+#' \code{\link{combine_check_results}} for combining check results
+#'
+#' @family report generation
+#'
 #' @importFrom dplyr filter group_by summarize arrange n bind_rows select_if if_else
 #' @export
 generate_markdown_report <- function(checks_df, output_file = NULL,
@@ -140,6 +166,28 @@ generate_markdown_report <- function(checks_df, output_file = NULL,
 #' @param title Report title (default: "Study Deviation Report")
 #' @param css_file Path to CSS file for styling (optional)
 #' @return Invisibly returns the output file path
+#'
+#' @examples
+#' \dontrun{
+#' # Combine check results first
+#' all_results <- combine_check_results(res_1, res_2, res_3)
+#'
+#' # Generate HTML report
+#' generate_html_report(all_results, output_file = "report.html")
+#'
+#' # With custom title
+#' generate_html_report(all_results,
+#'   output_file = "report.html",
+#'   title = "PD Report - Study ABC"
+#' )
+#' }
+#'
+#' @seealso
+#' \code{\link{generate_markdown_report}} for Markdown format
+#' \code{\link{generate_excel_report}} for Excel format
+#'
+#' @family report generation
+#'
 #' @export
 generate_html_report <- function(checks_df, output_file,
                                  include_no_deviation = FALSE,
@@ -219,6 +267,29 @@ generate_html_report <- function(checks_df, output_file,
 #' @param include_no_deviation Whether to include checks with no deviations (default: FALSE)
 #' @param title Report title (default: "Study Deviation Report")
 #' @return Invisibly returns the output file path
+#'
+#' @examples
+#' \dontrun{
+#' # Combine check results first
+#' all_results <- combine_check_results(res_1, res_2, res_3)
+#'
+#' # Generate Excel report
+#' generate_excel_report(all_results, output_file = "pd_report.xlsx")
+#'
+#' # Include all checks (even those without deviations)
+#' generate_excel_report(all_results,
+#'   output_file = "full_report.xlsx",
+#'   include_no_deviation = TRUE
+#' )
+#' }
+#'
+#' @seealso
+#' \code{\link{generate_markdown_report}} for Markdown format
+#' \code{\link{generate_html_report}} for HTML format
+#' \code{\link{combine_check_results}} for combining check results
+#'
+#' @family report generation
+#'
 #' @importFrom dplyr desc across all_of mutate select arrange
 #' @importFrom rlang .data
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook setColWidths createStyle addFilter addStyle

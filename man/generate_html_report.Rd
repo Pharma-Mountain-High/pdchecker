@@ -29,3 +29,26 @@ Invisibly returns the output file path
 \description{
 Generate HTML report from check results
 }
+\examples{
+\dontrun{
+# Combine check results first
+all_results <- combine_check_results(res_1, res_2, res_3)
+
+# Generate HTML report
+generate_html_report(all_results, output_file = "report.html")
+
+# With custom title
+generate_html_report(all_results, output_file = "report.html",
+                     title = "PD Report - Study ABC")
+}
+
+}
+\seealso{
+\code{\link{generate_markdown_report}} for Markdown format
+\code{\link{generate_excel_report}} for Excel format
+
+Other report generation: 
+\code{\link{generate_excel_report}()},
+\code{\link{generate_markdown_report}()}
+}
+\concept{report generation}

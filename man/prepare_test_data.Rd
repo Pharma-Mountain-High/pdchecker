@@ -158,3 +158,38 @@ SUBJID, VISIT, VISITNUM, TBNAME, TESTCAT, TESTDE, TESTYN, TESTDAT, ORRES, other 
 }
 }
 }
+\examples{
+\dontrun{
+# Read test config
+testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
+
+# Prepare LB test data
+lb_prepared <- prepare_test_data(
+  data = data,
+  test_dataset = "LB",
+  test_date_var = "LBDAT",
+  test_cat_var = "LBCAT",
+  test_result_var = "ORRES",
+  config = testconfig
+)
+
+# Prepare EG test data with subject filter
+eg_prepared <- prepare_test_data(
+  data = data,
+  test_dataset = "EG",
+  test_date_var = "EGDAT",
+  test_cat_var = "EGCAT",
+  config = testconfig,
+  filter_cond = "ENROL|ENRYN=='Y'"
+)
+
+# Then check for missing tests
+result <- check_missing_test(data = lb_prepared)
+}
+
+}
+\seealso{
+\code{\link{check_missing_test}} for checking missing tests
+\code{\link{read_testconfig_file}} for reading test config files
+}
+\concept{data preparation}
