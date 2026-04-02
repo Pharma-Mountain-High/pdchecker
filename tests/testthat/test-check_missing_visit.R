@@ -138,7 +138,7 @@ test_that("check_missing_visit details 包含所有必需的列", {
   expected_cols <- c(
     "PDNO", "SUBJID", "first_dose_date", "VISIT", "VISITNUM", "planned_date",
     "visittype", "eot_date", "eos_date", "cutoffdt",
-    "valid_visits_count", "completed_visits_count", "DESCRIPTION"
+    "valid_visits_count", "completed_visits_count", "TBNAME", "DESCRIPTION"
   )
 
   expect_true(all(expected_cols %in% names(result$details)))

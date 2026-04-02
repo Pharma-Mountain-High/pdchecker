@@ -64,6 +64,7 @@
 #'         \item cutoffdt: Data cutoff date
 #'         \item valid_visits_count: Total visits that should be completed
 #'         \item completed_visits_count: Actual completed visits
+#'         \item TBNAME: Table name from planned_dates, empty if not available
 #'         \item DESCRIPTION: Description of the deviation for each record
 #'       }
 #'     }
@@ -240,6 +241,11 @@ check_missing_visit <- function(planned_dates,
           cutoffdt = cutoffdt,
           valid_visits_count = nrow(valid_planned_visits),
           completed_visits_count = completed_count,
+          TBNAME = if ("TBNAME" %in% names(missing_visit_subset)) {
+            as.character(missing_visit_subset$TBNAME[i])
+          } else {
+            ""
+          },
           DESCRIPTION = sprintf(
             "受试者编号%s，首次用药时间为%s，计划进行的%s访视遗漏。",
             subj_id,

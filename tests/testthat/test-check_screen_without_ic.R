@@ -507,7 +507,7 @@ test_that("messages是字符向量", {
   expect_type(result$messages, "character")
 })
 
-test_that("details是数据框", {
+test_that("details是数据框且包含TBNAME列", {
   data <- list(
     SV = data.frame(SUBJID = c("001"), VISIT = c("Screening")),
     IC = data.frame(SUBJID = c("001"), ICDAT = c("2024-01-01"))
@@ -516,6 +516,7 @@ test_that("details是数据框", {
   result <- check_screen_without_ic(data)
 
   expect_s3_class(result$details, "data.frame")
+  expect_true("TBNAME" %in% names(result$details))
 })
 
 # =============================================================================

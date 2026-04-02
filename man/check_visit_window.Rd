@@ -34,6 +34,7 @@ List with the following components:
 \item deviation_days: Days deviated from planned (positive=late, negative=early)
 \item total_completed_visits: Total completed visits for subject
 \item out_of_window_count: Number of out-of-window visits
+\item TBNAME: Table name from planned_dates, empty if not available
 \item DESCRIPTION: Description of the deviation for each record
 }
 }

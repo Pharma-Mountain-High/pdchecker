@@ -55,6 +55,8 @@
 #' @param ds_dataset Character string, disposition dataset name (default: "DS").
 #'   If dataset doesn't exist, EOS-related planned dates will be NA
 #' @param ds_date_var Character string, end of study date variable (default: "DSDAT")
+#' @param tb_name_var Character string specifying the variable name to use as TBNAME in the output (default: NULL).
+#'   If NULL or the column does not exist in the visit dataset, the TBNAME column in the output will be empty.
 #' @param cycle_days Numeric, treatment cycle length in days (default: 28).
 #'   Used to calculate subsequent cycle D1 planned dates
 #'
@@ -77,6 +79,7 @@
 #'     \item{last_dose_date}{Date. Subject's last dose date}
 #'     \item{eot_date}{Date. Subject's end of treatment date}
 #'     \item{eos_date}{Date. Subject's end of study date}
+#'     \item{TBNAME}{Character. Table name from the variable specified by \code{tb_name_var}, empty if \code{tb_name_var} is NULL}
 #'   }
 #'
 #' @examples
@@ -176,6 +179,7 @@ generate_planned_visit_dates <- function(data,
                                          eot_date_var = getOption("pdchecker.eot_date_var", "EOTDAT"),
                                          ds_dataset = getOption("pdchecker.ds_dataset", "DS"),
                                          ds_date_var = getOption("pdchecker.ds_date_var", "DSDAT"),
+                                         tb_name_var = getOption("pdchecker.tb_name_var", NULL),
                                          cycle_days = 28) {
   # ============================================================================
   # Parameter validation
@@ -259,6 +263,11 @@ generate_planned_visit_dates <- function(data,
         ", ex_end_date_var length: ", length(ex_end_date_var)
       )
     }
+  }
+
+  # Validate tb_name_var parameter
+  if (!is.null(tb_name_var) && (!is.character(tb_name_var) || length(tb_name_var) != 1)) {
+    stop("'tb_name_var' must be NULL or a single character string")
   }
 
   # Validate sv_dataset exists
@@ -375,8 +384,19 @@ generate_planned_visit_dates <- function(data,
     )
   })
 
-  # Return result
+  # Add TBNAME from visit dataset
+  has_tb_name <- !is.null(tb_name_var) && tb_name_var %in% names(sv_data)
+
   if (nrow(planned_dates) > 0) {
+    if (has_tb_name) {
+      tb_values <- sv_data[[tb_name_var]]
+      tb_values <- tb_values[!is.na(tb_values) & tb_values != ""]
+      tbname_value <- if (length(tb_values) > 0) as.character(tb_values[1]) else ""
+      planned_dates <- planned_dates %>% mutate(TBNAME = tbname_value)
+    } else {
+      planned_dates <- planned_dates %>% mutate(TBNAME = "")
+    }
+
     result <- planned_dates %>%
       arrange(SUBJID, actual_date)
     return(result)

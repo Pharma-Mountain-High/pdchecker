@@ -33,6 +33,7 @@ List with the following components:
 \item cutoffdt: Data cutoff date
 \item valid_visits_count: Total visits that should be completed
 \item completed_visits_count: Actual completed visits
+\item TBNAME: Table name from planned_dates, empty if not available
 \item DESCRIPTION: Description of the deviation for each record
 }
 }
