@@ -1,93 +1,275 @@
-# Hengshan
+# pdchecker
 
 
 
-## Getting started
+[Lifecycle: experimental](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
 
-## Add your files
+**pdchecker** (Protocol Deviation Checker) 是一个用于临床试验方案偏离自动检测的 R 包。目前包括数据读取、访视缺失/超窗、检查项缺失、知情同意检查等功能，并支持将结果导出为 Excel 报告。
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## 安装
 
-```
-cd existing_repo
-git remote add origin https://gitlab.qilu-pharma.com/mountain-high/hengshan.git
-git branch -M main
-git push -uf origin main
+**方式一：从 GitHub 安装**
+
+```r
+# install.packages("devtools")
+devtools::install_github("Pharma-Mountain-High/pdchecker", build_vignettes = TRUE, upgrade = "never")
 ```
 
-## Integrate with your tools
+**方式二：下载压缩包本地安装**
 
-- [ ] [Set up project integrations](https://gitlab.qilu-pharma.com/mountain-high/hengshan/-/settings/integrations)
+从 [Releases](https://github.com/Pharma-Mountain-High/pdchecker/releases) 页面下载 `.tar.gz` 源码包，然后本地安装：
 
-## Collaborate with your team
+```r
+install.packages("pdchecker_0.1.0.tar.gz", repos = NULL, type = "source")
+```
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+> **注意**：通过方式一安装时需要加 `build_vignettes = TRUE` 参数，否则用户手册不会被构建，`vignette("guide")` 将无法使用。`upgrade = "never"` 表示不自动更新已安装的依赖包，避免安装过程中弹出更新提示；如需同时更新依赖可去掉此参数。
 
-## Test and Deploy
+## 用户手册
 
-Use the built-in continuous integration in GitLab.
+安装包后可查阅完整的用户手册，其中包含每个函数的详细参数说明、返回值描述和使用示例：
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+```r
+vignette("guide", package = "pdchecker")
+```
 
-***
+也可以在浏览器中浏览：
 
-# Editing this README
+```r
+browseVignettes("pdchecker")
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## 快速开始
 
-## Suggestions for a good README
+```r
+library(pdchecker)
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+# 1. 读取临床数据（推荐使用 read_raw_data_with_formats）
+data <- read_raw_data_with_formats(
+  data_dir     = "path/to/sas/datasets",
+  catalog_file = "path/to/formats.sas7bcat"
+)
 
-## Name
-Choose a self-explaining name for your project.
+# 2. 读取配置文件
+visitcode  <- read_visitcode_file("path/to/visit_schedule.xlsx")
+testconfig <- read_testconfig_file("path/to/test_config.xlsx", visitcode = visitcode)
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+# 3. 生成计划访视日期
+planned_dates <- generate_planned_visit_dates(data, cycle_days = 28)
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+# 4. 准备检查项数据
+prepared_lb <- prepare_test_data(data, test_dataset = "LB")
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+# 5. 执行方案偏离检查
+res_1 <- check_screen_without_ic(data)       # 筛查但无知情同意
+res_2 <- check_icf_time_deviation(data)      # 知情同意前操作
+res_3 <- check_missing_visit(planned_dates)  # 遗漏访视
+res_4 <- check_visit_window(planned_dates)   # 访视超窗
+res_5 <- check_missing_test(prepared_lb)     # LB 检查项缺失
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+# 6. 合并所有结果
+all_results <- combine_check_results(
+  res_1,res_2,res_3,res_4,res_5
+)
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+# 7. 生成报告
+generate_excel_report(all_results, "pd_report.xlsx")
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+## 外部配置文件说明
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+pdchecker 需要两个外部配置文件：**访视计划文件**和**检查项配置文件**，均支持 Excel（`.xlsx`/`.xls`）和 CSV 格式。
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### 访视计划文件
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+用于 `read_visitcode_file()` 读取，供 `generate_planned_visit_dates()` 生成计划访视日期。
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+**必需列：**
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
 
-## License
-For open source projects, say how it is licensed.
+| 列名       | 说明               | 示例    |
+| -------- | ---------------- | ----- |
+| VISIT    | 访视名称             | C1D1  |
+| VISITNUM | 访视编号（数值）         | 1     |
+| WP       | 窗口期              | ±3d   |
+| CYCLE    | 周期描述（用于自动识别访视类别） | 治疗周期1 |
+| VISITDAY | 访视日（见下方格式说明）     | 8     |
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+
+**VISITDAY 列支持的格式：**
+
+
+| 格式                     | 适用访视类别                       | 含义           | 示例                     |
+| ---------------------- | ---------------------------- | ------------ | ---------------------- |
+| 数字                     | treatment                    | 相对于周期 D1 的天数 | `1`、`8`、`15`           |
+| 负数                     | screening                    | 相对于首次给药的天数   | `-28`（筛选期前28天）         |
+| `FD` 或 `First Dose`    | pre_treatment                | 首次给药日期       | FD                     |
+| `LD+N` 或 `Last Dose+N` | follow_up                    | 末次给药后 N 天    | `LD+28`、`Last Dose+60` |
+| `EOT`                  | end_of_treatment             | 治疗结束日期       | EOT                    |
+| `EOT+N`                | end_of_treatment / follow_up | 治疗结束后 N 天    | `EOT+7`、`EOT+30`       |
+| `EOS`                  | end_of_study                 | 研究结束日期       | EOS                    |
+
+
+**WP 列支持的格式：**
+
+
+| 格式              | 含义            | 转换结果 |
+| --------------- | ------------- | ---- |
+| `±3d` 或 `+/-3d` | 前后 N 天        | ±3 天 |
+| `+7d`           | 后 N 天内        | +7 天 |
+| `-3d`           | 前 N 天内        | -3 天 |
+| `≤3d` 或 `<=3d`  | 不超过 N 天       | ≤3 天 |
+| `24h` 或 `24小时`  | 小时（自动 ÷24 转天） | 1 天  |
+| `2w` 或 `2周`     | 周（自动 ×7 转天）   | 14 天 |
+| 空值              | 无窗口期限制        | —    |
+
+
+**CYCLE 列自动识别访视类别：**
+
+
+| CYCLE 关键词               | 识别为              |
+| ----------------------- | ---------------- |
+| 筛选 / Screening          | screening        |
+| 预治疗 / 预激                | pre_treatment    |
+| 治疗（不含"治疗结束"）/ Cycle     | treatment        |
+| 治疗结束 / End of Treatment | end_of_treatment |
+| 随访 / Follow             | follow_up        |
+
+
+**示例文件：**
+
+
+| VISIT | VISITNUM | WP  | CYCLE | VISITDAY |
+| ----- | -------- | --- | ----- | -------- |
+| 筛选访视  | 0        |     | 筛选    | -28      |
+| C1D1  | 1        | ±1d | 治疗周期1 | 1        |
+| C1D8  | 2        | ±2d | 治疗周期1 | 8        |
+| C1D15 | 3        | ±2d | 治疗周期1 | 15       |
+| C2D1  | 4        | ±3d | 治疗周期2 | 1        |
+| EOT   | 99       | +7d | 治疗结束  | EOT      |
+| FU1   | 100      | ±7d | 随访    | LD+28    |
+| EOS   | 999      |     | 研究结束  | EOS      |
+
+
+```r
+visitcode <- read_visitcode_file("visit_schedule.xlsx")
+```
+
+### 检查项配置文件
+
+用于 `read_testconfig_file()` 读取，定义每个检查类别需要在哪些访视执行，供 `check_missing_test()` 使用。
+
+**必需列：**
+
+
+| 列名       | 说明            | 示例         |
+| -------- | ------------- | ---------- |
+| TESTCAT  | 检查类别名称        | 血常规        |
+| VISITNUM | 需执行的访视编号，逗号分隔 | 0,1,4,6,99 |
+
+
+VISITNUM 列支持中英文逗号分隔，函数会自动展开为多行。
+
+**示例文件：**
+
+
+| TESTCAT | VISITNUM         |
+| ------- | ---------------- |
+| 血常规     | 0,1,4,6,99       |
+| 生化      | 0,1,4,6,99       |
+| 尿常规     | 0,1,99           |
+| 凝血功能    | 0,1,99           |
+| 心电图     | 0,1,4,6,99       |
+| 生命体征    | 0,1,2,3,4,5,6,99 |
+
+
+```r
+testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
+```
+
+> **提示**：建议将访视计划的读取结果赋值给 `visitcode`，检查项配置的读取结果赋值给 `testconfig`。后续的 `generate_planned_visit_dates()` 和 `prepare_test_data()` 会自动在调用环境中查找这两个变量名，无需手动传参。
+>
+> **示例文件**：包内 `inst/extdata` 目录提供了两个可直接参考的模板文件：`example_visitcode.xlsx`（访视计划）和 `example_test.xlsx`（检查项配置）。安装包后可通过以下方式获取路径：
+>
+> ```r
+> system.file("extdata", "example_visitcode.xlsx", package = "pdchecker")
+> system.file("extdata", "example_test.xlsx", package = "pdchecker")
+> ```
+
+## 功能概览
+
+### 数据读取
+
+
+| 函数                             | 说明                                             |
+| ------------------------------ | ---------------------------------------------- |
+| `read_raw_data()`              | 批量读取 SAS 数据集，支持 IWRS CSV 和 Excel 编码文件映射        |
+| `read_raw_data_with_formats()` | **（推荐）** 使用 SAS 格式目录（`.sas7bcat`）读取数据并自动进行编码映射 |
+
+
+### 数据准备
+
+
+| 函数                               | 说明                                     |
+| -------------------------------- | -------------------------------------- |
+| `read_visitcode_file()`          | 从 Excel读取访视计划并解析窗口期（如 `+/-3d`、`<=24h`） |
+| `read_testconfig_file()`         | 从 Excel读取各访视需要进行的检查项                   |
+| `get_first_dose_date()`          | 提取每位受试者的首次给药日期                         |
+| `get_last_dose_date()`           | 提取每位受试者的末次给药日期                         |
+| `get_eot_date()`                 | 提取治疗结束日期                               |
+| `get_eos_date()`                 | 提取研究结束日期                               |
+| `generate_planned_visit_dates()` | 根据访视计划和临床数据生成每位受试者的计划访视日期与窗口范围         |
+| `prepare_test_data()`            | 准备和标准化检查项数据，用于检查项缺失检查                  |
+
+
+### 方案偏离检查
+
+
+| 函数                           | 说明                  |
+| ---------------------------- | ------------------- |
+| `check_screen_without_ic()`  | 识别有筛选访视但缺少知情同意的受试者  |
+| `check_icf_time_deviation()` | 检测在知情同意之前执行的研究程序    |
+| `check_missing_visit()`      | 基于计划访视日期和截止标准检查遗漏访视 |
+| `check_visit_window()`       | 检查已完成访视是否在规定的访视窗口内  |
+| `check_missing_test()`       | 检查每次访视中缺失的检测项目      |
+
+
+### 结果处理与报告
+
+
+| 函数                           | 说明               |
+| ---------------------------- | ---------------- |
+| `as_check_df()`              | 将单个检查结果转换为标准化数据框 |
+| `capture_check_results()`    | 批量运行多个检查函数并合并结果  |
+| `combine_check_results()`    | 合并多个检查结果数据框      |
+| `generate_markdown_report()` | 生成 Markdown 格式报告 |
+| `generate_html_report()`     | 生成 HTML 格式报告     |
+| `generate_excel_report()`    | 生成 Excel 格式报告    |
+
+
+### 工具函数
+
+
+| 函数                                                    | 说明                              |
+| ----------------------------------------------------- | ------------------------------- |
+| `set_pdchecker_options()` / `get_pdchecker_options()` | 设置/获取Function参数                 |
+| `is_sas_na()`                                         | 判断值是否为 SAS 缺失值（`NA`、`"."`、`""`） |
+
+
+## 注意事项
+
+- 所有Rawdata列名在处理后统一转换为大写
+- SAS 缺失值（`NA`、`"."`、`""`）会被自动处理
+- 日期变量保持原始格式
+- 包含完善的错误处理和信息提示
+
+## 许可证
+
+本项目基于 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) 发布。详见 [LICENSE](LICENSE) 文件。
+
+## 问题反馈
+
+如有问题或建议，请在 [GitHub Issues](https://github.com/Pharma-Mountain-High/pdchecker/issues) 提交。
