@@ -262,16 +262,6 @@ test_that("generate_excel_report() validates parameters", {
     "'output_file' must be a single character string"
   )
 
-  # include_no_deviation 验证
-  expect_error(
-    generate_excel_report(
-      checks_df = test_df,
-      output_file = "test.xlsx",
-      include_no_deviation = "yes"
-    ),
-    "'include_no_deviation' must be a single logical value"
-  )
-
   # title 验证
   expect_error(
     generate_excel_report(
@@ -317,37 +307,28 @@ test_that("generate_excel_report() creates Excel file", {
   expect_equal(names(data), c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION"))
 })
 
-test_that("generate_excel_report() respects include_no_deviation parameter", {
+test_that("generate_excel_report() Summary lists all checks; All Deviations only deviation rows", {
   skip_if_not_installed("openxlsx")
 
   test_df <- create_test_checks_df()
-
-  # 不包含无偏差：只保留 has_deviation == TRUE 的行
-  temp_file_no <- tempfile(fileext = ".xlsx")
-  on.exit(unlink(temp_file_no), add = TRUE)
+  temp_file <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(temp_file), add = TRUE)
 
   generate_excel_report(
     checks_df = test_df,
-    output_file = temp_file_no,
-    include_no_deviation = FALSE
+    output_file = temp_file
   )
 
-  data_no <- openxlsx::read.xlsx(temp_file_no, sheet = "All Deviations")
-  expect_equal(nrow(data_no), 2)
-  expect_equal(sort(data_no$SUBJID), c("001", "002"))
+  # All Deviations：仅 has_deviation == TRUE 的行
+  data_dev <- openxlsx::read.xlsx(temp_file, sheet = "All Deviations")
+  expect_equal(nrow(data_dev), 2)
+  expect_equal(sort(data_dev$SUBJID), c("001", "002"))
 
-  # 包含无偏差：所有行都保留
-  temp_file_yes <- tempfile(fileext = ".xlsx")
-  on.exit(unlink(temp_file_yes), add = TRUE)
-
-  generate_excel_report(
-    checks_df = test_df,
-    output_file = temp_file_yes,
-    include_no_deviation = TRUE
-  )
-
-  data_yes <- openxlsx::read.xlsx(temp_file_yes, sheet = "All Deviations")
-  expect_equal(nrow(data_yes), 4)
+  # Summary：含无偏离的检查（ldl_check），deviation_count 为 0
+  sum_tbl <- openxlsx::read.xlsx(temp_file, sheet = "Summary", startRow = 3)
+  expect_setequal(sum_tbl$check_name, c("age_check", "ldl_check"))
+  expect_equal(sum_tbl$deviation_count[sum_tbl$check_name == "ldl_check"], 0)
+  expect_equal(sum_tbl$deviation_count[sum_tbl$check_name == "age_check"], 2)
 })
 
 # =============================================================================

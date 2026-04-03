@@ -163,38 +163,39 @@ as_check_df <- function(check_result, check_name = NULL) {
     }
   }
 
-  # Build basic result data frame
-  result_df <- data.frame(
-    check_name = check_name,
-    has_deviation = check_result$has_deviation,
-    message = ifelse(length(check_result$messages) > 0,
-      paste(check_result$messages, collapse = "; "),
-      NA_character_
-    ),
-    PDNO = NA_character_,
-    SUBJID = NA_character_,
-    DESCRIPTION = NA_character_,
-    stringsAsFactors = FALSE
-  )
+  keep_cols <- c("PDNO", "SUBJID", "TBNAME", "DESCRIPTION", "check_name", "has_deviation")
 
   # Add details if available
   if (!is.null(check_result$details) && nrow(check_result$details) > 0) {
-    # Convert details to data frame if it's not already
     if (!inherits(check_result$details, "data.frame")) {
       details_df <- as.data.frame(check_result$details, stringsAsFactors = FALSE)
     } else {
       details_df <- check_result$details
     }
 
-    # Add check name to details
     details_df$check_name <- check_name
     details_df$has_deviation <- check_result$has_deviation
 
-    # Return the detailed results
-    return(details_df)
+    for (col in keep_cols) {
+      if (!col %in% names(details_df)) {
+        details_df[[col]] <- NA_character_
+      }
+    }
+
+    return(details_df[, keep_cols, drop = FALSE])
   }
 
-  # Return the basic results if no details
+  # Return a single-row placeholder if no details
+  result_df <- data.frame(
+    PDNO = NA_character_,
+    SUBJID = NA_character_,
+    TBNAME = NA_character_,
+    DESCRIPTION = NA_character_,
+    check_name = check_name,
+    has_deviation = check_result$has_deviation,
+    stringsAsFactors = FALSE
+  )
+
   return(result_df)
 }
 

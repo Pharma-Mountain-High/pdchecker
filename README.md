@@ -245,9 +245,7 @@ testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
 | `as_check_df()`              | 将单个检查结果转换为标准化数据框 |
 | `capture_check_results()`    | 批量运行多个检查函数并合并结果  |
 | `combine_check_results()`    | 合并多个检查结果数据框      |
-| `generate_markdown_report()` | 生成 Markdown 格式报告 |
-| `generate_html_report()`     | 生成 HTML 格式报告     |
-| `generate_excel_report()`    | 生成 Excel 格式报告    |
+| `generate_excel_report()`    | 生成 Excel 格式报告（汇总与明细工作表） |
 
 
 ### 工具函数

@@ -1,3 +1,5 @@
+^renv$
+^renv\.lock$
 ^CICD-GUIDE\.md$
 ^\.Rproj\.user$
 ^\.github$

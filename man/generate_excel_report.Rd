@@ -7,22 +7,21 @@
 generate_excel_report(
   checks_df,
   output_file,
-  include_no_deviation = FALSE,
   title = "Study Deviation Report",
   report_cols = c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION")
 )
 }
 \arguments{
-\item{checks_df}{Data frame containing combined check results}
+\item{checks_df}{Data frame containing combined check results. Must contain
+\code{PDNO}, \code{SUBJID}, and \code{has_deviation}. \code{PDNO} and
+\code{SUBJID} are used for sorting; they need not appear in \code{report_cols}.}
 
 \item{output_file}{Path to output Excel file}
-
-\item{include_no_deviation}{Whether to include checks with no deviations (default: FALSE)}
 
 \item{title}{Report title (default: "Study Deviation Report")}
 
 \item{report_cols}{Character vector of column names to include in the "All Deviations"
-sheet. Only columns that exist in \code{checks_df} will be included.
+sheet. Columns not found in \code{checks_df} will be skipped with a warning.
 Default: \code{c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION")}.}
 }
 \value{
@@ -31,6 +30,11 @@ Invisibly returns the output file path
 \description{
 Generate Excel report from check results
 }
+\details{
+The \dQuote{Summary} sheet lists every \code{check_name}, including those with
+\code{has_deviation == FALSE}. The \dQuote{All Deviations} sheet contains only
+rows where \code{has_deviation} is \code{TRUE}.
+}
 \examples{
 \dontrun{
 # Combine check results first
@@ -38,12 +42,6 @@ all_results <- combine_check_results(res_1, res_2, res_3)
 
 # Generate Excel report
 generate_excel_report(all_results, output_file = "pd_report.xlsx")
-
-# Include all checks (even those without deviations)
-generate_excel_report(all_results,
-  output_file = "full_report.xlsx",
-  include_no_deviation = TRUE
-)
 
 # Specify custom columns to output
 generate_excel_report(all_results,
@@ -54,12 +52,5 @@ generate_excel_report(all_results,
 
 }
 \seealso{
-\code{\link{generate_markdown_report}} for Markdown format
-\code{\link{generate_html_report}} for HTML format
 \code{\link{combine_check_results}} for combining check results
-
-Other report generation: 
-\code{\link{generate_html_report}()},
-\code{\link{generate_markdown_report}()}
 }
-\concept{report generation}

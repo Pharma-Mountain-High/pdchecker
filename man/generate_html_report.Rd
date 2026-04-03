@@ -46,11 +46,5 @@ generate_html_report(all_results,
 
 }
 \seealso{
-\code{\link{generate_markdown_report}} for Markdown format
-\code{\link{generate_excel_report}} for Excel format
-
-Other report generation: 
-\code{\link{generate_excel_report}()},
-\code{\link{generate_markdown_report}()}
+\code{\link{combine_check_results}} for combining check results
 }
-\concept{report generation}
