@@ -13,6 +13,7 @@ repos:
           - shiny
           - dplyr
           - haven
+          - openxlsx
           - readr
           - readxl
           - tibble
