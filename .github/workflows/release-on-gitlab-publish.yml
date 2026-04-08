@@ -1,0 +1,31 @@
+name: Sync GitLab Release to GitHub
+
+on:
+  repository_dispatch:
+    types: [gitlab_release]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // 从GitLab的Webhook payload中获取数据
+            const payload = context.payload;
+            const tagName = payload.tag_name;
+            const releaseName = payload.name;
+            const body = payload.description;
+
+            // 调用GitHub API创建Release
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: releaseName,
+              body: body,
+              draft: false,
+              prerelease: false
+            });
