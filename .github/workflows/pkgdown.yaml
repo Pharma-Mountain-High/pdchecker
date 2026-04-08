@@ -131,6 +131,9 @@ jobs:
   docs:
     name: Generate 🐣
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
     if: >
       !contains(github.event.commits[0].message, '[skip docs]')
         && github.event.pull_request.draft == false
@@ -332,6 +335,8 @@ jobs:
     name: Multi-version docs 📑
     needs: docs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: >
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         && !contains(github.event.commits[0].message, '[skip docs]')
@@ -368,6 +373,9 @@ jobs:
     name: Upload documentation assets 🔼
     needs: docs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
     if: >
       startsWith(github.ref, 'refs/tags/v')
         && !contains(github.event.commits[0].message, '[skip docs]')
