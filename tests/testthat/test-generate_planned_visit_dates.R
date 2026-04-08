@@ -75,7 +75,7 @@ test_that("基本功能：正常输入返回数据框", {
   expected_cols <- c(
     "SUBJID", "VISIT", "VISITNUM", "visittype", "visitday", "visit_category",
     "planned_date", "wp_start", "wp_end", "actual_date", "status",
-    "first_dose_date", "eot_date", "eos_date"
+    "first_dose_date", "eot_date", "eos_date", "TBNAME"
   )
   expect_true(all(expected_cols %in% names(result)))
 

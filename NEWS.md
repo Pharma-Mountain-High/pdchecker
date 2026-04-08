@@ -35,8 +35,6 @@
 - 新增 `combine_check_results()`：合并多个检查结果为统一数据框。
 - 新增 `capture_check_results()`：批量运行多个检查函数并合并结果。
 - 新增 `generate_excel_report()`：生成包含汇总和明细两个工作表的 Excel 报告。
-- 新增 `generate_html_report()`：生成自包含 HTML 格式报告。
-- 新增 `generate_markdown_report()`：生成 Markdown 格式报告。
 
 ## 全局配置
 

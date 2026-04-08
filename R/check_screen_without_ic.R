@@ -8,6 +8,8 @@
 #'   identify screening visits (default: "Screening|screening")
 #' @param ic_date_var Character string specifying the variable name for informed
 #'   consent date in IC dataset (default: "ICDAT")
+#' @param tb_name_var Character string specifying the variable name to use as TBNAME in the output (default: NULL).
+#' If NULL, the TBNAME column in the output will be empty.
 #' @param pdno Character string specifying the protocol deviation number for this check (default: "2.4.1")
 #' @return A list of class "screen_ic_check" containing:
 #' \describe{
@@ -20,6 +22,7 @@
 #'       \item{PDNO}{Protocol deviation number specified by \code{pdno} parameter.}
 #'       \item{SUBJID}{Subject IDs who have screening visits but no informed consent date.}
 #'       \item{VISIT}{Visit name from the visit dataset.}
+#'       \item{TBNAME}{Table name from the variable specified by \code{tb_name_var}, empty if \code{tb_name_var} is NULL.}
 #'       \item{DESCRIPTION}{Description of the deviation for each subject.}
 #'     }
 #'     Returns empty data frame with these columns if no deviations found.}
@@ -80,7 +83,7 @@
 #' @family deviation checks
 #' @seealso [check_icf_time_deviation()] for checking events before informed consent
 #'
-#' @importFrom dplyr anti_join select distinct filter %>%
+#' @importFrom dplyr anti_join select distinct filter mutate %>%
 #' @importFrom rlang .data
 #' @export
 check_screen_without_ic <- function(data,
@@ -89,6 +92,7 @@ check_screen_without_ic <- function(data,
                                     sv_visit_var = getOption("pdchecker.sv_visit_var", "VISIT"),
                                     visit_pattern = "Screening|screening",
                                     ic_date_var = getOption("pdchecker.ic_date_var", "ICDAT"),
+                                    tb_name_var = getOption("pdchecker.tb_name_var", NULL),
                                     pdno = "2.4.1") {
   # Validate parameter types
   if (!is.list(data)) {
@@ -109,6 +113,9 @@ check_screen_without_ic <- function(data,
   if (!is.character(ic_date_var) || length(ic_date_var) != 1) {
     stop("'ic_date_var' must be a single character string")
   }
+  if (!is.null(tb_name_var) && (!is.character(tb_name_var) || length(tb_name_var) != 1)) {
+    stop("'tb_name_var' must be NULL or a single character string")
+  }
   if (!is.character(pdno) || length(pdno) != 1) {
     stop("'pdno' must be a single character string")
   }
@@ -121,6 +128,7 @@ check_screen_without_ic <- function(data,
       PDNO = character(),
       SUBJID = character(),
       VISIT = character(),
+      TBNAME = character(),
       DESCRIPTION = character(),
       stringsAsFactors = FALSE
     )
@@ -148,14 +156,29 @@ check_screen_without_ic <- function(data,
     select(SUBJID, VISIT = .data[[sv_visit_var]]) %>%
     distinct()
 
+
+  # Resolve TBNAME from IC dataset
+  ic_df <- data[[ic_dataset]]
+  has_tb_name <- !is.null(tb_name_var) && tb_name_var %in% names(ic_df)
+
   # Get unique subjects from IC dataset with non-empty consent date
-  ic_subjects <- data[[ic_dataset]] %>%
+  ic_subjects <- ic_df %>%
     filter(!is.na(.data[[ic_date_var]])) %>%
     distinct(SUBJID)
 
   # Find screening records for subjects not in IC
   missing_ic <- screening_records %>%
     anti_join(ic_subjects, by = "SUBJID")
+
+  # Add TBNAME from IC dataset
+  if (has_tb_name) {
+    tb_values <- ic_df[[tb_name_var]]
+    tb_values <- tb_values[!is.na(tb_values) & tb_values != ""]
+    tbname_value <- if (length(tb_values) > 0) as.character(tb_values[1]) else ""
+    missing_ic <- missing_ic %>% mutate(TBNAME = tbname_value)
+  } else {
+    missing_ic <- missing_ic %>% mutate(TBNAME = "")
+  }
 
   # Compile results
   if (nrow(missing_ic) > 0) {
@@ -165,6 +188,7 @@ check_screen_without_ic <- function(data,
       PDNO = pdno,
       SUBJID = missing_ic$SUBJID,
       VISIT = missing_ic$VISIT,
+      TBNAME = missing_ic$TBNAME,
       DESCRIPTION = sprintf(
         "受试者编号%s，在未签署知情同意书的情况下进行了%s访视。",
         missing_ic$SUBJID,

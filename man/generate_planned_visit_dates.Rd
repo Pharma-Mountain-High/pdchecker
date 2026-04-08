@@ -18,6 +18,7 @@ generate_planned_visit_dates(
   eot_date_var = getOption("pdchecker.eot_date_var", "EOTDAT"),
   ds_dataset = getOption("pdchecker.ds_dataset", "DS"),
   ds_date_var = getOption("pdchecker.ds_date_var", "DSDAT"),
+  tb_name_var = getOption("pdchecker.tb_name_var", NULL),
   cycle_days = 28
 )
 }
@@ -65,6 +66,9 @@ If dataset doesn't exist, EOS-related planned dates will be NA}
 
 \item{ds_date_var}{Character string, end of study date variable (default: "DSDAT")}
 
+\item{tb_name_var}{Character string specifying the variable name to use as TBNAME in the output (default: NULL).
+If NULL or the column does not exist in the visit dataset, the TBNAME column in the output will be empty.}
+
 \item{cycle_days}{Numeric, treatment cycle length in days (default: 28).
 Used to calculate subsequent cycle D1 planned dates}
 }
@@ -88,6 +92,7 @@ Data frame with the following columns:
 \item{last_dose_date}{Date. Subject's last dose date}
 \item{eot_date}{Date. Subject's end of treatment date}
 \item{eos_date}{Date. Subject's end of study date}
+\item{TBNAME}{Character. Table name from the variable specified by \code{tb_name_var}, empty if \code{tb_name_var} is NULL}
 }
 }
 \description{

@@ -11,6 +11,7 @@ check_screen_without_ic(
   sv_visit_var = getOption("pdchecker.sv_visit_var", "VISIT"),
   visit_pattern = "Screening|screening",
   ic_date_var = getOption("pdchecker.ic_date_var", "ICDAT"),
+  tb_name_var = getOption("pdchecker.tb_name_var", NULL),
   pdno = "2.4.1"
 )
 }
@@ -29,6 +30,9 @@ identify screening visits (default: "Screening|screening")}
 \item{ic_date_var}{Character string specifying the variable name for informed
 consent date in IC dataset (default: "ICDAT")}
 
+\item{tb_name_var}{Character string specifying the variable name to use as TBNAME in the output (default: NULL).
+If NULL, the TBNAME column in the output will be empty.}
+
 \item{pdno}{Character string specifying the protocol deviation number for this check (default: "2.4.1")}
 }
 \value{
@@ -43,6 +47,7 @@ A list of class "screen_ic_check" containing:
 \item{PDNO}{Protocol deviation number specified by \code{pdno} parameter.}
 \item{SUBJID}{Subject IDs who have screening visits but no informed consent date.}
 \item{VISIT}{Visit name from the visit dataset.}
+\item{TBNAME}{Table name from the variable specified by \code{tb_name_var}, empty if \code{tb_name_var} is NULL.}
 \item{DESCRIPTION}{Description of the deviation for each subject.}
 }
 Returns empty data frame with these columns if no deviations found.}

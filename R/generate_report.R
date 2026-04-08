@@ -24,12 +24,7 @@
 #' )
 #' }
 #'
-#' @seealso
-#' \code{\link{generate_html_report}} for HTML format
-#' \code{\link{generate_excel_report}} for Excel format
-#' \code{\link{combine_check_results}} for combining check results
-#'
-#' @family report generation
+#' @seealso \code{\link{combine_check_results}} for combining check results
 #'
 #' @importFrom dplyr filter group_by summarize arrange n bind_rows select_if if_else
 #' @export
@@ -182,11 +177,7 @@ generate_markdown_report <- function(checks_df, output_file = NULL,
 #' )
 #' }
 #'
-#' @seealso
-#' \code{\link{generate_markdown_report}} for Markdown format
-#' \code{\link{generate_excel_report}} for Excel format
-#'
-#' @family report generation
+#' @seealso \code{\link{combine_check_results}} for combining check results
 #'
 #' @export
 generate_html_report <- function(checks_df, output_file,
@@ -262,10 +253,19 @@ generate_html_report <- function(checks_df, output_file,
 
 #' Generate Excel report from check results
 #'
-#' @param checks_df Data frame containing combined check results
+#' @details
+#' The \dQuote{Summary} sheet lists every \code{check_name}, including those with
+#' \code{has_deviation == FALSE}. The \dQuote{All Deviations} sheet contains only
+#' rows where \code{has_deviation} is \code{TRUE}.
+#'
+#' @param checks_df Data frame containing combined check results. Must contain
+#'   \code{PDNO}, \code{SUBJID}, and \code{has_deviation}. \code{PDNO} and
+#'   \code{SUBJID} are used for sorting; they need not appear in \code{report_cols}.
 #' @param output_file Path to output Excel file
-#' @param include_no_deviation Whether to include checks with no deviations (default: FALSE)
 #' @param title Report title (default: "Study Deviation Report")
+#' @param report_cols Character vector of column names to include in the "All Deviations"
+#'   sheet. Columns not found in \code{checks_df} will be skipped with a warning.
+#'   Default: \code{c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION")}.
 #' @return Invisibly returns the output file path
 #'
 #' @examples
@@ -276,27 +276,22 @@ generate_html_report <- function(checks_df, output_file,
 #' # Generate Excel report
 #' generate_excel_report(all_results, output_file = "pd_report.xlsx")
 #'
-#' # Include all checks (even those without deviations)
+#' # Specify custom columns to output
 #' generate_excel_report(all_results,
-#'   output_file = "full_report.xlsx",
-#'   include_no_deviation = TRUE
+#'   output_file = "custom_report.xlsx",
+#'   report_cols = c("PDNO", "SITEID", "SUBJID", "TBNAME", "PDCAT", "DESCRIPTION")
 #' )
 #' }
 #'
-#' @seealso
-#' \code{\link{generate_markdown_report}} for Markdown format
-#' \code{\link{generate_html_report}} for HTML format
-#' \code{\link{combine_check_results}} for combining check results
-#'
-#' @family report generation
+#' @seealso \code{\link{combine_check_results}} for combining check results
 #'
 #' @importFrom dplyr desc across all_of mutate select arrange
 #' @importFrom rlang .data
 #' @importFrom openxlsx createWorkbook addWorksheet writeData saveWorkbook setColWidths createStyle addFilter addStyle
 #' @export
 generate_excel_report <- function(checks_df, output_file,
-                                  include_no_deviation = FALSE,
-                                  title = "Study Deviation Report") {
+                                  title = "Study Deviation Report",
+                                  report_cols = c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION")) {
   # Check if openxlsx is available
   if (!requireNamespace("openxlsx", quietly = TRUE)) {
     stop("Package 'openxlsx' is required for Excel reports. Please install it.",
@@ -311,20 +306,27 @@ generate_excel_report <- function(checks_df, output_file,
   if (missing(output_file) || !is.character(output_file) || length(output_file) != 1) {
     stop("'output_file' must be a single character string", call. = FALSE)
   }
-  if (!is.logical(include_no_deviation) || length(include_no_deviation) != 1) {
-    stop("'include_no_deviation' must be a single logical value", call. = FALSE)
-  }
   if (!is.character(title) || length(title) != 1) {
     stop("'title' must be a single character string", call. = FALSE)
   }
-
-  # Filter to include only deviations if needed
-  all_checks_df <- if (!include_no_deviation) {
-    checks_df %>%
-      filter(has_deviation)
-  } else {
-    checks_df
+  if (!is.character(report_cols) || length(report_cols) == 0) {
+    stop("'report_cols' must be a non-empty character vector", call. = FALSE)
   }
+
+  required_cols <- c("PDNO", "SUBJID")
+  missing_required <- setdiff(required_cols, names(checks_df))
+  if (length(missing_required) > 0) {
+    stop("'checks_df' is missing required columns: ",
+      paste(missing_required, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  if (!"has_deviation" %in% names(checks_df)) {
+    stop("'checks_df' must contain column 'has_deviation'", call. = FALSE)
+  }
+
+  deviations_df <- dplyr::filter(checks_df, has_deviation)
 
   # Create workbook
 
@@ -333,15 +335,8 @@ generate_excel_report <- function(checks_df, output_file,
   # Add summary sheet
   openxlsx::addWorksheet(wb, "Summary")
 
-  # Write title to summary sheet
-  openxlsx::writeData(wb, "Summary", title, startRow = 1, startCol = 1)
-  openxlsx::writeData(wb, "Summary",
-    paste0("Report generated on: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
-    startRow = 2, startCol = 1
-  )
-
-  # Create summary statistics
-  summary_stats <- all_checks_df %>%
+  # Create summary statistics (all check types, including has_deviation == FALSE)
+  summary_stats <- checks_df %>%
     group_by(check_name) %>%
     summarize(
       has_deviation = any(has_deviation),
@@ -350,30 +345,110 @@ generate_excel_report <- function(checks_df, output_file,
     ) %>%
     arrange(desc(has_deviation), desc(deviation_count))
 
-  # Write summary stats
-  openxlsx::writeData(wb, "Summary", "Check Type Summary", startRow = 4, startCol = 1)
+  num_cols <- ncol(summary_stats)
+
+  # Row 1: title with date, merged across all columns
+  title_text <- paste0(title, " - ", format(Sys.Date(), "%Y-%m-%d"))
+  openxlsx::writeData(wb, "Summary", title_text, startRow = 1, startCol = 1)
+  openxlsx::mergeCells(wb, "Summary", cols = seq_len(num_cols), rows = 1)
+
+  title_style <- openxlsx::createStyle(
+    fontName = "\u5b8b\u4f53", fontSize = 14,
+    halign = "center", valign = "center",
+    textDecoration = "bold",
+    border = "TopBottomLeftRight",
+    fgFill = "#EDF2F9", fontColour = "#112277"
+  )
+  openxlsx::addStyle(wb, "Summary",
+    style = title_style,
+    rows = 1, cols = seq_len(num_cols), gridExpand = TRUE
+  )
+
+  # Row 2: subtitle, merged across all columns
+  openxlsx::writeData(wb, "Summary", "Check Type Summary", startRow = 2, startCol = 1)
+  openxlsx::mergeCells(wb, "Summary", cols = seq_len(num_cols), rows = 2)
+
+  subtitle_style <- openxlsx::createStyle(
+    fontName = "\u5b8b\u4f53", fontSize = 12,
+    halign = "center", valign = "center",
+    textDecoration = "bold",
+    border = "TopBottomLeftRight",
+    fgFill = "#EDF2F9", fontColour = "#112277"
+  )
+  openxlsx::addStyle(wb, "Summary",
+    style = subtitle_style,
+    rows = 2, cols = seq_len(num_cols), gridExpand = TRUE
+  )
+
+  # Row 3+: summary table with headers
   openxlsx::writeData(wb, "Summary", summary_stats,
-    startRow = 5, startCol = 1,
+    startRow = 3, startCol = 1,
     colNames = TRUE, rowNames = FALSE
+  )
+
+  summary_header_style <- openxlsx::createStyle(
+    fontName = "\u5b8b\u4f53", fontSize = 11,
+    halign = "center", textDecoration = "bold",
+    border = "TopBottomLeftRight",
+    fgFill = "#EDF2F9", fontColour = "#112277"
+  )
+  openxlsx::addStyle(wb, "Summary",
+    style = summary_header_style,
+    rows = 3, cols = seq_len(num_cols)
+  )
+  openxlsx::addFilter(wb, "Summary", row = 3, cols = seq_len(num_cols))
+
+  summary_body_style <- openxlsx::createStyle(
+    fontName = "\u5b8b\u4f53", fontSize = 10,
+    halign = "left", border = "TopBottomLeftRight"
+  )
+  summary_data_rows <- seq(4, 3 + nrow(summary_stats))
+  openxlsx::addStyle(wb, "Summary",
+    style = summary_body_style,
+    rows = summary_data_rows, cols = seq_len(num_cols),
+    gridExpand = TRUE
+  )
+
+  openxlsx::setColWidths(wb, "Summary",
+    cols = 1, widths = "auto"
+  )
+  openxlsx::setColWidths(wb, "Summary",
+    cols = 2:num_cols, widths = 18
   )
 
   # Define styles
   header_style <- openxlsx::createStyle(
-    textDecoration = "bold",
+    fontName = "\u5b8b\u4f53",
+    fontSize = 12,
     halign = "center",
-    border = "bottom",
-    borderStyle = "thin"
+    textDecoration = "bold",
+    border = "TopBottomLeftRight",
+    fgFill = "#EDF2F9",
+    fontColour = "#112277",
+    wrapText = TRUE
   )
 
   # Create all deviations sheet with all details in one place
   openxlsx::addWorksheet(wb, "All Deviations")
 
-  # Keep only PDNO, SUBJID, TBNAME, DESCRIPTION
-  report_cols <- c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION")
-  available_cols <- intersect(report_cols, names(all_checks_df))
-  all_deviations_df <- all_checks_df %>%
-    select(all_of(available_cols)) %>%
-    arrange(.data$PDNO, .data$SUBJID)
+  missing_cols <- setdiff(report_cols, names(checks_df))
+  if (length(missing_cols) > 0) {
+    warning(
+      "The following 'report_cols' do not exist in 'checks_df' and were skipped: ",
+      paste(missing_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  available_cols <- intersect(report_cols, names(deviations_df))
+  if (length(available_cols) == 0) {
+    stop("None of the specified 'report_cols' exist in 'checks_df': ",
+      paste(report_cols, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  all_deviations_df <- deviations_df %>%
+    arrange(.data$PDNO, .data$SUBJID) %>%
+    select(all_of(available_cols))
 
   # Write the data to the sheet
   openxlsx::writeData(wb, "All Deviations", all_deviations_df,
@@ -387,15 +462,38 @@ generate_excel_report <- function(checks_df, output_file,
     rows = 1, cols = seq_len(ncol(all_deviations_df))
   )
 
-  # Add filtering and set column widths
-  openxlsx::addFilter(wb, "All Deviations", row = 1, cols = seq_len(ncol(all_deviations_df)))
-  openxlsx::setColWidths(wb, "All Deviations", cols = seq_len(ncol(all_deviations_df)), widths = "auto")
+  # Apply formatting to data rows
+  body_style <- openxlsx::createStyle(
+    fontName = "\u5b8b\u4f53",
+    fontSize = 10,
+    halign = "left",
+    border = "TopBottomLeftRight",
+    wrapText = TRUE
+  )
+  data_rows <- seq(2, nrow(all_deviations_df) + 1)
+  openxlsx::addStyle(wb, "All Deviations",
+    style = body_style,
+    rows = data_rows, cols = seq_len(ncol(all_deviations_df)),
+    gridExpand = TRUE
+  )
 
-  # Make DESCRIPTION column wider to accommodate longer text
-  if ("DESCRIPTION" %in% names(all_deviations_df)) {
-    desc_col <- which(names(all_deviations_df) == "DESCRIPTION")
-    openxlsx::setColWidths(wb, "All Deviations", cols = desc_col, widths = 100)
-  }
+  # Add filtering
+  openxlsx::addFilter(wb, "All Deviations", row = 1, cols = seq_len(ncol(all_deviations_df)))
+
+  # Calculate adaptive column widths: based on content, capped at max_col_width
+  min_col_width <- 8
+  max_col_width <- 50
+  col_widths <- vapply(seq_len(ncol(all_deviations_df)), function(j) {
+    col_values <- as.character(all_deviations_df[[j]])
+    col_values <- col_values[!is.na(col_values)]
+    header_len <- nchar(names(all_deviations_df)[j])
+    content_len <- if (length(col_values) > 0) max(nchar(col_values)) else 0
+    min(max(header_len + 4, content_len * 0.8, min_col_width), max_col_width)
+  }, numeric(1))
+  openxlsx::setColWidths(wb, "All Deviations",
+    cols = seq_len(ncol(all_deviations_df)),
+    widths = col_widths
+  )
 
   # Save workbook
   openxlsx::saveWorkbook(wb, output_file, overwrite = TRUE)
