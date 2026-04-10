@@ -60,8 +60,9 @@ pd_8_4_1_output <- as_check_df(window_visit)
 
 #---------------------------------------检查项相关--------------------------------------------
 
-testconfig <- read_testconfig_file(file_path = "~/R/QLC7401-303/qlc7401-303-pd-listing/External/example_test.xlsx",
-                                   sheet_name = "QLC7401-303")
+#读取检查项文件（推荐命名为testconfig，后续函数结果可直接读取环境内testconfig数据框）
+testconfig <- read_testconfig_file(file_path = "inst/extdata/example_test.xlsx",
+                                   sheet_name = "QL0911-302")
 
 # "血常规 血生化 尿常规 空腹血脂 凝血功能 甲状腺功能 糖化血红蛋白"
 lb_data <- prepare_test_data(raw,
