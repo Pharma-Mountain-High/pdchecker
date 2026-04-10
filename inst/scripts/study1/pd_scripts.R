@@ -1,16 +1,59 @@
 
 
+#------------------------------------知情同意相关------------------------------
+
+#排除遍历数据集
+exclude_ds = c("TH","MH","AH","CM")
+
+#排除指定日期变量
+ic_ignore_vars = c("BRTHDAT")
+
+# 检查-知情同意之前进行的试验操作
+ic_deviation <- check_icf_time_deviation(data=raw,
+                                         ignore_vars = ic_ignore_vars,
+                                         exclude_datasets = exclude_ds,
+                                         pdno = "2.1.1"
+)
+
+#检查结果List 转换为 数据框dataframe
+pd_2_1_1_ouput <- as_check_df(ic_deviation)
+
+
+# 检查-未签署知情同意
+# visit_pattern 用来指定 筛选期访视
+ic_without <- check_screen_without_ic(raw,
+                                      visit_pattern = "筛选|Screening|screening"
+)
+
+#检查结果List 转换为 数据框dataframe
+pd_2_4_1_ouput <- as_check_df(ic_without)
+
+
+
 #---------------------------------------访视相关--------------------------------------------
-visitcode <- read_visitcode_file("~/R/QLC7401-303/qlc7401-303-pd-listing/External/example_visitcode.xlsx",
-                                 sheet_name = "QLC7401-303")
 
-plan_svdate <-generate_planned_visit_dates(raw)
+#读取访视编码文件（推荐命名为visitcode，后续函数结果可直接读取环境内visitcode数据框）
+visitcode <- read_visitcode_file("inst/extdata/example_visitcode.xlsx",
+                                 sheet_name = "QL0911-302")
 
-missing_visit <- check_missing_visit(plan_svdate, cutoffdt = as.Date("2026-05-31"),pdno = "8.1.1")
-window_visit <- check_visit_window(plan_svdate,pdno = "8.4.1")
+#产生计划方式日期（visitcode参数自动读取环境内visitcode数据框，其他参数可以有setup中set_pdchecker_options函数统一设置）
+plan_svdate <-generate_planned_visit_dates(raw,
+                                           cycle_days = 21)
 
+
+# 检查-访视遗漏（输入数据集为上一步产生的计划日期数据框，cutoffdt默认为程序运行当天）
+missing_visit <- check_missing_visit(plan_svdate,
+                                     cutoffdt = as.Date("2025-10-31"),
+                                     pdno = "8.2.1")
+
+# 检查-访视超长（输入数据集为上一步产生的计划日期数据框）
+window_visit <- check_visit_window(plan_svdate,
+                                   pdno = "8.4.1")
+
+#检查结果List 转换为 数据框dataframe
 pd_8_1_1_output <- as_check_df(missing_visit)
 
+#检查结果List 转换为 数据框dataframe
 pd_8_4_1_output <- as_check_df(window_visit)
 
 
