@@ -31,6 +31,13 @@
 #'   test = "RBC Count"
 #' )
 #'
+#' # Or check multiple tests at once
+#' result <- check_missing_test(
+#'   data = prepared_data,
+#'   test_var = "TESTDE",
+#'   test = c("RBC Count", "WBC Count")
+#' )
+#'
 #' # Only check overall test missing, not individual indicators
 #' result <- check_missing_test(
 #'   data = prepared_data,
@@ -68,8 +75,8 @@
 #'   Must be prepared by \code{\link{prepare_test_data}} with standardized column names
 #' @param test_var Character string, variable name for filtering specific tests (default: NULL).
 #'   If NULL, checks all tests. Typically use "TESTDE" (test name) or "TESTCAT" (test category)
-#' @param test Character string, specific value for test_var (default: NULL).
-#'   E.g., "RBC Count", "WBC Count". Ignored if test_var is NULL
+#' @param test Character vector, one or more specific values for test_var (default: NULL).
+#'   E.g., "RBC Count" or c("RBC Count", "WBC Count"). Ignored if test_var is NULL
 #' @param missing_de Logical, whether to check individual TESTDE missing (default: TRUE).
 #'   If TRUE, checks all three missing types;
 #'   If FALSE, only checks first two types (TESTCAT empty, entire TESTCAT missing)
@@ -175,7 +182,7 @@ check_missing_test <- function(data,
   # Filter by specific test if test_var and test are provided
   if (!is.null(test_var) && !is.null(test) && test_var %in% names(data)) {
     test_data_filtered <- data %>%
-      filter(!!sym(test_var) == test)
+      filter(!!sym(test_var) %in% test)
   } else {
     test_data_filtered <- data
   }
