@@ -16,10 +16,15 @@ devtools::install_github("Pharma-Mountain-High/pdchecker", build_vignettes = TRU
 
 **方式二：下载压缩包本地安装**
 
-从 [Releases](https://github.com/Pharma-Mountain-High/pdchecker/releases) 页面下载 `.tar.gz` 源码包，然后本地安装：
+从以下任一页面下载 `.tar.gz` 源码包：
+
+- GitHub：[Releases](https://github.com/Pharma-Mountain-High/pdchecker/releases)
+- GitLab：[Releases](https://gitlab.qilu-pharma.com/mountain-high/hengshan/-/releases)
+
+然后本地安装：
 
 ```r
-install.packages("pdchecker_0.1.0.tar.gz", repos = NULL, type = "source")
+install.packages("pdchecker_0.9.0.tar.gz", repos = NULL, type = "source")
 ```
 
 > **注意**：通过方式一安装时需要加 `build_vignettes = TRUE` 参数，否则用户手册不会被构建，`vignette("guide")` 将无法使用。`upgrade = "never"` 表示不自动更新已安装的依赖包，避免安装过程中弹出更新提示；如需同时更新依赖可去掉此参数。
@@ -218,7 +223,6 @@ testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
 | 函数                           | 说明               |
 | ---------------------------- | ---------------- |
 | `as_check_df()`              | 将单个检查结果转换为标准化数据框 |
-| `capture_check_results()`    | 批量运行多个检查函数并合并结果  |
 | `combine_check_results()`    | 合并多个检查结果数据框      |
 | `generate_excel_report()`    | 生成 Excel 格式报告（汇总与明细工作表） |
 
@@ -242,4 +246,7 @@ testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
 
 ## 问题反馈
 
-如有问题或建议，请在 [GitHub Issues](https://github.com/Pharma-Mountain-High/pdchecker/issues) 提交。
+如有问题或建议，请在以下平台提交 Issue：
+
+- GitLab：[mountain-high/hengshan Issues](https://gitlab.qilu-pharma.com/mountain-high/hengshan/-/issues)
+- GitHub：[Pharma-Mountain-High/pdchecker Issues](https://github.com/Pharma-Mountain-High/pdchecker/issues)

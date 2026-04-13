@@ -190,19 +190,19 @@ test_data <- bind_rows(lb_data, lb1_data, vs_data, eg_data, pe_data, hcg_data, v
 # 检查项缺失
 
 # 通过test_var参数指定用来筛选的变量，通过test参数筛选需要对哪些检查项进行检查
-# missing_de = T 代表 对`具体指标`进行检查缺失（例如：红细胞计数）
+# missing_de = TRUE 代表 对`具体指标`进行检查缺失（例如：红细胞计数）
 missing_test_1 <- check_missing_test(test_data,
   test_var = "TESTCAT",
   test = c("血常规", "血生化", "尿常规", "凝血功能", "大便常规", "生命体征", "12-导联心电图", "体格检查", "病毒血清学检查"),
-  missing_de = T
+  missing_de = TRUE
 )
 
 # 通过test_var参数指定用来筛选的变量，通过test参数筛选需要对哪些检查项进行检查
-# missing_de = F 代表 不对`具体指标`进行检查缺失
+# missing_de = FALSE 代表 不对`具体指标`进行检查缺失
 missing_test_2 <- check_missing_test(test_data,
   test_var = "TESTCAT",
   test = c("妊娠试验"),
-  missing_de = F
+  missing_de = FALSE
 )
 
 pd_8_3_output <- bind_rows(as_check_df(missing_test_1), as_check_df(missing_test_2))

@@ -1,4 +1,28 @@
-# pdchecker 0.5.0.9000
+# pdchecker 0.9.0
+
+## 新功能
+
+- `generate_excel_report()` 移除了 `include_no_deviation` 参数，改为 `report_cols` 参数，
+  支持自定义（"All Deviations" 工作表）输出列，
+  默认输出列为 `c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION")`。
+
+- `generate_excel_report()` 汇总表（"Summary"）现在列出所有检查项（含无偏离的检查）；
+  明细表（"All Deviations"）仅保留有偏离的行，并按 `PDNO`、`SUBJID` 排序。
+
+- 检查函数输出结果中新增 `TBNAME` 列（数据集来源），影响
+  `check_missing_visit()`、`check_screen_without_ic()`、`check_visit_window()`
+  以及 `generate_planned_visit_dates()`。
+
+- `inst/scripts/` 新增示例脚本（`setup.R`、`pd_scripts.R`），
+  提供开箱即用的 PD 检查工作流参考。
+
+## Bug 修复
+
+- 修复 `check_missing_test()` 在 `test` 指定多个值时，过滤逻辑不正确的问题。
+
+---
+
+# pdchecker 0.5.0
 
 初始开发版本。
 
