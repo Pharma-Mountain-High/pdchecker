@@ -27,17 +27,31 @@ vignette: >
 
 ### 2.1 read_raw_data_with_formats() — 使用 SAS catalog 读取（推荐）
 
-使用 SAS 格式目录（`.sas7bcat`）读取数据并进行编码映射，适用于数据中包含编码值需要转换的场景。
+使用 SAS catalog 文件（`.sas7bcat`）读取数据并进行编码映射，适用于数据中包含编码值需要转换的场景。
 
 > **推荐**：优先使用 `read_raw_data_with_formats()` 而非 `read_raw_data()`。该函数通过 SAS catalog 文件自动完成编码值到标签的映射，无需额外准备 Excel 格式映射文件，流程更简洁，映射也更准确。
+
+**参数：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `data_dir` | 字符串 | （必填） | SAS 数据文件（`.sas7bdat`）所在目录 |
+| `catalog_file` | 字符串 | （必填） | SAS 格式目录文件（`.sas7bcat`）路径，用于编码值到标签的映射 |
+| `iwrs_file` | 字符串 | `NULL` | IWRS CSV 文件路径（可选）。该文件前 2 行为表头，会自动跳过；若为 `NULL` 或文件不存在则跳过 |
+| `encoding` | 字符串 | `"UTF-8"` | 读取 SAS 文件和 catalog 文件时使用的字符编码，中文环境可改为 `"GBK"` |
+
+**返回值：** 命名列表，每个元素为一个数据框，数据集名称取自 SAS 文件名（转为大写），所有列名统一转为大写；带 SAS format 标签的列自动转换为因子。若包含 IWRS 文件，第一个元素为 `iwrs`。
 
 ```r
 data <- read_raw_data_with_formats(
   data_dir     = "path/to/sas/files",
   catalog_file = "path/to/formats.sas7bcat",
-  iwrs_file    = "path/to/iwrs.csv",   # 可选
   encoding     = "UTF-8"               # 默认使用 UTF-8 编码
 )
+
+# 读取后按数据集名称访问
+dm <- data$DM
+ae <- data$AE
 ```
 
 ---
@@ -91,7 +105,7 @@ lb <- data$LB
 | `file_path` | 字符串 | （必填） | 文件路径（`.xlsx`/`.xls`/`.csv`） |
 | `sheet_name` | 字符串 | `"Sheet1"` | Excel 工作表名（CSV 忽略） |
 
-**返回值：** tibble，包含原文件所有列，加上自动生成的 `type`、`wpvalue`、`visit_category`（若有 CYCLE 列）。
+**返回值：** 数据框，包含原文件所有列，加上自动生成的 `type`、`wpvalue`、`visit_category`（若有 CYCLE 列）。
 
 **输入文件格式要求：**
 
@@ -220,13 +234,11 @@ set_pdchecker_options(
   sv_dataset      = "SV",       # 访视数据集
   sv_visit_var    = "VISIT",    # 访视名称变量
   sv_visitnum_var = "VISITNUM", # 访视编号变量
-  sv_date_var     = "SVSTDTC",  # 访视日期变量（项目中可能不同）
-  ex_datasets     = c("EC"),    # 用药数据集（如 EC 而非 EX）
-  ex_date_var     = "ECSTDTC",  # 用药日期变量
+  sv_date_var     = "SVDAT",  # 访视日期变量（项目中可能不同）
+  ex_datasets     = "EX",       # 用药数据集（可多个数据集）
+  ex_date_var     = "EXSTDAT",  # 用药日期变量
   ic_dataset      = "IC",       # 知情同意数据集
-  ic_date_var     = "ICDTC",    # 知情同意日期变量
-  test_date_var   = "LBDTC",    # 检查日期变量
-  test_cat_var    = "LBCAT"     # 检查类别变量
+  ic_date_var     = "ICDAT",    # 知情同意日期变量
 )
 
 # 设置后，所有函数自动使用这些值
@@ -236,7 +248,7 @@ planned_dates <- generate_planned_visit_dates(data = data)
 get_pdchecker_options()
 ```
 
-**优先级**：函数调用时直接传参 > 全局选项 > 硬编码默认值。即使设置了全局选项，仍可在个别调用中传参覆盖。
+**优先级**：函数调用时直接传参 > 全局选项 > 默认值。即使设置了全局选项，仍可在个别调用中传参覆盖。
 
 完整的全局选项列表请参见 [附录 A.1](#a1-全局选项完整列表)。
 
@@ -295,9 +307,6 @@ first_dates <- get_first_dose_date(
 ```r
 # 使用开始日期作为末次给药日期
 last_dates <- get_last_dose_date(data)
-
-# 使用结束日期
-last_dates <- get_last_dose_date(data, ex_end_date_var = "EXENDAT")
 ```
 
 ---
@@ -449,15 +458,8 @@ prepared_lb <- prepare_test_data(
   test_date_var   = "LBDAT",
   test_cat_var    = "LBCAT",
   test_de_var     = "LBTEST",
-  test_result_var = "ORRES"
-)
-
-# 准备生命体征数据
-prepared_vs <- prepare_test_data(
-  data          = data,
-  test_dataset  = "VS",
-  test_date_var = "VSDAT",
-  test_cat_var  = "VSCAT"
+  test_result_var = "ORRES",
+  config_cat      = c("血常规", "血生化") 
 )
 
 # 准备心电图数据
@@ -465,15 +467,36 @@ prepared_eg <- prepare_test_data(
   data          = data,
   test_dataset  = "EG",
   test_date_var = "EGDAT",
-  test_cat_var  = "EGCAT"
+  test_cat_var  = "EGCAT"，
+  config_cat    = c("心电图")
 )
 
-# 只检查指定类别
-prepared_lb <- prepare_test_data(
-  data         = data,
-  test_dataset = "LB",
-  config_cat   = c("血常规", "生化")
+# 对于"宽数据"如果要查具体检查项的缺失，可以先转置为"长数据"，并添加到raw中，再使用prepare_test_data 准备数据
+# 例如："生命体征"
+data$VSLONG <- pivot_longer(data$VS,
+  cols = c("VSSBP", "VSDBP", "VSRESP", "VSPUL", "VSTEMP"),
+  names_to = "VSTESTCD",
+  values_to = "VSORRES"
+) %>%
+  mutate(VSTEST = case_when(
+    VSTESTCD == "VSSBP" ~ "收缩压",
+    VSTESTCD == "VSDBP" ~ "舒张压",
+    VSTESTCD == "VSRESP" ~ "呼吸",
+    VSTESTCD == "VSPUL" ~ "脉搏",
+    VSTESTCD == "VSTEMP" ~ "体温"
+  )
 )
+
+prepared_vs <- prepare_test_data(data,
+  test_dataset = "VSLONG",
+  test_date_var = "VSDAT",
+  test_result_var = "VSORRES",
+  test_yn_var = "VSYN",
+  test_cat_var = "TNAME",
+  test_de_var = "VSTEST",
+  config_cat = c("生命体征")
+)
+
 ```
 
 **`filter_cond` 筛选受试者：** 格式为 `"数据集名|筛选表达式"`，多条件用分号分隔（取交集）。
@@ -690,7 +713,7 @@ if (result$has_deviation) {
 | `TESTCAT_MISSING` | 有记录但 TESTDAT 为空，或 TESTYN ≠ "是" | 检查项目未执行 |
 | `TESTDE_MISSING` | 有记录且 TESTDAT 非空，但 ORRES 为空 | 具体指标结果缺失（仅 `missing_de = TRUE`） |
 
-> **注意**：`TESTYN` 字段使用中文 **"是"** 表示已执行，与数据录入规范一致。
+> **注意**：`TESTYN` 字段使用中文 **"是"** 表示已执行。
 
 **参数：**
 
@@ -714,11 +737,12 @@ result <- check_missing_test(
   test     = "血常规"
 )
 
-# 同时检查多个类别
+# 同时检查多个类别且检查具体指标缺失
 result <- check_missing_test(
   data     = prepared_lb,
   test_var = "TESTCAT",
-  test     = c("血常规", "血生化")
+  test     = c("血常规", "血生化"),
+  missing_de = TRUE
 )
 
 # 只检查整体缺失，不检查指标级别
@@ -746,6 +770,10 @@ prepared_eg <- prepare_test_data(data = data, test_dataset = "EG", test_date_var
 result_lb <- check_missing_test(data = prepared_lb)
 result_vs <- check_missing_test(data = prepared_vs)
 result_eg <- check_missing_test(data = prepared_eg)
+
+# 合并所有检查数据一起进行检查
+test_data <- bind_rows(prepared_lb, prepared_vs, prepared_eg)
+result <- check_missing_test(data = test_data)
 ```
 
 ---
@@ -789,7 +817,8 @@ all_results <- combine_check_results(
 generate_excel_report(
   checks_df   = all_results,
   output_file = "deviation_report.xlsx",
-  title       = "方案偏离检查报告"
+  title       = "方案偏离检查报告",
+  report_cols = c("PDNO", "SITEID", "SUBJID", "TBNAME", "DESCRIPTION")
 )
 ```
 
@@ -961,19 +990,7 @@ data <- read_raw_data_with_formats(
 )
 ```
 
-**Q2: 如何只检查特定受试者？**
-
-在 `prepare_test_data()` 中使用 `filter_cond` 参数：
-
-```r
-prepared_data <- prepare_test_data(
-  data         = data,
-  test_dataset = "LB",
-  filter_cond  = "ENROL|ENRYN=='Y'"
-)
-```
-
-**Q3: 如何自定义方案偏离编号？**
+**Q2: 如何自定义方案偏离编号？**
 
 所有检查函数都支持 `pdno` 参数：
 
@@ -981,7 +998,7 @@ prepared_data <- prepare_test_data(
 result <- check_icf_time_deviation(data, pdno = "PD-001")
 ```
 
-**Q4: visitcode 和 testconfig 变量名必须固定吗？**
+**Q3: visitcode 和 testconfig 变量名必须固定吗？**
 
 推荐使用这两个固定名称，函数会自动查找。也可以手动传入：
 
@@ -993,23 +1010,9 @@ my_config <- read_testconfig_file("test_config.xlsx")
 prepared_lb <- prepare_test_data(data = data, test_dataset = "LB", config = my_config)
 ```
 
-**Q5: 如何避免每个函数都重复指定相同参数？**
+**Q4: 如何避免每个函数都重复指定相同参数？**
 
 使用 `set_pdchecker_options()` 在脚本开头统一设置，详见 [2.5 全局选项配置](#25-set_pdchecker_options--get_pdchecker_options--全局选项配置)。
-
-**Q6: check_missing_test 中 TESTYN 用什么值表示已执行？**
-
-使用中文 **"是"**。若数据中使用 "Y" 等格式，需在调用 `prepare_test_data()` 前进行数据转换。
-
-**Q7: 如何忽略特定日期变量的 ICF 检查？**
-
-在 `check_icf_time_deviation()` 中使用 `ignore_vars` 参数：
-
-```r
-result <- check_icf_time_deviation(
-  data,
-  ignore_vars = c("BRTHDAT", "MHSTDAT", "DIAG_DATE")
-)
 ```
 
 ---
