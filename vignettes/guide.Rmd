@@ -698,7 +698,7 @@ if (result$has_deviation) {
 |------|------|--------|------|
 | `data` | 数据框 | （必填） | `prepare_test_data()` 的返回值 |
 | `test_var` | 字符串 | `NULL` | 筛选变量名（如 `"TESTCAT"`），为 NULL 检查全部 |
-| `test` | 字符串 | `NULL` | 筛选值（如 `"血常规"`） |
+| `test` | 字符串或字符向量 | `NULL` | 筛选值，支持单选或多选（如 `"血常规"` 或 `c("血常规", "血生化")`） |
 | `missing_de` | 逻辑值 | `TRUE` | 是否检查指标级别缺失 |
 | `pdno` | 字符串 | `"8.3.1"` | 方案偏离编号 |
 
@@ -712,6 +712,13 @@ result <- check_missing_test(
   data     = prepared_lb,
   test_var = "TESTCAT",
   test     = "血常规"
+)
+
+# 同时检查多个类别
+result <- check_missing_test(
+  data     = prepared_lb,
+  test_var = "TESTCAT",
+  test     = c("血常规", "血生化")
 )
 
 # 只检查整体缺失，不检查指标级别

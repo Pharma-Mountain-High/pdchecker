@@ -19,8 +19,8 @@ Must be prepared by \code{\link{prepare_test_data}} with standardized column nam
 \item{test_var}{Character string, variable name for filtering specific tests (default: NULL).
 If NULL, checks all tests. Typically use "TESTDE" (test name) or "TESTCAT" (test category)}
 
-\item{test}{Character string, specific value for test_var (default: NULL).
-E.g., "RBC Count", "WBC Count". Ignored if test_var is NULL}
+\item{test}{Character vector, one or more specific values for test_var (default: NULL).
+E.g., "RBC Count" or c("RBC Count", "WBC Count"). Ignored if test_var is NULL}
 
 \item{missing_de}{Logical, whether to check individual TESTDE missing (default: TRUE).
 If TRUE, checks all three missing types;
@@ -76,6 +76,13 @@ result <- check_missing_test(
   data = prepared_data,
   test_var = "TESTDE",
   test = "RBC Count"
+)
+
+# Or check multiple tests at once
+result <- check_missing_test(
+  data = prepared_data,
+  test_var = "TESTDE",
+  test = c("RBC Count", "WBC Count")
 )
 
 # Only check overall test missing, not individual indicators
