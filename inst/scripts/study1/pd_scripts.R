@@ -51,7 +51,7 @@ window_visit <- check_visit_window(plan_svdate,
                                    pdno = "8.4.1")
 
 #检查结果List 转换为 数据框dataframe
-pd_8_1_1_output <- as_check_df(missing_visit)
+pd_8_2_1_output <- as_check_df(missing_visit)
 
 #检查结果List 转换为 数据框dataframe
 pd_8_4_1_output <- as_check_df(window_visit)
@@ -64,29 +64,73 @@ pd_8_4_1_output <- as_check_df(window_visit)
 testconfig <- read_testconfig_file(file_path = "inst/extdata/example_test.xlsx",
                                    sheet_name = "QL0911-302")
 
-# "血常规 血生化 尿常规 空腹血脂 凝血功能 甲状腺功能 糖化血红蛋白"
+#"血常规 血生化 尿常规 凝血功能" filter_cond筛选入组中的受试者
 lb_data <- prepare_test_data(raw,
                              test_dataset = "LB",
                              test_date_var = "LBDAT",
                              test_result_var = "LBORRES",
-                             test_yn_var = "LBPERF",
+                             test_yn_var = "LBYN",
                              test_cat_var = "LBCAT",
                              test_de_var = "LBTEST",
-                             config_cat = c("血常规","血生化","尿常规","空腹血脂","凝血功能","甲状腺功能","糖化血红蛋白"),
-                             filter_cond = "ENROL|RANDYN=='是'"
+                             config_cat = c("血常规","血生化","尿常规","凝血功能"),
+                             filter_cond = "DSRAND|DSRANDYN=='是'"
 )
 
+# "大便常规" filter_cond筛选入组中的受试者
+lb1_data <- prepare_test_data(raw,
+                             test_dataset = "LB1",
+                             test_date_var = "LBDAT",
+                             test_result_var = "LBORRES",
+                             test_yn_var = "LBYN",
+                             test_cat_var = "LBCAT",
+                             test_de_var = "LBTEST",
+                             config_cat = c("大便常规"),
+                             filter_cond = "DSRAND|DSRANDYN=='是'"
+)
 
-# "生命体征"
+##----- 对于`宽数据`如果要查具体检查项的缺失，可以先转置为`长数据`，并添加到raw中----
+# 再使用prepare_test_data 准备数据
+# 例如："生命体征"
+raw$VSLONG <- pivot_longer(raw$VS,cols = c("VSSBP","VSDBP","VSRESP","VSPUL","VSTEMP"),
+                           names_to = "VSTESTCD",
+                           values_to = "VSORRES") %>%
+  mutate(VSTEST=case_when(VSTESTCD=="VSSBP" ~ "收缩压",
+                          VSTESTCD=="VSDBP" ~ "舒张压",
+                          VSTESTCD=="VSRESP" ~ "呼吸",
+                          VSTESTCD=="VSPUL" ~ "脉搏",
+                          VSTESTCD=="VSTEMP" ~ "体温"))
+
 vs_data <- prepare_test_data(raw,
-                             test_dataset = "VS",
+                             test_dataset = "VSLONG",
                              test_date_var = "VSDAT",
                              test_result_var = "VSORRES",
-                             test_yn_var = "VSPERF",
+                             test_yn_var = "VSYN",
                              test_cat_var = "TNAME",
                              test_de_var = "VSTEST",
                              config_cat = c("生命体征"),
-                             filter_cond = "ENROL|RANDYN=='是'"
+                             filter_cond = "DSRAND|DSRANDYN=='是'"
+)
+
+
+# `宽数据` ----→ `长数据`
+# "12导联心电图"
+raw$EGLONG <- pivot_longer(raw$EG,cols = c("EGHR","EGPR","EGQT","EGQTC"),
+                        names_to = "EGTESTCD",
+                        values_to = "EGORRES") %>%
+  mutate(EGTEST=case_when(EGTESTCD=="EGHR" ~ "心率",
+                          EGTESTCD=="EGPR" ~ "PR间期",
+                          EGTESTCD=="EGQT" ~ "QT间期",
+                          EGTESTCD=="EGQTC" ~ "QTc间期"))
+
+eg_data <- prepare_test_data(raw,
+                             test_dataset = "EGLONG",
+                             test_date_var = "EGDAT",
+                             test_result_var = "EGORRES",
+                             test_yn_var = "EGPERF",
+                             test_cat_var = "TNAME",
+                             test_de_var = "EGTEST",
+                             config_cat = c("12-导联心电图"),
+                             filter_cond = "DSRAND|DSRANDYN=='是'"
 )
 
 # "体格检查"
@@ -98,70 +142,80 @@ pe_data <- prepare_test_data(raw,
                              test_cat_var = "TNAME",
                              test_de_var = "PETEST",
                              config_cat = c("体格检查"),
-                             filter_cond = "ENROL|RANDYN=='是'"
+                             filter_cond = "DSRAND|DSRANDYN=='是'"
 )
 
-# "12导联心电图"
-
-raw$EGLONG <- pivot_longer(raw$EG,cols = c("HR","PR","QRS","QT","QTC","QTCF"),
-                        names_to = "EGTESTCD",
-                        values_to = "EGORRES") %>%
-  mutate(EGTEST=case_when(EGTESTCD=="HR" ~ "心率",
-                          EGTESTCD=="PR" ~ "PR间期",
-                          EGTESTCD=="QRS" ~ "QRS间期",
-                          EGTESTCD=="QT" ~ "QT间期",
-                          EGTESTCD=="QTC" ~ "QTc间期",
-                          EGTESTCD=="QTCF" ~ "QTcF"))
-
-eg_data <- prepare_test_data(raw,
-                             test_dataset = "EGLONG",
-                             test_date_var = "EGDAT",
-                             test_result_var = "EGORRES",
-                             test_yn_var = "EGPERF",
-                             test_cat_var = "TNAME",
-                             test_de_var = "EGTEST",
-                             config_cat = c("12导联心电图"),
-                             filter_cond = "ENROL|RANDYN=='是'"
-)
 
 # "妊娠检查"
-rp_data <- prepare_test_data(raw,
-                             test_dataset = "RP",
-                             test_date_var = "RPDAT",
-                             test_result_var = "RPRES",
-                             test_yn_var = "RPPERF",
+# 对于不需要具体检查指标的项目，使test_de_var = NULL
+# 同时多个筛选条件使用英文";"连接，例如：DSRAND|DSRANDYN=='是';DM|SEX=='女性'
+hcg_data <- prepare_test_data(raw,
+                             test_dataset = "LBHCG",
+                             test_date_var = "LBDAT",
+                             test_result_var = "LBRES",
+                             test_yn_var = "LBPERF",
                              test_cat_var = "TNAME",
-                             # test_de_var = "RPTEST",
-                             config_cat = c("妊娠检查"),
-                             filter_cond = "ENROL|RANDYN=='是';DM|SEX=='女'"
+                             test_de_var = NULL,
+                             config_cat = c("妊娠试验"),
+                             filter_cond = "DSRAND|DSRANDYN=='是';DM|SEX=='女性'"
 )
 
 # "病毒学检查"
 vir_data <- prepare_test_data(raw,
-                             test_dataset = "VIR",
-                             test_date_var = "VIRDAT",
-                             test_result_var = "VIRRES",
-                             test_yn_var = "VIRPERF",
+                             test_dataset = "LBVT",
+                             test_date_var = "LBDAT",
+                             test_result_var = "LBRES",
+                             test_yn_var = "LBPERF",
                              test_cat_var = "TNAME",
-                             # test_de_var = "VIRTEST",
-                             config_cat = c("病毒学检查"),
-                             filter_cond = "ENROL|RANDYN=='是'"
+                             test_de_var = "LBTEST",
+                             config_cat = c("病毒血清学检查"),
+                             filter_cond = "DSRAND|DSRANDYN=='是'"
 )
 
-# "免疫原性样本采集"
-ada_data <- prepare_test_data(raw,
-                              test_dataset = "ADA",
-                              test_date_var = "ADADAT",
-                              test_result_var = "ADAPERF",
-                              test_yn_var = "ADAPERF",
-                              test_cat_var = "TNAME",
-                              # test_de_var = "VIRTEST",
-                              config_cat = c("ADA样本采集"),
-                              filter_cond = "ENROL|RANDYN=='是'"
+
+#合并所有需要检查缺失的数据
+test_data <- bind_rows(lb_data,lb1_data,vs_data,eg_data,pe_data,hcg_data,vir_data)
+
+# 检查项缺失
+
+# 通过test_var参数指定用来筛选的变量，通过test参数筛选需要对哪些检查项进行检查
+# missing_de = T 代表 对`具体指标`进行检查缺失（例如：红细胞计数）
+missing_test_1 <- check_missing_test(test_data,
+                                     test_var = "TESTCAT",
+                                     test = c("血常规","血生化","尿常规","凝血功能","大便常规","生命体征","12-导联心电图","体格检查","病毒血清学检查"),
+                                     missing_de = T)
+
+# 通过test_var参数指定用来筛选的变量，通过test参数筛选需要对哪些检查项进行检查
+# missing_de = F 代表 不对`具体指标`进行检查缺失
+missing_test_2 <- check_missing_test(test_data,
+                                     test_var = "TESTCAT",
+                                     test = c("妊娠试验"),
+                                     missing_de = F)
+
+pd_8_3_output <- bind_rows(as_check_df(missing_test_1),as_check_df(missing_test_2))
+
+
+
+#------------------------------------输出Excel----------------------------------
+
+# 合并所有方案偏离检查结果
+# 可选：与方案偏离SPEC merge，并命名输出Excel的变量
+all_output <- bind_rows(pd_2_1_1_ouput,pd_2_4_1_ouput,pd_8_2_1_output,pd_8_4_1_output,pd_8_3_output) %>%
+  left_join(pdspec,join_by(PDNO=="方案偏离类别编号")) %>%
+  mutate(`受试者编号`=SUBJID,
+         `表单名称`=TBNAME,
+         `方案偏离的具体描述`=DESCRIPTION,
+         `方案偏离类别编号`=PDNO)
+
+
+# 输出Excel
+# 输出的检查结果中必须包括 PDNO,SUBJID,has_deviation 列，用来排序使用，可以不输出到Excel中
+# report_cols 参数用来指定输出到Excel的列名
+generate_excel_report(
+  checks_df   = all_output,
+  output_file = "inst/extdata/example_output.xlsx",
+  title       = "Study1 - 方案偏离检查报告",
+  report_cols = c("受试者编号","表单名称","方案偏离分类","方案偏离具体分类","方案偏离类别编号","方案偏离的统一描述","方案偏离的具体描述","检查方法","严重程度")
 )
 
-test_data <- bind_rows(lb_data,vs_data,pe_data,eg_data,rp_data,vir_data,ada_data)
 
-missing_test <- check_missing_test(test_data,missing_de = T)
-
-pd_8_2_output <- as_check_df(missing_test)
