@@ -772,33 +772,7 @@ all_results <- combine_check_results(
 
 ---
 
-### 8.2 capture_check_results() — 批量执行检查
-
-将多个检查包装成函数后批量执行，自动捕获输出并合并结果。每个参数必须是一个接受 `data` 参数的**函数**。
-
-**参数：**
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `...` | 命名函数 | 每个参数是一个 `function(data)` 形式的函数 |
-| `data` | 任意 | 传递给每个函数的数据参数 |
-
-```r
-all_results <- capture_check_results(
-  icf_check = function(data) check_icf_time_deviation(data),
-  ic_check  = function(data) check_screen_without_ic(data),
-  mv_check  = function(data) check_missing_visit(planned_dates),
-  vw_check  = function(data) check_visit_window(planned_dates),
-  mt_check  = function(data) check_missing_test(prepared_lb),
-  data = data
-)
-```
-
-> **注意**：参数值必须是函数（`function(data) ...`），不能直接传入检查调用的结果。
-
----
-
-### 8.3 generate_excel_report() — Excel 报告
+### 8.2 generate_excel_report() — Excel 报告
 
 生成包含 Summary（汇总统计）和 All Deviations（逐条明细）两个工作表的 Excel 文件。Summary 列出全部 `check_name`（含无偏离）；All Deviations 仅含 `has_deviation == TRUE` 的行。
 
@@ -1042,8 +1016,8 @@ result <- check_icf_time_deviation(
 
 ## 版本信息
 
-本手册基于 pdchecker 包当前开发版本（0.0.0.9000）编写。如有更新，请参阅包的 `NEWS.md` 文件。
+本手册基于 pdchecker 包当前版本（0.9.0）编写。如有更新，请参阅包的 `NEWS.md` 文件。
 
 ---
 
-*文档最后更新：2026年3月*
+*文档最后更新：2026年4月*
