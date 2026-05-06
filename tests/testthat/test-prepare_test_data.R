@@ -106,7 +106,7 @@ test_that("prepare_test_data() basic functionality works", {
   # Check required columns exist
   expected_cols <- c(
     "SUBJID", "VISIT", "VISITNUM", "SVDAT", "TBNAME",
-    "TESTCAT", "TESTCAT_ORIG", "TESTDE", "TESTYN", "TESTDAT", "ORRES"
+    "TESTCAT", "TESTCAT_ORIG", "TESTDE", "TESTYN", "TESTDAT", "TESTTIM", "ORRES"
   )
   expect_true(all(expected_cols %in% names(result)))
 
@@ -717,12 +717,12 @@ test_that("column order is correct", {
   )
 
   # Check column order: key columns first, then derived columns
-  first_cols <- names(result)[1:11]
+  first_cols <- names(result)[1:12]
   expect_equal(
     first_cols,
     c(
       "SUBJID", "VISIT", "VISITNUM", "SVDAT", "TBNAME", "TESTCAT",
-      "TESTCAT_ORIG", "TESTDE", "TESTYN", "TESTDAT", "ORRES"
+      "TESTCAT_ORIG", "TESTDE", "TESTYN", "TESTDAT", "TESTTIM", "ORRES"
     )
   )
 })

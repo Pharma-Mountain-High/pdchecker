@@ -433,6 +433,7 @@ planned_dates <- generate_planned_visit_dates(
 | `data` | 列表 | （必填） | 临床数据列表 |
 | `test_dataset` | 字符串 | （必填） | 要提取的检查数据集名称（如 `"LB"`） |
 | `test_date_var` | 字符串 | `"LBDAT"` | 检查日期变量 |
+| `test_time_var` | 字符串 | `NULL` | 检查时间变量（可为空） |
 | `test_yn_var` | 字符串 | `"YN"` | 是否执行变量 |
 | `test_result_var` | 字符串 | `"ORRES"` | 检查结果变量 |
 | `test_cat_var` | 字符串 | `"LBCAT"` | 检查类别变量 |
@@ -446,7 +447,7 @@ planned_dates <- generate_planned_visit_dates(
 | `config_cat` | 字符向量 | `NULL` | 只检查指定的检查类别（为 NULL 时检查全部） |
 | `filter_cond` | 字符串 | `NULL` | 受试者筛选条件 |
 
-**返回值：** 标准化的数据框，列名统一为 `SUBJID`、`VISIT`、`VISITNUM`、`TBNAME`、`TESTCAT`、`TESTDE`、`TESTYN`、`TESTDAT`、`ORRES` 等。
+**返回值：** 标准化的数据框，列名统一为 `SUBJID`、`VISIT`、`VISITNUM`、`TBNAME`、`TESTCAT`、`TESTDE`、`TESTYN`、`TESTDAT`、`TESTTIM`、`ORRES` 等。
 
 ```r
 testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
@@ -882,6 +883,7 @@ df <- as_check_df(result, check_name = "icf_time_deviation")
 | `ic_date_var` | `"ICDAT"` | `check_icf_time_deviation`, `check_screen_without_ic` |
 | `tb_name_var` | `NULL` | `check_icf_time_deviation`, `prepare_test_data` |
 | `test_date_var` | `"LBDAT"` | `prepare_test_data` |
+| `test_time_var` | `NULL` | `prepare_test_data` |
 | `test_yn_var` | `"YN"` | `prepare_test_data` |
 | `test_result_var` | `"ORRES"` | `prepare_test_data` |
 | `test_cat_var` | `"LBCAT"` | `prepare_test_data` |

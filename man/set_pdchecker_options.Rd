@@ -20,6 +20,7 @@ set_pdchecker_options(
   ic_date_var = NULL,
   tb_name_var = NULL,
   test_date_var = NULL,
+  test_time_var = NULL,
   test_yn_var = NULL,
   test_result_var = NULL,
   test_cat_var = NULL,
@@ -56,6 +57,8 @@ set_pdchecker_options(
 \item{tb_name_var}{Character string, dataset name variable (default in functions: NULL)}
 
 \item{test_date_var}{Character string, test date variable (default in functions: "LBDAT")}
+
+\item{test_time_var}{Character string, test time variable (default in functions: NULL)}
 
 \item{test_yn_var}{Character string, test performed variable (default in functions: "YN")}
 
