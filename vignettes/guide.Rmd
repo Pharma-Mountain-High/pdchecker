@@ -460,7 +460,7 @@ prepared_lb <- prepare_test_data(
   test_cat_var    = "LBCAT",
   test_de_var     = "LBTEST",
   test_result_var = "ORRES",
-  config_cat      = c("血常规", "血生化") 
+  config_cat      = c("血常规", "血生化")
 )
 
 # 准备心电图数据
