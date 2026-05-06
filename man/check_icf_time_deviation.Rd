@@ -106,7 +106,7 @@ result <- check_icf_time_deviation(
 
 }
 \seealso{
-Other deviation checks: 
-\code{\link{check_screen_without_ic}()}
+Other deviation checks:
+\code{\link[=check_screen_without_ic]{check_screen_without_ic()}}
 }
 \concept{deviation checks}

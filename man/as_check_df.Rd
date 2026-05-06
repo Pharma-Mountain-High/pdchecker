@@ -54,9 +54,9 @@ df <- as_check_df(check_result, check_name = "my_check")
 
 }
 \seealso{
-Other check result utilities: 
-\code{\link{capture_check_results}()},
-\code{\link{combine_check_results}()},
-\code{\link{parse_check_output}()}
+Other check result utilities:
+\code{\link[=capture_check_results]{capture_check_results()}},
+\code{\link[=combine_check_results]{combine_check_results()}},
+\code{\link[=parse_check_output]{parse_check_output()}}
 }
 \concept{check result utilities}

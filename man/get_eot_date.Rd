@@ -53,9 +53,9 @@ eot_dates <- get_eot_date(data)
 \seealso{
 \code{\link{get_eos_date}} for extracting end of study dates
 
-Other date extraction: 
-\code{\link{get_eos_date}()},
-\code{\link{get_first_dose_date}()},
-\code{\link{get_last_dose_date}()}
+Other date extraction:
+\code{\link[=get_eos_date]{get_eos_date()}},
+\code{\link[=get_first_dose_date]{get_first_dose_date()}},
+\code{\link[=get_last_dose_date]{get_last_dose_date()}}
 }
 \concept{date extraction}

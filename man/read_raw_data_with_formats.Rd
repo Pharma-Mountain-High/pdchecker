@@ -77,7 +77,7 @@ ae <- data$AE
 \seealso{
 \code{\link[=read_raw_data]{read_raw_data()}} for reading data with SAS format data file
 
-Other data reading functions: 
-\code{\link{read_raw_data}()}
+Other data reading functions:
+\code{\link[=read_raw_data]{read_raw_data()}}
 }
 \concept{data reading functions}

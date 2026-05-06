@@ -102,7 +102,7 @@ result <- get_first_dose_date(data = my_data, ex_datasets = "EX2")
 \seealso{
 \code{\link[=get_pdchecker_options]{get_pdchecker_options()}} for viewing current option values
 
-Other options: 
-\code{\link{get_pdchecker_options}()}
+Other options:
+\code{\link[=get_pdchecker_options]{get_pdchecker_options()}}
 }
 \concept{options}

@@ -112,7 +112,7 @@ result3 <- check_screen_without_ic(
 \seealso{
 \code{\link[=check_icf_time_deviation]{check_icf_time_deviation()}} for checking events before informed consent
 
-Other deviation checks: 
-\code{\link{check_icf_time_deviation}()}
+Other deviation checks:
+\code{\link[=check_icf_time_deviation]{check_icf_time_deviation()}}
 }
 \concept{deviation checks}

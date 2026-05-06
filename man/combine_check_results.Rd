@@ -35,9 +35,9 @@ combined <- combine_check_results(result1, result2)
 \seealso{
 \code{\link{as_check_df}} for converting individual check results
 
-Other check result utilities: 
-\code{\link{as_check_df}()},
-\code{\link{capture_check_results}()},
-\code{\link{parse_check_output}()}
+Other check result utilities:
+\code{\link[=as_check_df]{as_check_df()}},
+\code{\link[=capture_check_results]{capture_check_results()}},
+\code{\link[=parse_check_output]{parse_check_output()}}
 }
 \concept{check result utilities}

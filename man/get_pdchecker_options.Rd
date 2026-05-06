@@ -27,7 +27,7 @@ get_pdchecker_options()
 \seealso{
 \code{\link[=set_pdchecker_options]{set_pdchecker_options()}} for setting option values
 
-Other options: 
-\code{\link{set_pdchecker_options}()}
+Other options:
+\code{\link[=set_pdchecker_options]{set_pdchecker_options()}}
 }
 \concept{options}
