@@ -1,3 +1,11 @@
+# pdchecker 0.9.1
+
+## 新功能
+
+- `prepare_test_data()` 添加 `test_time_var` 参数，返回值包括TESTTIM列。
+
+---
+
 # pdchecker 0.9.0
 
 ## 新功能
