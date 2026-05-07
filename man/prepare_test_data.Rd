@@ -8,6 +8,7 @@ prepare_test_data(
   data,
   test_dataset,
   test_date_var = getOption("pdchecker.test_date_var", "LBDAT"),
+  test_time_var = getOption("pdchecker.test_time_var", NULL),
   test_yn_var = getOption("pdchecker.test_yn_var", "YN"),
   test_result_var = getOption("pdchecker.test_result_var", "ORRES"),
   test_cat_var = getOption("pdchecker.test_cat_var", "LBCAT"),
@@ -28,6 +29,9 @@ prepare_test_data(
 \item{test_dataset}{Character string, test dataset name to extract (e.g., "LB")}
 
 \item{test_date_var}{Character string, original test date variable (default: "LBDAT")}
+
+\item{test_time_var}{Character string, original test time variable (default: NULL).
+If NULL or empty, TESTTIM column will be NA}
 
 \item{test_yn_var}{Character string, original test performed variable (default: "YN")}
 
@@ -87,6 +91,7 @@ Data frame with column order:
 \item{TESTDE}{Test name (derived, mapped from test_de_var)}
 \item{TESTYN}{Test performed flag (derived, mapped from test_yn_var)}
 \item{TESTDAT}{Test date (derived, mapped from test_date_var)}
+\item{TESTTIM}{Test time (derived, mapped from test_time_var)}
 \item{ORRES}{Test result (derived, mapped from test_result_var)}
 \item{...}{All other original columns from test dataset}
 }
@@ -94,7 +99,7 @@ Note: SV dataset only keeps SUBJID, VISIT, VISITNUM, SVDAT in output
 }
 \description{
 Extract specified test dataset from a list of all data, merge with visit dataset,
-and create standardized column names (TBNAME, TESTCAT, TESTDE, TESTDAT, TESTYN, ORRES)
+and create standardized column names (TBNAME, TESTCAT, TESTDE, TESTDAT, TESTTIM, TESTYN, ORRES)
 for subsequent missing test checks.
 }
 \details{
@@ -140,11 +145,12 @@ SUBJID, VISIT, VISITNUM, SVDAT
 \item TESTCAT: Test category (mapped from original category column)
 \item TESTDE: Test name (mapped from original test column), e.g., "RBC Count"
 \item TESTDAT: Test date (mapped from original date column)
+\item TESTTIM: Test time (mapped from original time column)
 \item TESTYN: Test performed flag (mapped from original flag column)
 \item ORRES: Test result (mapped from original result column)
 }
 \item Return dataset with original test columns and derived columns in order:
-SUBJID, VISIT, VISITNUM, TBNAME, TESTCAT, TESTDE, TESTYN, TESTDAT, ORRES, other original columns
+SUBJID, VISIT, VISITNUM, TBNAME, TESTCAT, TESTDE, TESTYN, TESTDAT, TESTTIM, ORRES, other original columns
 }
 }
 

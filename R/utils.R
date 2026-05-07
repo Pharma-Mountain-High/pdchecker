@@ -832,6 +832,7 @@ calculate_window_range <- function(planned_date, window_type, window_value) {
 #' @param ic_date_var Character string, informed consent date variable (default in functions: "ICDAT")
 #' @param tb_name_var Character string, dataset name variable (default in functions: NULL)
 #' @param test_date_var Character string, test date variable (default in functions: "LBDAT")
+#' @param test_time_var Character string, test time variable (default in functions: NULL)
 #' @param test_yn_var Character string, test performed variable (default in functions: "YN")
 #' @param test_result_var Character string, test result variable (default in functions: "ORRES")
 #' @param test_cat_var Character string, test category variable (default in functions: "LBCAT")
@@ -879,6 +880,7 @@ set_pdchecker_options <- function(sv_dataset = NULL,
                                   ic_date_var = NULL,
                                   tb_name_var = NULL,
                                   test_date_var = NULL,
+                                  test_time_var = NULL,
                                   test_yn_var = NULL,
                                   test_result_var = NULL,
                                   test_cat_var = NULL,
@@ -899,6 +901,7 @@ set_pdchecker_options <- function(sv_dataset = NULL,
     ic_date_var = ic_date_var,
     tb_name_var = tb_name_var,
     test_date_var = test_date_var,
+    test_time_var = test_time_var,
     test_yn_var = test_yn_var,
     test_result_var = test_result_var,
     test_cat_var = test_cat_var,
@@ -950,7 +953,7 @@ get_pdchecker_options <- function() {
     "ds_dataset", "ds_date_var",
     "ic_dataset", "ic_date_var",
     "tb_name_var",
-    "test_date_var", "test_yn_var", "test_result_var",
+    "test_date_var", "test_time_var", "test_yn_var", "test_result_var",
     "test_cat_var", "test_de_var"
   )
 
@@ -962,7 +965,7 @@ get_pdchecker_options <- function() {
     ds_dataset = "DS", ds_date_var = "DSDAT",
     ic_dataset = "IC", ic_date_var = "ICDAT",
     tb_name_var = NULL,
-    test_date_var = "LBDAT", test_yn_var = "YN", test_result_var = "ORRES",
+    test_date_var = "LBDAT", test_time_var = NULL, test_yn_var = "YN", test_result_var = "ORRES",
     test_cat_var = "LBCAT", test_de_var = NULL
   )
 

@@ -68,7 +68,7 @@ ae <- data$AE
 \seealso{
 \code{\link[=read_raw_data_with_formats]{read_raw_data_with_formats()}} for reading data with SAS catalog file
 
-Other data reading functions: 
-\code{\link{read_raw_data_with_formats}()}
+Other data reading functions:
+\code{\link[=read_raw_data_with_formats]{read_raw_data_with_formats()}}
 }
 \concept{data reading functions}

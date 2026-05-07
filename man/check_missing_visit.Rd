@@ -119,7 +119,7 @@ if (result$has_deviation) {
 \code{\link{generate_planned_visit_dates}} for generating planned visit data
 \code{\link{check_visit_window}} for checking visit window deviations
 
-Other visit checks: 
-\code{\link{check_visit_window}()}
+Other visit checks:
+\code{\link[=check_visit_window]{check_visit_window()}}
 }
 \concept{visit checks}

@@ -55,9 +55,9 @@ results <- capture_check_results(
 \code{\link{parse_check_output}}, \code{\link{as_check_df}},
 \code{\link{combine_check_results}}
 
-Other check result utilities: 
-\code{\link{as_check_df}()},
-\code{\link{combine_check_results}()},
-\code{\link{parse_check_output}()}
+Other check result utilities:
+\code{\link[=as_check_df]{as_check_df()}},
+\code{\link[=combine_check_results]{combine_check_results()}},
+\code{\link[=parse_check_output]{parse_check_output()}}
 }
 \concept{check result utilities}

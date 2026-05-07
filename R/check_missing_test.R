@@ -69,7 +69,7 @@
 #'
 #' Note: Input data must be prepared by \code{\link{prepare_test_data}},
 #' which standardizes column names to SUBJID, VISIT, VISITNUM, SVDAT, TESTCAT,
-#' TESTDE, TESTYN, TESTDAT, ORRES, etc.
+#' TESTDE, TESTYN, TESTDAT, TESTTIM, ORRES, etc.
 #'
 #' @param data Data frame, test data to check.
 #'   Must be prepared by \code{\link{prepare_test_data}} with standardized column names

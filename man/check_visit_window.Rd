@@ -107,7 +107,7 @@ if (result$has_deviation) {
 \code{\link{generate_planned_visit_dates}} for generating planned visit data
 \code{\link{check_missing_visit}} for checking missing visits
 
-Other visit checks: 
-\code{\link{check_missing_visit}()}
+Other visit checks:
+\code{\link[=check_missing_visit]{check_missing_visit()}}
 }
 \concept{visit checks}

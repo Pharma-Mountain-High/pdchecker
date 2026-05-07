@@ -61,9 +61,9 @@ result <- parse_check_output(capture_output = TRUE, check_fn = my_check_function
 \seealso{
 \code{\link{capture_check_results}} for batch processing multiple checks
 
-Other check result utilities: 
-\code{\link{as_check_df}()},
-\code{\link{capture_check_results}()},
-\code{\link{combine_check_results}()}
+Other check result utilities:
+\code{\link[=as_check_df]{as_check_df()}},
+\code{\link[=capture_check_results]{capture_check_results()}},
+\code{\link[=combine_check_results]{combine_check_results()}}
 }
 \concept{check result utilities}

@@ -2,7 +2,7 @@
 #'
 #' @description
 #' Extract specified test dataset from a list of all data, merge with visit dataset,
-#' and create standardized column names (TBNAME, TESTCAT, TESTDE, TESTDAT, TESTYN, ORRES)
+#' and create standardized column names (TBNAME, TESTCAT, TESTDE, TESTDAT, TESTTIM, TESTYN, ORRES)
 #' for subsequent missing test checks.
 #'
 #' @details
@@ -47,10 +47,11 @@
 #'    - TESTCAT: Test category (mapped from original category column)
 #'    - TESTDE: Test name (mapped from original test column), e.g., "RBC Count"
 #'    - TESTDAT: Test date (mapped from original date column)
+#'    - TESTTIM: Test time (mapped from original time column)
 #'    - TESTYN: Test performed flag (mapped from original flag column)
 #'    - ORRES: Test result (mapped from original result column)
 #' 5. Return dataset with original test columns and derived columns in order:
-#'    SUBJID, VISIT, VISITNUM, TBNAME, TESTCAT, TESTDE, TESTYN, TESTDAT, ORRES, other original columns
+#'    SUBJID, VISIT, VISITNUM, TBNAME, TESTCAT, TESTDE, TESTYN, TESTDAT, TESTTIM, ORRES, other original columns
 #'
 #' ## Notes
 #'
@@ -63,6 +64,8 @@
 #' @param data List containing all clinical trial datasets
 #' @param test_dataset Character string, test dataset name to extract (e.g., "LB")
 #' @param test_date_var Character string, original test date variable (default: "LBDAT")
+#' @param test_time_var Character string, original test time variable (default: NULL).
+#'   If NULL or empty, TESTTIM column will be NA
 #' @param test_yn_var Character string, original test performed variable (default: "YN")
 #' @param test_result_var Character string, original test result variable (default: "ORRES")
 #' @param test_cat_var Character string, original test category variable (default: "LBCAT").
@@ -107,6 +110,7 @@
 #'     \item{TESTDE}{Test name (derived, mapped from test_de_var)}
 #'     \item{TESTYN}{Test performed flag (derived, mapped from test_yn_var)}
 #'     \item{TESTDAT}{Test date (derived, mapped from test_date_var)}
+#'     \item{TESTTIM}{Test time (derived, mapped from test_time_var)}
 #'     \item{ORRES}{Test result (derived, mapped from test_result_var)}
 #'     \item{...}{All other original columns from test dataset}
 #'   }
@@ -154,6 +158,7 @@
 prepare_test_data <- function(data,
                               test_dataset,
                               test_date_var = getOption("pdchecker.test_date_var", "LBDAT"),
+                              test_time_var = getOption("pdchecker.test_time_var", NULL),
                               test_yn_var = getOption("pdchecker.test_yn_var", "YN"),
                               test_result_var = getOption("pdchecker.test_result_var", "ORRES"),
                               test_cat_var = getOption("pdchecker.test_cat_var", "LBCAT"),
@@ -368,6 +373,16 @@ prepare_test_data <- function(data,
     merged_data$TESTDAT <- NA
   }
 
+  # TESTTIM
+  if (!is.null(test_time_var) && test_time_var != "" && test_time_var %in% names(merged_data)) {
+    merged_data$TESTTIM <- merged_data[[test_time_var]]
+  } else {
+    if (!is.null(test_time_var) && test_time_var != "" && !test_time_var %in% names(merged_data)) {
+      warning(paste0("Column not found in test dataset: ", test_time_var, ", TESTTIM will be set to NA"))
+    }
+    merged_data$TESTTIM <- NA
+  }
+
   # ORRES
   if (test_result_var %in% names(merged_data)) {
     if (test_result_var != "ORRES") {
@@ -392,7 +407,7 @@ prepare_test_data <- function(data,
 
   # Reorder columns
   key_cols <- c("SUBJID", "VISIT", "VISITNUM", "SVDAT")
-  derived_cols <- c("TBNAME", "TESTCAT", "TESTCAT_ORIG", "TESTDE", "TESTYN", "TESTDAT", "ORRES")
+  derived_cols <- c("TBNAME", "TESTCAT", "TESTCAT_ORIG", "TESTDE", "TESTYN", "TESTDAT", "TESTTIM", "ORRES")
   other_cols <- setdiff(names(merged_data), c(key_cols, derived_cols))
 
   result <- merged_data %>%
