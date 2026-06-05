@@ -25,9 +25,12 @@ Imports:
     rlang,
     tibble
 Suggests:
+    httr2,
+    jsonlite,
     knitr,
     mockery,
     rmarkdown,
+    rstudioapi,
     testthat (>= 3.0.0),
     withr,
     writexl
