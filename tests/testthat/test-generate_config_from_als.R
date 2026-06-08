@@ -40,8 +40,8 @@ create_als_test_workbook <- function(dir) {
   path
 }
 
-test_that("infer_cycle_from_visit_name maps standard types", {
-  infer <- pdchecker:::infer_cycle_from_visit_name
+test_that("infer_visit_cycle maps standard types", {
+  infer <- pdchecker:::infer_visit_cycle
   expect_equal(infer("筛选期- D-28~D-1"), "筛选期")
   expect_equal(infer("纠正治疗期_D1"), "预治疗")
   expect_equal(infer("维持治疗期_C1D8"), "治疗期1")
@@ -53,8 +53,8 @@ test_that("infer_cycle_from_visit_name maps standard types", {
   expect_equal(infer("共同页"), "")
 })
 
-test_that("infer_visitday_from_visit_name parses day patterns", {
-  infer <- pdchecker:::infer_visitday_from_visit_name
+test_that("infer_visitday parses day patterns", {
+  infer <- pdchecker:::infer_visitday
   expect_equal(infer("筛选期- D-28~D-1"), "-28")
   expect_equal(infer("纠正治疗期_D8"), "8")
   expect_equal(infer("维持治疗期_C1D15"), "15")
@@ -62,16 +62,16 @@ test_that("infer_visitday_from_visit_name parses day patterns", {
   expect_equal(infer("研究结束"), "EOS")
 })
 
-test_that("serialize_als_workbook_for_ai produces sheet blocks", {
+test_that("serialize_als_wb produces sheet blocks", {
   skip_if_not_installed("writexl")
   tmp <- withr::local_tempdir()
   als_test <- create_als_test_workbook(tmp)
-  text <- pdchecker:::serialize_als_workbook_for_ai(als_test, max_rows = 10, max_cols = 10)
+  text <- pdchecker:::serialize_als_wb(als_test, max_rows = 10, max_cols = 10)
   expect_true(grepl("### 工作表: 访视", text, fixed = TRUE))
   expect_true(grepl("### 工作表: Casebook TRIGGER", text, fixed = TRUE))
 })
 
-test_that("normalize_ai_als_config builds valid tables", {
+test_that("normalize_als_config builds valid tables", {
   mock <- list(
     visitcode = data.frame(
       VISIT = c("筛选期- D-28~D-1", "纠正治疗期_D1", "维持治疗期_C1D8"),
@@ -90,7 +90,7 @@ test_that("normalize_ai_als_config builds valid tables", {
     ),
     notes = "Used 访视 sheet for VISITNUM."
   )
-  out <- pdchecker:::normalize_ai_als_config(
+  out <- pdchecker:::normalize_als_config(
     parsed_json = mock,
     exclude_visits = "共同页",
     exclude_forms = NULL
@@ -105,7 +105,7 @@ test_that("normalize_ai_als_config builds valid tables", {
   expect_equal(names(out$testconfig), c("TESTCAT", "VISITNUM", "FORM"))
 })
 
-test_that(".ai_resolve_credentials reads required env vars", {
+test_that(".ai_creds reads required env vars", {
   old <- list(
     OPENROUTER_API_KEY = Sys.getenv("OPENROUTER_API_KEY"),
     OPENROUTER_BASE_URL = Sys.getenv("OPENROUTER_BASE_URL"),
@@ -125,7 +125,7 @@ test_that(".ai_resolve_credentials reads required env vars", {
     OPENROUTER_MODEL = "deepseek-v4-flash"
   )
 
-  creds <- pdchecker:::.ai_resolve_credentials()
+  creds <- pdchecker:::.ai_creds()
   expect_equal(creds$api_key, "test-key")
   expect_equal(creds$base_url, "https://ai-api.qilu-pharma.com/v1")
   expect_equal(creds$model, "deepseek-v4-flash")
@@ -203,11 +203,11 @@ test_that("normalize uses AI Chinese TESTCAT when FORM is English code", {
     ),
     notes = "test"
   )
-  out <- pdchecker:::normalize_ai_als_config(mock, exclude_visits = NULL, exclude_forms = NULL)
+  out <- pdchecker:::normalize_als_config(mock, exclude_visits = NULL, exclude_forms = NULL)
   expect_equal(out$testconfig$TESTCAT, "血常规")
 })
 
-test_that("normalize_ai_als_config drops non-check forms and English TESTCAT", {
+test_that("normalize_als_config drops non-check forms and English TESTCAT", {
   mock <- list(
     visitcode = data.frame(
       VISIT = c("筛选期- D-28~D-1", "维持治疗期_C1D8"),
@@ -226,7 +226,7 @@ test_that("normalize_ai_als_config drops non-check forms and English TESTCAT", {
     ),
     notes = "test"
   )
-  out <- pdchecker:::normalize_ai_als_config(mock, exclude_visits = NULL, exclude_forms = NULL)
+  out <- pdchecker:::normalize_als_config(mock, exclude_visits = NULL, exclude_forms = NULL)
   expect_equal(nrow(out$testconfig), 1L)
   expect_equal(out$testconfig$TESTCAT, "血常规")
 })

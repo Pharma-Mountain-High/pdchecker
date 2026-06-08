@@ -1,5 +1,6 @@
 AE
 AEENDAT
+ALS
 Analytics
 apache
 ASCVD
@@ -26,6 +27,8 @@ dplyr
 dropdown
 DS
 DSDAT
+eCRF
+EDC
 EG
 eGFR
 ENROL
@@ -49,6 +52,7 @@ googletagmanager
 gtag
 hengshan
 href
+httr2
 http
 https
 IC
@@ -63,6 +67,8 @@ iteratively
 IWRS
 iwrs
 js
+JSON
+jsonlite
 labelled
 LBCAT
 LBDAT
@@ -72,13 +78,17 @@ ldl
 licensable
 Licensor
 Lifecycle
+LLM
 magrittr
+meds
 MERCHANTABILITY
 MHSTDAT
 na
 navbar
 NYHA
 nyha
+OpenAI
+OPENROUTER
 openpharma
 openxlsx
 ORRES
@@ -96,6 +106,7 @@ readxl
 recommedations
 repo
 repos
+Renviron
 rlang
 Roxygen
 RoxygenNote

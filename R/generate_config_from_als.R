@@ -62,7 +62,7 @@
 #'   output_dir = tempdir(),
 #'   ai_instruction = "访视编号在访视 sheet 的 VISITNUM 列"
 #' )
-#' visitcode  <- read_visitcode_file(cfg$visitcode_file)
+#' visitcode <- read_visitcode_file(cfg$visitcode_file)
 #' testconfig <- read_testconfig_file(cfg$testconfig_file, visitcode = visitcode)
 #' }
 #'
@@ -71,15 +71,15 @@
 #' @importFrom tools file_ext
 #' @export
 generate_config_from_als <- function(als_file,
-                                    visitcode_file = NULL,
-                                    testconfig_file = NULL,
-                                    output_dir = NULL,
-                                    write_files = TRUE,
-                                    overwrite = FALSE,
-                                    exclude_visits = c("共同页", "计划外访视"),
-                                    exclude_forms = NULL,
-                                    ai_instruction = NULL,
-                                    verbose = FALSE) {
+                                     visitcode_file = NULL,
+                                     testconfig_file = NULL,
+                                     output_dir = NULL,
+                                     write_files = TRUE,
+                                     overwrite = FALSE,
+                                     exclude_visits = c("共同页", "计划外访视"),
+                                     exclude_forms = NULL,
+                                     ai_instruction = NULL,
+                                     verbose = FALSE) {
   if (!is.character(als_file) || length(als_file) != 1) {
     stop("'als_file' must be a single character string.", call. = FALSE)
   }
@@ -96,7 +96,7 @@ generate_config_from_als <- function(als_file,
     stop("Package 'readxl' is required.", call. = FALSE)
   }
 
-  parsed <- parse_als_config_with_ai(
+  parsed <- parse_als_with_ai(
     als_file = als_file,
     exclude_visits = exclude_visits,
     exclude_forms = exclude_forms,
@@ -303,7 +303,7 @@ is_valid_als_cycle <- function(cycle) {
 
 #' Infer Numbered Treatment Cycle (治疗期1, 治疗期2, ...) from VISIT
 #' @noRd
-infer_treatment_cycle_from_visit <- function(visit) {
+infer_tx_cycle <- function(visit) {
   m <- regexpr("C([0-9]+)", visit, perl = TRUE)
   if (m > 0) {
     n <- sub("^C", "", regmatches(visit, m))
@@ -320,7 +320,7 @@ infer_treatment_cycle_from_visit <- function(visit) {
 
 #' Infer CYCLE from visit name
 #' @noRd
-infer_cycle_from_visit_name <- function(visit) {
+infer_visit_cycle <- function(visit) {
   if (is.na(visit) || !nzchar(trimws(visit))) {
     return("")
   }
@@ -345,12 +345,12 @@ infer_cycle_from_visit_name <- function(visit) {
     return("预治疗")
   }
 
-  infer_treatment_cycle_from_visit(visit)
+  infer_tx_cycle(visit)
 }
 
 #' Infer VISITDAY from visit name
 #' @noRd
-infer_visitday_from_visit_name <- function(visit) {
+infer_visitday <- function(visit) {
   if (is.na(visit) || !nzchar(trimws(visit))) {
     return("")
   }
@@ -387,20 +387,20 @@ infer_visitday_from_visit_name <- function(visit) {
 
 #' Fill VISITDAY and CYCLE from VISIT when missing or invalid
 #' @noRd
-fill_visitcode_from_visit_names <- function(visitcode) {
+fill_visitcode <- function(visitcode) {
   for (i in seq_len(nrow(visitcode))) {
     v <- visitcode$VISIT[i]
 
     if (!nzchar(visitcode$VISITDAY[i])) {
-      visitcode$VISITDAY[i] <- infer_visitday_from_visit_name(v)
+      visitcode$VISITDAY[i] <- infer_visitday(v)
     }
 
     cycle <- visitcode$CYCLE[i]
-    numbered <- infer_treatment_cycle_from_visit(v)
+    numbered <- infer_tx_cycle(v)
     if (grepl("^治疗期[0-9]+$", numbered, perl = TRUE)) {
       visitcode$CYCLE[i] <- numbered
     } else if (!nzchar(cycle) || !is_valid_als_cycle(cycle)) {
-      visitcode$CYCLE[i] <- infer_cycle_from_visit_name(v)
+      visitcode$CYCLE[i] <- infer_visit_cycle(v)
     } else if (cycle == "治疗期" && nzchar(numbered)) {
       visitcode$CYCLE[i] <- numbered
     }
@@ -414,7 +414,7 @@ fill_visitcode_from_visit_names <- function(visitcode) {
 
 #' Serialize ALS Workbook for AI Prompt
 #' @noRd
-serialize_als_workbook_for_ai <- function(als_file, max_rows = 80L, max_cols = 30L) {
+serialize_als_wb <- function(als_file, max_rows = 80L, max_cols = 30L) {
   sheets <- readxl::excel_sheets(als_file)
   parts <- vapply(sheets, function(sh) {
     raw <- readxl::read_excel(
@@ -448,7 +448,7 @@ serialize_als_workbook_for_ai <- function(als_file, max_rows = 80L, max_cols = 3
 
 #' Build System Prompt for ALS Config AI Parsing
 #' @noRd
-.build_als_config_ai_prompt <- function() {
+.als_system_prompt <- function() {
   paste0(
     "你是临床试验数据管理专家。请解析 ALS（eCRF）Excel 导出文件，生成 pdchecker 所需的配置表。\n\n",
     "## 核心任务\n",
@@ -491,7 +491,7 @@ serialize_als_workbook_for_ai <- function(als_file, max_rows = 80L, max_cols = 3
 
 #' Build User Message for ALS Config AI Parsing
 #' @noRd
-.build_als_config_user_message <- function(als_file, ai_instruction = NULL) {
+.als_user_msg <- function(als_file, ai_instruction = NULL) {
   parts <- character()
   if (!is.null(ai_instruction) && nzchar(trimws(ai_instruction))) {
     parts <- c(parts, paste0("项目补充说明：\n", trimws(ai_instruction), "\n"))
@@ -501,30 +501,30 @@ serialize_als_workbook_for_ai <- function(als_file, max_rows = 80L, max_cols = 3
     "请解析以下 ALS 工作簿，生成 visitcode 和 testconfig 的 JSON。\n",
     "重点：testconfig 只含检查类表单，TESTCAT 必须填写中文名称（如「血常规」），",
     "不能为空或英文代码。\n\n",
-    serialize_als_workbook_for_ai(als_file)
+    serialize_als_wb(als_file)
   )
   paste(parts, collapse = "")
 }
 
 #' Parse ALS Config Using AI
 #' @noRd
-parse_als_config_with_ai <- function(als_file,
-                                     exclude_visits,
-                                     exclude_forms,
-                                     ai_instruction = NULL,
-                                     verbose = FALSE) {
-  creds <- .ai_resolve_credentials()
+parse_als_with_ai <- function(als_file,
+                              exclude_visits,
+                              exclude_forms,
+                              ai_instruction = NULL,
+                              verbose = FALSE) {
+  creds <- .ai_creds()
   message("Parsing ALS with AI (model: ", creds$model, ")...")
 
   parsed_json <- .ai_chat_json(
-    system = .build_als_config_ai_prompt(),
-    user = .build_als_config_user_message(als_file, ai_instruction),
+    system = .als_system_prompt(),
+    user = .als_user_msg(als_file, ai_instruction),
     temperature = 0.1,
     timeout = 180,
     verbose = verbose
   )
 
-  normalize_ai_als_config(parsed_json, exclude_visits, exclude_forms)
+  normalize_als_config(parsed_json, exclude_visits, exclude_forms)
 }
 
 #' Ensure a Character Column Exists on a Data Frame
@@ -548,7 +548,7 @@ parse_als_config_with_ai <- function(als_file,
 
   form_label <- form
   if (!grepl("[\\(（]", form_label, perl = TRUE) &&
-      grepl("[\\(（]", testcat_raw, perl = TRUE)) {
+    grepl("[\\(（]", testcat_raw, perl = TRUE)) {
     form_label <- testcat_raw
   }
   if (!nzchar(form_label)) {
@@ -583,9 +583,9 @@ parse_als_config_with_ai <- function(als_file,
 
 #' Normalize AI JSON to visitcode and testconfig Tibbles
 #' @noRd
-normalize_ai_als_config <- function(parsed_json,
-                                    exclude_visits,
-                                    exclude_forms) {
+normalize_als_config <- function(parsed_json,
+                                 exclude_visits,
+                                 exclude_forms) {
   if (!is.list(parsed_json)) {
     stop("AI response is not a JSON object.", call. = FALSE)
   }
@@ -622,7 +622,7 @@ normalize_ai_als_config <- function(parsed_json,
   visitcode <- .ensure_char_column(visitcode, "VISITDAY")
   visitcode <- .ensure_char_column(visitcode, "CYCLE")
 
-  visitcode <- fill_visitcode_from_visit_names(visitcode)
+  visitcode <- fill_visitcode(visitcode)
 
   if (!is.null(exclude_visits) && length(exclude_visits) > 0) {
     visitcode <- visitcode[!visitcode$VISIT %in% exclude_visits, , drop = FALSE]
@@ -663,8 +663,7 @@ normalize_ai_als_config <- function(parsed_json,
   }
 
   testconfig <- testconfig[
-    !is.na(testconfig$VISITNUM) & testconfig$VISITNUM != "",
-    ,
+    !is.na(testconfig$VISITNUM) & testconfig$VISITNUM != "", ,
     drop = FALSE
   ]
 

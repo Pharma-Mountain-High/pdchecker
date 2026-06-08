@@ -13,7 +13,7 @@
 
 #' Resolve AI API credentials from environment variables.
 #' @noRd
-.ai_resolve_credentials <- function() {
+.ai_creds <- function() {
   api_key <- Sys.getenv("OPENROUTER_API_KEY")
   base_url <- Sys.getenv("OPENROUTER_BASE_URL")
   model <- Sys.getenv("OPENROUTER_MODEL")
@@ -36,12 +36,12 @@
 #' Call an OpenAI-compatible chat completions API.
 #' @noRd
 .ai_chat_completion <- function(messages,
-                               api_key,
-                               base_url,
-                               model,
-                               temperature = 0.2,
-                               timeout = 180,
-                               verbose = FALSE) {
+                                api_key,
+                                base_url,
+                                model,
+                                temperature = 0.2,
+                                timeout = 180,
+                                verbose = FALSE) {
   .ai_check_packages()
 
   endpoint <- paste0(gsub("/$", "", base_url), "/chat/completions")
@@ -84,7 +84,7 @@
                           temperature = 0.2,
                           timeout = 180,
                           verbose = FALSE) {
-  creds <- .ai_resolve_credentials()
+  creds <- .ai_creds()
   raw <- .ai_chat_completion(
     messages = list(
       list(role = "system", content = system),
@@ -97,12 +97,12 @@
     timeout = timeout,
     verbose = verbose
   )
-  .extract_json_from_text(raw)
+  .parse_ai_json(raw)
 }
 
 #' Extract a JSON object from AI response text.
 #' @noRd
-.extract_json_from_text <- function(text) {
+.parse_ai_json <- function(text) {
   .ai_check_packages()
 
   if (!is.character(text) || length(text) != 1) {
