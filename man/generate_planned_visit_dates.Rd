@@ -19,7 +19,7 @@ generate_planned_visit_dates(
   ds_dataset = getOption("pdchecker.ds_dataset", "DS"),
   ds_date_var = getOption("pdchecker.ds_date_var", "DSDAT"),
   tb_name_var = getOption("pdchecker.tb_name_var", NULL),
-  cycle_days = 28
+  cycle_days = NULL
 )
 }
 \arguments{
@@ -69,8 +69,10 @@ If dataset doesn't exist, EOS-related planned dates will be NA}
 \item{tb_name_var}{Character string specifying the variable name to use as TBNAME in the output (default: NULL).
 If NULL or the column does not exist in the visit dataset, the TBNAME column in the output will be empty.}
 
-\item{cycle_days}{Numeric, treatment cycle length in days (default: 28).
-Used to calculate subsequent cycle D1 planned dates}
+\item{cycle_days}{Numeric or NULL. Treatment cycle length in days.
+When set, all cycles use this same interval. When \code{NULL} (default),
+intervals are read from the \code{CYCDAY} column on each treatment D1 row
+in \code{visitcode} (days from the previous cycle D1).}
 }
 \value{
 Data frame with the following columns:
@@ -177,12 +179,15 @@ result <- generate_planned_visit_dates(
   visitcode = visit_schedule
 )
 
-# With custom cycle days (21-day cycle)
+# Uniform 21-day cycle (overrides CYCDAY in visitcode)
 result <- generate_planned_visit_dates(
   data = data,
   visitcode = visit_schedule,
   cycle_days = 21
 )
+
+# Per-cycle intervals from visitcode CYCDAY column (cycle_days = NULL)
+result <- generate_planned_visit_dates(data = data, visitcode = visitcode)
 
 # With multiple exposure datasets
 result <- generate_planned_visit_dates(

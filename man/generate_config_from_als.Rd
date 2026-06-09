@@ -94,7 +94,7 @@ cfg <- generate_config_from_als(
   output_dir = tempdir(),
   ai_instruction = "访视编号在访视 sheet 的 VISITNUM 列"
 )
-visitcode  <- read_visitcode_file(cfg$visitcode_file)
+visitcode <- read_visitcode_file(cfg$visitcode_file)
 testconfig <- read_testconfig_file(cfg$testconfig_file, visitcode = visitcode)
 }
 

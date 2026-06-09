@@ -19,6 +19,7 @@ A tibble with all columns from input file, plus new (or overwritten) columns:
 \item{wpvalue}{Window value (numeric) in days. NA if unparseable (e.g., range or other types)}
 \item{visit_category}{Visit category (character): screening, treatment, end_of_treatment,
 follow_up, or unknown. Only generated if CYCLE column exists.}
+\item{...}{All other columns from the input file (including optional CYCDAY)}
 }
 \description{
 Read visit schedule Excel or CSV file and parse window period column (WP)
@@ -57,6 +58,13 @@ All time units are converted to days:
 \subsection{Encoding Support}{
 
 CSV files default to UTF-8 encoding, with fallback to system default.
+}
+
+\subsection{Optional CYCDAY Column}{
+
+When present, each treatment cycle D1 row may specify the interval in days
+from the previous cycle D1. Used by \code{\link{generate_planned_visit_dates}}
+when \code{cycle_days} is \code{NULL}. Non-D1 rows and C1D1 may leave CYCDAY empty.
 }
 
 \subsection{Column Name Conflicts}{

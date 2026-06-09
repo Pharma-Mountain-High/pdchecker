@@ -1,3 +1,97 @@
+#' Build cycle interval configuration from parameter or visitcode CYCDAY
+#' @noRd
+build_cycle_intervals <- function(visit_info, cycle_days = NULL) {
+  if (!is.null(cycle_days)) {
+    if (!is.numeric(cycle_days) || length(cycle_days) != 1 || is.na(cycle_days) || cycle_days <= 0) {
+      stop("'cycle_days' must be a positive number", call. = FALSE)
+    }
+    return(list(mode = "uniform", value = cycle_days))
+  }
+
+  if (!"CYCDAY" %in% names(visit_info)) {
+    stop(
+      "'cycle_days' is NULL but visitcode has no CYCDAY column. ",
+      "Set cycle_days or add CYCDAY to the visit schedule file.",
+      call. = FALSE
+    )
+  }
+
+  d1_rows <- visit_info[
+    visit_info$is_d1 & visit_info$visit_category == "treatment", ,
+    drop = FALSE
+  ]
+  intervals <- list()
+  for (i in seq_len(nrow(d1_rows))) {
+    cycle_match <- regmatches(d1_rows$visittype[i], regexpr("\\d+", d1_rows$visittype[i]))
+    if (length(cycle_match) == 0) {
+      next
+    }
+    cycle_num <- as.numeric(cycle_match[1])
+    if (cycle_num <= 1) {
+      next
+    }
+    interval <- suppressWarnings(as.numeric(d1_rows$CYCDAY[i]))
+    if (!is.na(interval) && interval > 0) {
+      intervals[[as.character(cycle_num)]] <- interval
+    }
+  }
+
+  needs_intervals <- FALSE
+  for (i in seq_len(nrow(d1_rows))) {
+    cycle_match <- regmatches(d1_rows$visittype[i], regexpr("\\d+", d1_rows$visittype[i]))
+    if (length(cycle_match) > 0 && as.numeric(cycle_match[1]) > 1) {
+      needs_intervals <- TRUE
+      break
+    }
+  }
+
+  if (length(intervals) == 0 && needs_intervals) {
+    stop(
+      "'cycle_days' is NULL but no valid CYCDAY values found on treatment D1 visits.",
+      call. = FALSE
+    )
+  }
+
+  list(mode = "per_cycle", intervals = intervals)
+}
+
+#' Get interval days from previous cycle to the given cycle number
+#' @noRd
+get_cycle_interval <- function(cycle_num, cycle_interval_cfg) {
+  if (cycle_num <= 1) {
+    return(NA_real_)
+  }
+  if (cycle_interval_cfg$mode == "uniform") {
+    return(cycle_interval_cfg$value)
+  }
+
+  key <- as.character(cycle_num)
+  if (is.null(cycle_interval_cfg$intervals[[key]])) {
+    stop(
+      "Missing CYCDAY for treatment cycle ", cycle_num,
+      ". Fill CYCDAY on the corresponding D1 visit row in visitcode.",
+      call. = FALSE
+    )
+  }
+  cycle_interval_cfg$intervals[[key]]
+}
+
+#' Sum cycle intervals from cycle 2 through cycle_num (for fallback calculation)
+#' @noRd
+sum_cycle_intervals <- function(cycle_num, cycle_interval_cfg) {
+  if (cycle_num <= 1) {
+    return(0)
+  }
+  if (cycle_interval_cfg$mode == "uniform") {
+    return((cycle_num - 1) * cycle_interval_cfg$value)
+  }
+  total <- 0
+  for (c in 2:cycle_num) {
+    total <- total + get_cycle_interval(c, cycle_interval_cfg)
+  }
+  total
+}
+
 #' Calculate Planned Visit Dates for a Single Subject
 #'
 #' @description
@@ -15,7 +109,7 @@
 #' @param visit_info Data frame, processed visit schedule information
 #' @param actual_visits Data frame, actual visit records
 #' @param subject_dates Data frame, subject-level date information
-#' @param cycle_days Numeric, treatment cycle length in days
+#' @param cycle_interval_cfg List from \code{build_cycle_intervals()}
 #'
 #' @return Data frame with planned visit dates for the subject
 #'
@@ -28,7 +122,7 @@ calc_planned_dates <- function(subj_id,
                                visit_info,
                                actual_visits,
                                subject_dates,
-                               cycle_days) {
+                               cycle_interval_cfg) {
   # Get actual visit records for this subject
 
   subj_actual <- actual_visits %>%
@@ -80,7 +174,7 @@ calc_planned_dates <- function(subj_id,
           cycle_d1_actual_dates = cycle_d1_actual_dates,
           cycle_d1_dates = cycle_d1_dates,
           last_cycle_d1_date = last_cycle_d1_date,
-          cycle_days = cycle_days
+          cycle_interval_cfg = cycle_interval_cfg
         )
 
         # Store current cycle D1 planned and actual dates
@@ -209,7 +303,7 @@ calc_planned_dates <- function(subj_id,
 #' @param cycle_d1_actual_dates List, actual D1 dates by cycle
 #' @param cycle_d1_dates List, planned D1 dates by cycle
 #' @param last_cycle_d1_date Date, last known cycle D1 date
-#' @param cycle_days Numeric, treatment cycle length in days
+#' @param cycle_interval_cfg List from \code{build_cycle_intervals()}
 #'
 #' @return Date, planned date for the D1 visit
 #'
@@ -221,7 +315,7 @@ calculate_d1_planned_date <- function(current_cycle,
                                       cycle_d1_actual_dates,
                                       cycle_d1_dates,
                                       last_cycle_d1_date,
-                                      cycle_days) {
+                                      cycle_interval_cfg) {
   planned_date <- NA
 
   if (current_cycle == 1) {
@@ -246,11 +340,12 @@ calculate_d1_planned_date <- function(current_cycle,
       NULL
     }
 
+    cycle_interval <- get_cycle_interval(current_cycle, cycle_interval_cfg)
     if (!is.null(prev_d1_base_date) && !is.na(prev_d1_base_date)) {
-      planned_date <- prev_d1_base_date + cycle_days
+      planned_date <- prev_d1_base_date + cycle_interval
     } else {
-      # Fallback: if previous cycle not found, use first dose date
-      planned_date <- first_dose_date + (current_cycle - 1) * cycle_days
+      planned_date <- first_dose_date +
+        sum_cycle_intervals(current_cycle, cycle_interval_cfg)
     }
   }
 

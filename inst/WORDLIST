@@ -17,6 +17,7 @@ config
 cre
 csv
 cutoffdt
+CYCDAY
 dataLayer
 datetime
 de
@@ -40,6 +41,7 @@ eot
 EOTDAT
 EXENDAT
 EXSTDAT
+FK
 FMTNAME
 fn
 FU
@@ -52,9 +54,9 @@ googletagmanager
 gtag
 hengshan
 href
-httr2
 http
 https
+httr2
 IC
 ic
 ICDAT
@@ -69,6 +71,7 @@ iwrs
 js
 JSON
 jsonlite
+jT
 labelled
 LBCAT
 LBDAT
@@ -88,8 +91,8 @@ navbar
 NYHA
 nyha
 OpenAI
-OPENROUTER
 openpharma
+OPENROUTER
 openxlsx
 ORRES
 pdchecker
@@ -104,9 +107,10 @@ RBC
 readr
 readxl
 recommedations
+Renviron
 repo
 repos
-Renviron
+rI
 rlang
 Roxygen
 RoxygenNote
@@ -133,6 +137,7 @@ tg
 tibble
 tinyverse
 UA
+Uf
 UI
 Unmapped
 unparseable
@@ -148,8 +153,10 @@ wp
 wpvalue
 writexl
 www
+Xk
 xls
 xlsx
+XÁ
 YN
 yn
 yyyy
