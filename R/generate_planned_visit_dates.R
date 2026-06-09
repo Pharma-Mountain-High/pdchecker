@@ -49,16 +49,21 @@
 #' @param sv_visit_var Character string, visit name variable in visit dataset (default: "VISIT")
 #' @param sv_visitnum_var Character string, visit number variable in visit dataset (default: "VISITNUM")
 #' @param sv_date_var Character string, visit date variable in visit dataset (default: "SVDAT")
-#' @param eot_dataset Character string, end of treatment dataset name (default: "EOT").
-#'   If dataset doesn't exist, EOT-related planned dates will be NA
-#' @param eot_date_var Character string, end of treatment date variable (default: "EOTDAT")
+#' @param eot_dataset Character vector, end of treatment dataset names (default: "EOT").
+#'   Multiple datasets can be specified; the latest EOT date per subject is used.
+#'   If no dataset exists, EOT-related planned dates will be NA
+#' @param eot_date_var Character vector, end of treatment date variable names (default: "EOTDAT").
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{eot_dataset}, corresponds one-to-one with datasets
 #' @param ds_dataset Character string, disposition dataset name (default: "DS").
 #'   If dataset doesn't exist, EOS-related planned dates will be NA
 #' @param ds_date_var Character string, end of study date variable (default: "DSDAT")
 #' @param tb_name_var Character string specifying the variable name to use as TBNAME in the output (default: NULL).
 #'   If NULL or the column does not exist in the visit dataset, the TBNAME column in the output will be empty.
-#' @param cycle_days Numeric, treatment cycle length in days (default: 28).
-#'   Used to calculate subsequent cycle D1 planned dates
+#' @param cycle_days Numeric or NULL. Treatment cycle length in days.
+#'   When set, all cycles use this same interval. When \code{NULL} (default),
+#'   intervals are read from the \code{CYCDAY} column on each treatment D1 row
+#'   in \code{visitcode} (days from the previous cycle D1).
 #'
 #' @return Data frame with the following columns:
 #'   \describe{
@@ -132,12 +137,15 @@
 #'   visitcode = visit_schedule
 #' )
 #'
-#' # With custom cycle days (21-day cycle)
+#' # Uniform 21-day cycle (overrides CYCDAY in visitcode)
 #' result <- generate_planned_visit_dates(
 #'   data = data,
 #'   visitcode = visit_schedule,
 #'   cycle_days = 21
 #' )
+#'
+#' # Per-cycle intervals from visitcode CYCDAY column (cycle_days = NULL)
+#' result <- generate_planned_visit_dates(data = data, visitcode = visitcode)
 #'
 #' # With multiple exposure datasets
 #' result <- generate_planned_visit_dates(
@@ -180,7 +188,7 @@ generate_planned_visit_dates <- function(data,
                                          ds_dataset = getOption("pdchecker.ds_dataset", "DS"),
                                          ds_date_var = getOption("pdchecker.ds_date_var", "DSDAT"),
                                          tb_name_var = getOption("pdchecker.tb_name_var", NULL),
-                                         cycle_days = 28) {
+                                         cycle_days = NULL) {
   # ============================================================================
   # Parameter validation
   # ============================================================================
@@ -283,11 +291,6 @@ generate_planned_visit_dates <- function(data,
     stop("Visit dataset '", sv_dataset, "' is missing required columns: ", paste(missing_sv_cols, collapse = ", "))
   }
 
-  # Validate cycle_days parameter
-  if (!is.numeric(cycle_days) || length(cycle_days) != 1 || is.na(cycle_days) || cycle_days <= 0) {
-    stop("'cycle_days' must be a positive number")
-  }
-
   # ============================================================================
   # Get date data
   # ============================================================================
@@ -331,6 +334,8 @@ generate_planned_visit_dates <- function(data,
     visitcode$visit_category <- map_chr(visitcode$CYCLE, match_visit_type)
   }
 
+  cycday_col <- names(visitcode)[toupper(names(visitcode)) == "CYCDAY"][1]
+
   visit_info <- visitcode %>%
     mutate(
       visit = VISIT,
@@ -340,9 +345,12 @@ generate_planned_visit_dates <- function(data,
       wp = WP,
       wp_type = type,
       wp_value = as.numeric(wpvalue),
+      CYCDAY = if (!is.na(cycday_col)) as.numeric(.data[[cycday_col]]) else NA_real_,
       is_d1 = map2_lgl(VISIT, VISITDAY, is_d1_visit)
     ) %>%
     arrange(seq_len(nrow(visitcode)))
+
+  cycle_interval_cfg <- build_cycle_intervals(visit_info, cycle_days = cycle_days)
 
   # ============================================================================
   # Get actual visit data
@@ -380,7 +388,7 @@ generate_planned_visit_dates <- function(data,
       visit_info = visit_info,
       actual_visits = actual_visits,
       subject_dates = subject_dates,
-      cycle_days = cycle_days
+      cycle_interval_cfg = cycle_interval_cfg
     )
   })
 

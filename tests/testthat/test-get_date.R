@@ -331,19 +331,69 @@ test_that("get_eot_date() 数据集不存在时返回空数据框", {
   expect_equal(nrow(result), 0)
 })
 
-test_that("get_eot_date() 处理同一受试者多条记录", {
+test_that("get_eot_date() 处理同一受试者多条记录取最大日期", {
   data <- list(
     EOT = data.frame(
       SUBJID = c("001", "001"),
-      EOTDAT = c("2024-06-01", "2024-06-01"),
+      EOTDAT = c("2024-06-01", "2024-07-15"),
       stringsAsFactors = FALSE
     )
   )
 
   result <- get_eot_date(data)
 
-  # 相同日期应合并为一条
-  expect_equal(sum(result$SUBJID == "001"), 1)
+  expect_equal(nrow(result), 1)
+  expect_equal(as.character(result$eot_date[1]), "2024-07-15")
+})
+
+test_that("get_eot_date() 支持多个数据集取最大日期", {
+  data <- list(
+    EOT1 = data.frame(
+      SUBJID = c("001", "002"),
+      EOTDAT = c("2024-06-01", "2024-06-10"),
+      stringsAsFactors = FALSE
+    ),
+    EOT2 = data.frame(
+      SUBJID = c("001", "002"),
+      EOTDAT = c("2024-07-15", "2024-06-05"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_eot_date(
+    data,
+    eot_dataset = c("EOT1", "EOT2"),
+    eot_date_var = "EOTDAT"
+  )
+
+  subj_001 <- result[result$SUBJID == "001", ]
+  expect_equal(as.character(subj_001$eot_date), "2024-07-15")
+
+  subj_002 <- result[result$SUBJID == "002", ]
+  expect_equal(as.character(subj_002$eot_date), "2024-06-10")
+})
+
+test_that("get_eot_date() 支持不同数据集使用不同的日期列", {
+  data <- list(
+    EOT1 = data.frame(
+      SUBJID = "001",
+      EOTDAT1 = "2024-06-01",
+      stringsAsFactors = FALSE
+    ),
+    EOT2 = data.frame(
+      SUBJID = "001",
+      EOTDAT2 = "2024-08-01",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_eot_date(
+    data,
+    eot_dataset = c("EOT1", "EOT2"),
+    eot_date_var = c("EOTDAT1", "EOTDAT2")
+  )
+
+  expect_equal(as.character(result$eot_date[1]), "2024-08-01")
 })
 
 test_that("get_eot_date() 正确处理SAS缺失值", {
@@ -366,26 +416,26 @@ test_that("get_eot_date() 正确处理SAS缺失值", {
 # 测试 get_eot_date() 参数验证
 # =============================================================================
 
-test_that("get_eot_date() 参数验证：eot_dataset 必须是单个字符串", {
+test_that("get_eot_date() 参数验证：eot_dataset 必须是非空字符向量", {
   data <- list()
 
   expect_error(
-    get_eot_date(data, eot_dataset = c("A", "B")),
-    "'eot_dataset' must be a single character string"
+    get_eot_date(data, eot_dataset = character()),
+    "'eot_dataset' must be a non-empty character vector"
   )
 
   expect_error(
     get_eot_date(data, eot_dataset = 123),
-    "'eot_dataset' must be a single character string"
+    "'eot_dataset' must be a non-empty character vector"
   )
 })
 
-test_that("get_eot_date() 参数验证：eot_date_var 必须是单个字符串", {
+test_that("get_eot_date() 参数验证：eot_date_var 长度必须与数据集匹配", {
   data <- list()
 
   expect_error(
-    get_eot_date(data, eot_date_var = c("A", "B")),
-    "'eot_date_var' must be a single character string"
+    get_eot_date(data, eot_dataset = c("EOT1", "EOT2"), eot_date_var = c("A", "B", "C")),
+    "eot_date_var length must be 1 or equal to eot_dataset length"
   )
 })
 

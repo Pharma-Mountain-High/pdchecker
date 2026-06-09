@@ -11,6 +11,7 @@ setup_test_data <- function() {
     WP = c("±3d", "±3d", "±2d", "±2d", "±3d", "±2d", "+7d", "±7d"),
     type = c("±", "±", "±", "±", "±", "±", "+", "±"),
     wpvalue = c("3", "3", "2", "2", "3", "2", "7", "7"),
+    CYCDAY = c(NA, NA, NA, NA, 28, NA, NA, NA),
     stringsAsFactors = FALSE
   )
 
@@ -402,6 +403,76 @@ test_that("边界情况：受试者没有用药记录", {
 
   # 计划日期也应为NA
   expect_true(all(is.na(subj_999$planned_date)))
+})
+
+test_that("CYCDAY per-cycle intervals when cycle_days is NULL", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "C2D1", "C3D1"),
+    VISITNUM = c(1, 2, 3),
+    CYCLE = c("治疗周期1", "治疗周期2", "治疗周期3"),
+    VISITDAY = c("1", "1", "1"),
+    WP = c("±3d", "±3d", "±3d"),
+    type = c("±", "±", "±"),
+    wpvalue = c(3, 3, 3),
+    CYCDAY = c(NA, 21, 35),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(SUBJID = "001", EXSTDAT = "2024-01-01", stringsAsFactors = FALSE),
+    SV = data.frame(
+      SUBJID = "001",
+      VISIT = "C1D1",
+      VISITNUM = 1,
+      SVDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visitcode = visit_schedule,
+    cycle_days = NULL
+  )
+
+  c2d1 <- result[result$VISIT == "C2D1", ]
+  c3d1 <- result[result$VISIT == "C3D1", ]
+  expect_equal(c2d1$planned_date[1], as.Date("2024-01-01") + 21)
+  expect_equal(c3d1$planned_date[1], as.Date("2024-01-01") + 21 + 35)
+})
+
+test_that("cycle_days parameter overrides CYCDAY in visitcode", {
+  visit_schedule <- data.frame(
+    VISIT = c("C1D1", "C2D1"),
+    VISITNUM = c(1, 2),
+    CYCLE = c("治疗周期1", "治疗周期2"),
+    VISITDAY = c("1", "1"),
+    WP = c("±3d", "±3d"),
+    type = c("±", "±"),
+    wpvalue = c(3, 3),
+    CYCDAY = c(NA, 21),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(
+    EX = data.frame(SUBJID = "001", EXSTDAT = "2024-01-01", stringsAsFactors = FALSE),
+    SV = data.frame(
+      SUBJID = "001",
+      VISIT = "C1D1",
+      VISITNUM = 1,
+      SVDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visitcode = visit_schedule,
+    cycle_days = 28
+  )
+
+  c2d1 <- result[result$VISIT == "C2D1", ]
+  expect_equal(c2d1$planned_date[1], as.Date("2024-01-01") + 28)
 })
 
 test_that("边界情况：自定义周期天数", {

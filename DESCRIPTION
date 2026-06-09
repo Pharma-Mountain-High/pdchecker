@@ -1,6 +1,6 @@
 Package: pdchecker
 Title: Protocol Deviation Checker for Clinical Trials
-Version: 0.9.1
+Version: 0.9.5
 Authors@R:
     person("Qinghuan", "Wang", , "qinghuan.wang@qilu-pharma.com", role = c("aut", "cre"))
 Description: Automates the detection of protocol deviations in clinical
@@ -25,9 +25,12 @@ Imports:
     rlang,
     tibble
 Suggests:
+    httr2,
+    jsonlite,
     knitr,
     mockery,
     rmarkdown,
+    rstudioapi,
     testthat (>= 3.0.0),
     withr,
     writexl

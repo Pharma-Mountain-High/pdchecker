@@ -1,5 +1,6 @@
 AE
 AEENDAT
+ALS
 Analytics
 apache
 ASCVD
@@ -16,6 +17,7 @@ config
 cre
 csv
 cutoffdt
+CYCDAY
 dataLayer
 datetime
 de
@@ -26,6 +28,8 @@ dplyr
 dropdown
 DS
 DSDAT
+eCRF
+EDC
 EG
 eGFR
 ENROL
@@ -37,6 +41,7 @@ eot
 EOTDAT
 EXENDAT
 EXSTDAT
+FK
 FMTNAME
 fn
 FU
@@ -51,6 +56,7 @@ hengshan
 href
 http
 https
+httr2
 IC
 ic
 ICDAT
@@ -63,6 +69,9 @@ iteratively
 IWRS
 iwrs
 js
+JSON
+jsonlite
+jT
 labelled
 LBCAT
 LBDAT
@@ -72,14 +81,18 @@ ldl
 licensable
 Licensor
 Lifecycle
+LLM
 magrittr
+meds
 MERCHANTABILITY
 MHSTDAT
 na
 navbar
 NYHA
 nyha
+OpenAI
 openpharma
+OPENROUTER
 openxlsx
 ORRES
 pdchecker
@@ -94,8 +107,10 @@ RBC
 readr
 readxl
 recommedations
+Renviron
 repo
 repos
+rI
 rlang
 Roxygen
 RoxygenNote
@@ -122,6 +137,7 @@ tg
 tibble
 tinyverse
 UA
+Uf
 UI
 Unmapped
 unparseable
@@ -137,8 +153,10 @@ wp
 wpvalue
 writexl
 www
+Xk
 xls
 xlsx
+XÁ
 YN
 yn
 yyyy

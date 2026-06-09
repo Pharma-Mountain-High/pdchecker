@@ -17,7 +17,7 @@ repos:
           - readr
           - readxl
           - tibble
-          - roxygen2
+          - r-lib/roxygen2@v8.0.0
       # codemeta must be above use-tidy-description when both are used
       # -   id: codemeta-description-updated
       - id: use-tidy-description

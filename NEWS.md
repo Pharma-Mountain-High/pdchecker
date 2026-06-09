@@ -1,8 +1,24 @@
+# pdchecker 0.9.5
+
+## 新功能
+
+- 访视计划文件支持可选列 **CYCDAY**：在各治疗周期 D1 行填写与上一周期间隔天数。
+  `generate_planned_visit_dates()` 在 `cycle_days = NULL`（新默认值）时按 CYCDAY 计算；
+  传入 `cycle_days` 时仍统一使用参数值。示例见 `inst/extdata/example_visitcode.xlsx`。
+
+- `generate_planned_visit_dates()` 治疗结束参数(`eot_dataset/eot_date_var`)支持输入多个数据集。
+
+---
+
 # pdchecker 0.9.1
 
 ## 新功能
 
-- `prepare_test_data()` 添加 `test_time_var` 参数，返回值包括TESTTIM列。
+- `prepare_test_data()` 添加 `test_time_var` 参数，返回值包括 TESTTIM 列。
+
+- 访视计划文件支持可选列 **CYCDAY**：在各治疗周期 D1 行填写与上一周期间隔天数。
+  `generate_planned_visit_dates()` 在 `cycle_days = NULL`（新默认值）时按 CYCDAY 计算；
+  传入 `cycle_days` 时仍统一使用参数值。示例见 `inst/extdata/example_visitcode.xlsx`。
 
 ---
 

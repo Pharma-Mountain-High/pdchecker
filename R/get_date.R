@@ -12,15 +12,20 @@
 #'
 #' @keywords internal
 #' @noRd
-expand_date_vars <- function(date_var, datasets, var_name = "date_var") {
+expand_date_vars <- function(date_var,
+                             datasets,
+                             var_name = "date_var",
+                             datasets_label = "datasets") {
   if (length(date_var) == 1) {
     return(rep(date_var, length(datasets)))
   } else if (length(date_var) == length(datasets)) {
     return(date_var)
   } else {
     stop(
-      var_name, " length must be 1 or equal to ex_datasets length. ex_datasets length: ",
-      length(datasets), ", ", var_name, " length: ", length(date_var)
+      var_name, " length must be 1 or equal to ", datasets_label, " length. ",
+      datasets_label, " length: ", length(datasets), ", ",
+      var_name, " length: ", length(date_var),
+      call. = FALSE
     )
   }
 }
@@ -138,7 +143,7 @@ get_first_dose_date <- function(data,
   }
 
   # Expand date variable names to match dataset count
-  ex_date_vars <- expand_date_vars(ex_date_var, ex_datasets, "ex_date_var")
+  ex_date_vars <- expand_date_vars(ex_date_var, ex_datasets, "ex_date_var", "ex_datasets")
 
   # Collect first dose dates
   first_dose_dates_list <- list()
@@ -323,12 +328,14 @@ get_last_dose_date <- function(data,
   }
 
   # Expand date variable names
-  ex_date_vars <- expand_date_vars(ex_date_var, ex_datasets, "ex_date_var")
+  ex_date_vars <- expand_date_vars(ex_date_var, ex_datasets, "ex_date_var", "ex_datasets")
 
   # Expand end date variable names (if specified)
   use_end_date <- !is.null(ex_end_date_var) && length(ex_end_date_var) > 0
   if (use_end_date) {
-    ex_end_date_vars <- expand_date_vars(ex_end_date_var, ex_datasets, "ex_end_date_var")
+    ex_end_date_vars <- expand_date_vars(
+      ex_end_date_var, ex_datasets, "ex_end_date_var", "ex_datasets"
+    )
   }
 
   # Collect last dose dates
@@ -377,19 +384,28 @@ get_last_dose_date <- function(data,
 #' Get End of Treatment Date for Each Subject
 #'
 #' @description
-#' Extract the end of treatment date from the EOT dataset for each subject.
+#' Extract the end of treatment date from EOT datasets for each subject.
 #'
 #' @details
 #' ## Calculation Rules
 #'
-#' - Extracts the EOT date from the specified dataset and variable
-#' - If the dataset or variable doesn't exist, returns empty data frame
+#' - Extracts EOT dates from all specified datasets and variables
+#' - For each subject, returns the **latest** EOT date across all records and datasets
+#' - Missing datasets are silently skipped
 #' - SAS missing values (NA, ".", "") are automatically excluded
-#' - If multiple records exist for a subject, returns distinct values
+#'
+#' ## Multiple Datasets Support
+#'
+#' When multiple datasets are specified:
+#' - All datasets are combined
+#' - For each subject, the maximum date across all datasets is returned
 #'
 #' @param data List containing clinical trial datasets
-#' @param eot_dataset Character string, EOT dataset name (default: "EOT")
-#' @param eot_date_var Character string, EOT date variable name (default: "EOTDAT")
+#' @param eot_dataset Character vector, EOT dataset names (default: "EOT").
+#'   Multiple datasets can be specified, e.g., c("EOT1", "EOT2")
+#' @param eot_date_var Character vector, EOT date variable names (default: "EOTDAT").
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{eot_dataset}, corresponds one-to-one with datasets
 #'
 #' @return Data frame with columns:
 #'   \describe{
@@ -407,13 +423,33 @@ get_last_dose_date <- function(data,
 #'   )
 #' )
 #' eot_dates <- get_eot_date(data)
+#'
+#' # Multiple datasets - take latest date per subject
+#' data <- list(
+#'   EOT1 = data.frame(
+#'     SUBJID = "001",
+#'     EOTDAT = "2024-06-01",
+#'     stringsAsFactors = FALSE
+#'   ),
+#'   EOT2 = data.frame(
+#'     SUBJID = "001",
+#'     EOTDAT = "2024-07-15",
+#'     stringsAsFactors = FALSE
+#'   )
+#' )
+#' eot_dates <- get_eot_date(
+#'   data,
+#'   eot_dataset = c("EOT1", "EOT2"),
+#'   eot_date_var = "EOTDAT"
+#' )
+#' # Subject 001: 2024-07-15 (max across EOT1 and EOT2)
 #' }
 #'
 #' @seealso \code{\link{get_eos_date}} for extracting end of study dates
 #'
 #' @family date extraction
 #'
-#' @importFrom dplyr filter mutate select distinct sym
+#' @importFrom dplyr filter mutate select group_by ungroup slice sym bind_rows
 #' @importFrom magrittr %>%
 #' @export
 get_eot_date <- function(data,
@@ -421,34 +457,56 @@ get_eot_date <- function(data,
                          eot_date_var = getOption("pdchecker.eot_date_var", "EOTDAT")) {
   # Parameter validation
   if (!is.list(data)) {
-    stop("'data' must be a list")
+    stop("'data' must be a list", call. = FALSE)
   }
 
-  if (!is.character(eot_dataset) || length(eot_dataset) != 1) {
-    stop("'eot_dataset' must be a single character string")
+  if (!is.character(eot_dataset) || length(eot_dataset) == 0) {
+    stop("'eot_dataset' must be a non-empty character vector", call. = FALSE)
   }
 
-  if (!is.character(eot_date_var) || length(eot_date_var) != 1) {
-    stop("'eot_date_var' must be a single character string")
+  if (!is.character(eot_date_var) || length(eot_date_var) == 0) {
+    stop("'eot_date_var' must be a non-empty character vector", call. = FALSE)
   }
 
-  # Initialize empty result
-  eot_dates <- data.frame(
-    SUBJID = character(),
-    eot_date = as.Date(character()),
-    stringsAsFactors = FALSE
+  eot_date_vars <- expand_date_vars(
+    eot_date_var, eot_dataset, "eot_date_var", "eot_dataset"
   )
 
-  # Get end of treatment date
-  if (eot_dataset %in% names(data)) {
-    eot_df <- data[[eot_dataset]]
-    if (eot_date_var %in% names(eot_df) && "SUBJID" %in% names(eot_df)) {
-      eot_dates <- eot_df %>%
-        filter(!is_sas_na(!!sym(eot_date_var))) %>%
-        mutate(eot_date = as.Date(!!sym(eot_date_var))) %>%
-        select(SUBJID, eot_date) %>%
-        distinct()
+  eot_dates_list <- list()
+
+  for (i in seq_along(eot_dataset)) {
+    eot_ds <- eot_dataset[i]
+    current_date_var <- eot_date_vars[i]
+
+    if (eot_ds %in% names(data)) {
+      eot_df <- data[[eot_ds]]
+      if (current_date_var %in% names(eot_df) && "SUBJID" %in% names(eot_df)) {
+        eot_dates <- eot_df %>%
+          filter(!is_sas_na(!!sym(current_date_var))) %>%
+          mutate(eot_date = as.Date(!!sym(current_date_var))) %>%
+          filter(!is.na(eot_date)) %>%
+          select(SUBJID, eot_date)
+
+        if (nrow(eot_dates) > 0) {
+          eot_dates_list[[length(eot_dates_list) + 1]] <- eot_dates
+        }
+      }
     }
+  }
+
+  if (length(eot_dates_list) > 0) {
+    eot_dates <- bind_rows(eot_dates_list) %>%
+      group_by(SUBJID) %>%
+      filter(eot_date == max(eot_date)) %>%
+      slice(1) %>%
+      ungroup() %>%
+      select(SUBJID, eot_date)
+  } else {
+    eot_dates <- data.frame(
+      SUBJID = character(),
+      eot_date = as.Date(character()),
+      stringsAsFactors = FALSE
+    )
   }
 
   return(eot_dates)
