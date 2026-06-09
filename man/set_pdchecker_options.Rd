@@ -42,9 +42,9 @@ set_pdchecker_options(
 
 \item{ex_end_date_var}{Character vector, dosing end date variable names (default in functions: NULL)}
 
-\item{eot_dataset}{Character string, end of treatment dataset name (default in functions: "EOT")}
+\item{eot_dataset}{Character vector, end of treatment dataset names (default in functions: "EOT")}
 
-\item{eot_date_var}{Character string, end of treatment date variable (default in functions: "EOTDAT")}
+\item{eot_date_var}{Character vector, end of treatment date variable names (default in functions: "EOTDAT")}
 
 \item{ds_dataset}{Character string, disposition dataset name (default in functions: "DS")}
 

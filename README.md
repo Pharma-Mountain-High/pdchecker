@@ -227,7 +227,7 @@ testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
 | `read_testconfig_file()`         | 从 Excel读取各访视需要进行的检查项                   |
 | `get_first_dose_date()`          | 提取每位受试者的首次给药日期                         |
 | `get_last_dose_date()`           | 提取每位受试者的末次给药日期                         |
-| `get_eot_date()`                 | 提取治疗结束日期                               |
+| `get_eot_date()`                 | 提取治疗结束日期（支持多 EOT 数据集，取最大日期）      |
 | `get_eos_date()`                 | 提取研究结束日期                               |
 | `generate_planned_visit_dates()` | 根据访视计划和临床数据生成计划访视日期与窗口；默认从 **CYCDAY** 读取各周期间隔 |
 | `prepare_test_data()`            | 准备和标准化检查项数据，用于检查项缺失检查                  |

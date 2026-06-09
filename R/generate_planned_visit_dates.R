@@ -49,9 +49,12 @@
 #' @param sv_visit_var Character string, visit name variable in visit dataset (default: "VISIT")
 #' @param sv_visitnum_var Character string, visit number variable in visit dataset (default: "VISITNUM")
 #' @param sv_date_var Character string, visit date variable in visit dataset (default: "SVDAT")
-#' @param eot_dataset Character string, end of treatment dataset name (default: "EOT").
-#'   If dataset doesn't exist, EOT-related planned dates will be NA
-#' @param eot_date_var Character string, end of treatment date variable (default: "EOTDAT")
+#' @param eot_dataset Character vector, end of treatment dataset names (default: "EOT").
+#'   Multiple datasets can be specified; the latest EOT date per subject is used.
+#'   If no dataset exists, EOT-related planned dates will be NA
+#' @param eot_date_var Character vector, end of treatment date variable names (default: "EOTDAT").
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{eot_dataset}, corresponds one-to-one with datasets
 #' @param ds_dataset Character string, disposition dataset name (default: "DS").
 #'   If dataset doesn't exist, EOS-related planned dates will be NA
 #' @param ds_date_var Character string, end of study date variable (default: "DSDAT")

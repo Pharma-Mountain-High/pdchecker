@@ -322,20 +322,27 @@ last_dates <- get_last_dose_date(data)
 
 ### 3.3 get_eot_date() — 治疗结束日期
 
-从治疗结束数据集中提取每位受试者的 EOT 日期。
+从治疗结束数据集中提取每位受试者的 EOT 日期。支持多个 EOT 数据集，取每位受试者的**最大**日期。
 
 **参数：**
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `data` | 列表 | （必填） | 临床数据列表 |
-| `eot_dataset` | 字符串 | `"EOT"` | EOT 数据集名称 |
-| `eot_date_var` | 字符串 | `"EOTDAT"` | EOT 日期变量名 |
+| `eot_dataset` | 字符向量 | `"EOT"` | EOT 数据集名称，可指定多个 |
+| `eot_date_var` | 字符向量 | `"EOTDAT"` | EOT 日期变量名；长度 1 时所有数据集共用，或与 `eot_dataset` 一一对应 |
 
 **返回值：** 数据框，包含 `SUBJID` 和 `eot_date` 列。
 
 ```r
 eot_dates <- get_eot_date(data)
+
+# 多个 EOT 数据集，取最大日期
+eot_dates <- get_eot_date(
+  data,
+  eot_dataset = c("EOT1", "EOT2"),
+  eot_date_var = "EOTDAT"
+)
 ```
 
 ---
@@ -379,8 +386,8 @@ eos_dates <- get_eos_date(data)
 | `sv_visit_var` | 字符串 | `"VISIT"` | 访视名称变量 |
 | `sv_visitnum_var` | 字符串 | `"VISITNUM"` | 访视编号变量 |
 | `sv_date_var` | 字符串 | `"SVDAT"` | 访视日期变量 |
-| `eot_dataset` | 字符串 | `"EOT"` | EOT 数据集名称 |
-| `eot_date_var` | 字符串 | `"EOTDAT"` | EOT 日期变量 |
+| `eot_dataset` | 字符向量 | `"EOT"` | EOT 数据集名称，可多个；取最大 EOT 日期 |
+| `eot_date_var` | 字符向量 | `"EOTDAT"` | EOT 日期变量 |
 | `ds_dataset` | 字符串 | `"DS"` | DS 数据集名称 |
 | `ds_date_var` | 字符串 | `"DSDAT"` | EOS 日期变量 |
 | `cycle_days` | 数值 / `NULL` | `NULL` | 治疗周期间隔天数。`NULL` 时从 visitcode 的 **CYCDAY** 列按周期读取；指定正数时所有周期统一使用该值 |

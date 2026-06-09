@@ -13,9 +13,14 @@ get_eot_date(
 \arguments{
 \item{data}{List containing clinical trial datasets}
 
-\item{eot_dataset}{Character string, EOT dataset name (default: "EOT")}
+\item{eot_dataset}{Character vector, EOT dataset names (default: "EOT").
+Multiple datasets can be specified, e.g., c("EOT1", "EOT2")}
 
-\item{eot_date_var}{Character string, EOT date variable name (default: "EOTDAT")}
+\item{eot_date_var}{Character vector, EOT date variable names (default: "EOTDAT").
+\itemize{
+\item If length 1, all datasets use the same column name
+\item If length equals \code{eot_dataset}, corresponds one-to-one with datasets
+}}
 }
 \value{
 Data frame with columns:
@@ -25,15 +30,24 @@ Data frame with columns:
 }
 }
 \description{
-Extract the end of treatment date from the EOT dataset for each subject.
+Extract the end of treatment date from EOT datasets for each subject.
 }
 \details{
 \subsection{Calculation Rules}{
 \itemize{
-\item Extracts the EOT date from the specified dataset and variable
-\item If the dataset or variable doesn't exist, returns empty data frame
+\item Extracts EOT dates from all specified datasets and variables
+\item For each subject, returns the \strong{latest} EOT date across all records and datasets
+\item Missing datasets are silently skipped
 \item SAS missing values (NA, ".", "") are automatically excluded
-\item If multiple records exist for a subject, returns distinct values
+}
+}
+
+\subsection{Multiple Datasets Support}{
+
+When multiple datasets are specified:
+\itemize{
+\item All datasets are combined
+\item For each subject, the maximum date across all datasets is returned
 }
 }
 }
@@ -47,6 +61,26 @@ data <- list(
   )
 )
 eot_dates <- get_eot_date(data)
+
+# Multiple datasets - take latest date per subject
+data <- list(
+  EOT1 = data.frame(
+    SUBJID = "001",
+    EOTDAT = "2024-06-01",
+    stringsAsFactors = FALSE
+  ),
+  EOT2 = data.frame(
+    SUBJID = "001",
+    EOTDAT = "2024-07-15",
+    stringsAsFactors = FALSE
+  )
+)
+eot_dates <- get_eot_date(
+  data,
+  eot_dataset = c("EOT1", "EOT2"),
+  eot_date_var = "EOTDAT"
+)
+# Subject 001: 2024-07-15 (max across EOT1 and EOT2)
 }
 
 }

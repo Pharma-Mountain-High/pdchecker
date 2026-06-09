@@ -56,10 +56,15 @@ Multiple datasets can be specified, e.g., c("EX1", "EX2")}
 
 \item{sv_date_var}{Character string, visit date variable in visit dataset (default: "SVDAT")}
 
-\item{eot_dataset}{Character string, end of treatment dataset name (default: "EOT").
-If dataset doesn't exist, EOT-related planned dates will be NA}
+\item{eot_dataset}{Character vector, end of treatment dataset names (default: "EOT").
+Multiple datasets can be specified; the latest EOT date per subject is used.
+If no dataset exists, EOT-related planned dates will be NA}
 
-\item{eot_date_var}{Character string, end of treatment date variable (default: "EOTDAT")}
+\item{eot_date_var}{Character vector, end of treatment date variable names (default: "EOTDAT").
+\itemize{
+\item If length 1, all datasets use the same column name
+\item If length equals \code{eot_dataset}, corresponds one-to-one with datasets
+}}
 
 \item{ds_dataset}{Character string, disposition dataset name (default: "DS").
 If dataset doesn't exist, EOS-related planned dates will be NA}
