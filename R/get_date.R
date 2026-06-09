@@ -13,9 +13,9 @@
 #' @keywords internal
 #' @noRd
 expand_date_vars <- function(date_var,
-                            datasets,
-                            var_name = "date_var",
-                            datasets_label = "datasets") {
+                             datasets,
+                             var_name = "date_var",
+                             datasets_label = "datasets") {
   if (length(date_var) == 1) {
     return(rep(date_var, length(datasets)))
   } else if (length(date_var) == length(datasets)) {
