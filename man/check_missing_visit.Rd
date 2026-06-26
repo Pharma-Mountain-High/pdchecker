@@ -70,9 +70,16 @@ Different visit types use different termination date criteria:
 Planned date must be < min(end of treatment date, end of study date, cutoff date)
 }
 
-\subsection{End of Treatment and Follow-up Visits}{
+\subsection{End of Treatment and End of Study Visits}{
 
 Planned date must be <= min(end of study date, cutoff date)
+}
+
+\subsection{Follow-up Visits}{
+
+In addition to the above, follow-up visits are only checked when end of treatment
+is recorded and the data cutoff date is on or after the end of treatment date
+(i.e. the subject has entered the follow-up period).
 }
 
 }

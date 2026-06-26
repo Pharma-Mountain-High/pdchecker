@@ -405,3 +405,55 @@ test_that("check_missing_visit 处理 NA planned_date", {
     result <- check_missing_visit(planned_dates, cutoffdt = as.Date("2024-12-31"))
   })
 })
+
+# ===== 随访访视检查条件测试 =====
+
+create_followup_planned_dates <- function(eot_date = as.Date(NA)) {
+  data.frame(
+    SUBJID = "001",
+    VISIT = c("C1D1", "安全性随访"),
+    VISITNUM = c(1, 100),
+    visittype = c("治疗周期1", "随访"),
+    visitday = c("1", "LD+30"),
+    visit_category = c("treatment", "follow_up"),
+    planned_date = c(as.Date("2024-01-01"), as.Date("2024-03-02")),
+    wp_start = as.Date(NA),
+    wp_end = as.Date(NA),
+    wp_type = NA_character_,
+    wp_value = NA_real_,
+    actual_date = c(as.Date("2024-01-01"), as.Date(NA)),
+    status = c("completed", "missing"),
+    first_dose_date = as.Date("2024-01-01"),
+    eot_date = eot_date,
+    eos_date = as.Date("2024-06-30"),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("check_missing_visit 随访访视：无治疗结束日期时不检查", {
+  planned_dates <- create_followup_planned_dates(eot_date = as.Date(NA))
+
+  result <- check_missing_visit(planned_dates, cutoffdt = as.Date("2024-12-31"))
+
+  expect_false(result$has_deviation)
+  expect_equal(nrow(result$details), 0)
+})
+
+test_that("check_missing_visit 随访访视：有治疗结束且已进入随访期时检查", {
+  planned_dates <- create_followup_planned_dates(eot_date = as.Date("2024-03-15"))
+
+  result <- check_missing_visit(planned_dates, cutoffdt = as.Date("2024-12-31"))
+
+  expect_true(result$has_deviation)
+  expect_equal(nrow(result$details), 1)
+  expect_equal(result$details$VISIT[1], "安全性随访")
+})
+
+test_that("check_missing_visit 随访访视：有治疗结束但数据截止日未进入随访期时不检查", {
+  planned_dates <- create_followup_planned_dates(eot_date = as.Date("2024-03-15"))
+
+  result <- check_missing_visit(planned_dates, cutoffdt = as.Date("2024-03-10"))
+
+  expect_false(result$has_deviation)
+  expect_equal(nrow(result$details), 0)
+})
