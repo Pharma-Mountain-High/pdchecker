@@ -12,6 +12,8 @@ bdat
 BioConductor
 bootswatch
 BRTHDAT
+ci
+cicd
 CnD
 config
 cre
@@ -30,6 +32,7 @@ DS
 DSDAT
 eCRF
 EDC
+ee
 EG
 eGFR
 ENROL
@@ -50,6 +53,7 @@ Genentech
 gfr
 github
 GitLab
+gitlab
 googletagmanager
 gtag
 hengshan
@@ -104,6 +108,7 @@ Pre
 pre
 Rawdata
 RBC
+RD
 readr
 readxl
 recommedations
@@ -130,6 +135,7 @@ TESTDAT
 TESTDE
 testthat
 TESTTIM
+testwp
 TESTYN
 textarea
 TG
@@ -157,6 +163,8 @@ Xk
 xls
 xlsx
 XÁ
+yaml
+yml
 YN
 yn
 yyyy
