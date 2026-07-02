@@ -226,7 +226,7 @@ calc_planned_dates <- function(subj_id,
     # Check actual visit status
     actual_visit <- subj_actual[subj_actual$VISITNUM == visit_num, ]
 
-    if (nrow(actual_visit) > 0) {
+    if (nrow(actual_visit) > 0 && !is.na(actual_visit$actual_date[1])) {
       visit_status <- "completed"
       actual_date <- actual_visit$actual_date[1]
     } else {
