@@ -26,11 +26,16 @@
 #'
 #' Different visit types use different termination date criteria:
 #'
-#' ### Screening, Pre-treatment and Treatment Visits
+#' ### Screening, Pre-treatment, Treatment and Tumor Assessment Visits
 #' Planned date must be < min(end of treatment date, end of study date, cutoff date)
 #'
-#' ### End of Treatment and Follow-up Visits
+#' ### End of Treatment and End of Study Visits
 #' Planned date must be <= min(end of study date, cutoff date)
+#'
+#' ### Follow-up Visits
+#' In addition to the above, follow-up visits are only checked when end of treatment
+#' is recorded and the data cutoff date is on or after the end of treatment date
+#' (i.e. the subject has entered the follow-up period).
 #'
 #' ## Visit Type Classification
 #'
@@ -38,6 +43,7 @@
 #' - screening: Screening visits
 #' - pre_treatment: Pre-treatment visits
 #' - treatment: Treatment visits
+#' - tumor_assessment: Tumor assessment visits (same rules as treatment)
 #' - end_of_treatment: End of treatment visits
 #' - follow_up: Follow-up visits
 #'
@@ -153,7 +159,8 @@ check_missing_visit <- function(planned_dates,
 
     # Calculate different termination dates for different visit types
     # Screening and treatment: min(eotdate, eosdate, cutoffdt)
-    # End of treatment, withdrawal, follow-up: min(eosdate, cutoffdt)
+    # End of treatment, end of study: min(eosdate, cutoffdt)
+    # Follow-up: min(eosdate, cutoffdt), only after EOT and cutoff >= eot
 
     # Get dates for this subject
     first_dose_date <- unique(subj_planned$first_dose_date)[1]
@@ -189,8 +196,9 @@ check_missing_visit <- function(planned_dates,
           # Pre-treatment: planned date must be < cutoffdt_trt
           .data$visit_category == "pre_treatment" ~
             .data$planned_date < cutoffdt_trt,
-          # Treatment: subject must have first dose, and planned date must be < cutoffdt_trt
-          .data$visit_category == "treatment" ~
+          # Treatment and tumor assessment: subject must have first dose,
+          # and planned date must be < cutoffdt_trt
+          .data$visit_category %in% c("treatment", "tumor_assessment") ~
             !is.na(first_dose_date) & .data$planned_date < cutoffdt_trt,
           # End of treatment: planned date must be <= cutoffdt_fu
           .data$visit_category == "end_of_treatment" ~
@@ -198,9 +206,9 @@ check_missing_visit <- function(planned_dates,
           # End of study: planned date must be <= cutoffdt
           .data$visit_category == "end_of_study" ~
             .data$planned_date <= cutoffdt_fu,
-          # Follow-up: planned date must be <= cutoffdt_fu
+          # Follow-up: requires EOT and follow-up period started, planned date <= cutoffdt_fu
           .data$visit_category == "follow_up" ~
-            .data$planned_date <= cutoffdt_fu,
+            !is.na(eot_date) & cutoffdt >= eot_date & .data$planned_date <= cutoffdt_fu,
           # Other categories: do not check
           TRUE ~ FALSE
         )

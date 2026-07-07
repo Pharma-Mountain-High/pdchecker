@@ -65,14 +65,21 @@ result <- check_missing_visit(
 \subsection{Visit Completion Criteria}{
 
 Different visit types use different termination date criteria:
-\subsection{Screening, Pre-treatment and Treatment Visits}{
+\subsection{Screening, Pre-treatment, Treatment and Tumor Assessment Visits}{
 
 Planned date must be < min(end of treatment date, end of study date, cutoff date)
 }
 
-\subsection{End of Treatment and Follow-up Visits}{
+\subsection{End of Treatment and End of Study Visits}{
 
 Planned date must be <= min(end of study date, cutoff date)
+}
+
+\subsection{Follow-up Visits}{
+
+In addition to the above, follow-up visits are only checked when end of treatment
+is recorded and the data cutoff date is on or after the end of treatment date
+(i.e. the subject has entered the follow-up period).
 }
 
 }
@@ -84,6 +91,7 @@ Visit types are automatically identified by \code{generate_planned_visit_dates}:
 \item screening: Screening visits
 \item pre_treatment: Pre-treatment visits
 \item treatment: Treatment visits
+\item tumor_assessment: Tumor assessment visits (same rules as treatment)
 \item end_of_treatment: End of treatment visits
 \item follow_up: Follow-up visits
 }

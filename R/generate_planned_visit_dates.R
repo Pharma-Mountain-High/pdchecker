@@ -363,6 +363,8 @@ generate_planned_visit_dates <- function(data,
       VISIT = !!sym(sv_visit_var),
       VISITNUM = !!sym(sv_visitnum_var)
     ) %>%
+    filter(!is.na(actual_date)) %>%
+    filter(!is_sas_na(VISITNUM)) %>%
     select(SUBJID, VISIT, VISITNUM, actual_date) %>%
     arrange(SUBJID, actual_date)
 

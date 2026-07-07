@@ -59,6 +59,10 @@ test_that("match_visit_type() correctly classifies visit types", {
   expect_equal(match_visit_type("随访1"), "follow_up")
   expect_equal(match_visit_type("安全性随访"), "follow_up")
 
+  # 肿瘤评估
+  expect_equal(match_visit_type("肿瘤评估"), "tumor_assessment")
+  expect_equal(match_visit_type("Tumor Assessment"), "tumor_assessment")
+
   # 未知类型
   expect_equal(match_visit_type("其他访视"), "unknown")
   expect_equal(match_visit_type(NA), "unknown")

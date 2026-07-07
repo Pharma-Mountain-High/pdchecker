@@ -8,6 +8,14 @@ build_cycle_intervals <- function(visit_info, cycle_days = NULL) {
     return(list(mode = "uniform", value = cycle_days))
   }
 
+  has_treatment_d1 <- any(
+    visit_info$visit_category == "treatment" & visit_info$is_d1,
+    na.rm = TRUE
+  )
+  if (!has_treatment_d1) {
+    return(list(mode = "none"))
+  }
+
   if (!"CYCDAY" %in% names(visit_info)) {
     stop(
       "'cycle_days' is NULL but visitcode has no CYCDAY column. ",
@@ -218,7 +226,7 @@ calc_planned_dates <- function(subj_id,
     # Check actual visit status
     actual_visit <- subj_actual[subj_actual$VISITNUM == visit_num, ]
 
-    if (nrow(actual_visit) > 0) {
+    if (nrow(actual_visit) > 0 && !is.na(actual_visit$actual_date[1])) {
       visit_status <- "completed"
       actual_date <- actual_visit$actual_date[1]
     } else {
@@ -460,9 +468,40 @@ calculate_visit_planned_date <- function(visit_category,
   } else if (visit_category == "follow_up") {
     # Follow-up visit
     planned_date <- calculate_followup_visit_date(visit_day, eot_date, last_dose_date)
+  } else if (visit_category == "tumor_assessment") {
+    planned_date <- calculate_tumor_assess_date(visit_day, first_dose_date)
   }
 
   return(planned_date)
+}
+
+#' Calculate Tumor Assessment Visit Planned Date
+#'
+#' @description
+#' Internal function to calculate planned date for tumor assessment visits.
+#'
+#' @details
+#' VISITDAY is the number of days after the first dose date (e.g. W8 with
+#' VISITDAY 56 -> first_dose_date + 56).
+#'
+#' @param visit_day Character or numeric, days after first dose
+#' @param first_dose_date Date, first dose date
+#'
+#' @return Date, planned date for the tumor assessment visit
+#'
+#' @keywords internal
+#' @noRd
+calculate_tumor_assess_date <- function(visit_day, first_dose_date) {
+  planned_date <- NA
+
+  if (!is.na(visit_day) &&
+    is.numeric(as.numeric(visit_day)) &&
+    !is.na(first_dose_date)) {
+    days_offset <- as.numeric(visit_day)
+    planned_date <- first_dose_date + days_offset
+  }
+
+  planned_date
 }
 
 #' Calculate Pre-Treatment Visit Planned Date
