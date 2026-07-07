@@ -495,8 +495,8 @@ calculate_tumor_assess_date <- function(visit_day, first_dose_date) {
   planned_date <- NA
 
   if (!is.na(visit_day) &&
-      is.numeric(as.numeric(visit_day)) &&
-      !is.na(first_dose_date)) {
+    is.numeric(as.numeric(visit_day)) &&
+    !is.na(first_dose_date)) {
     days_offset <- as.numeric(visit_day)
     planned_date <- first_dose_date + days_offset
   }
