@@ -149,8 +149,10 @@ last_dates <- get_last_dose_date(
 \code{\link{get_first_dose_date}} for extracting first dose dates
 
 Other date extraction:
+\code{\link[=get_cyc_dose_date]{get_cyc_dose_date()}},
 \code{\link[=get_eos_date]{get_eos_date()}},
 \code{\link[=get_eot_date]{get_eot_date()}},
-\code{\link[=get_first_dose_date]{get_first_dose_date()}}
+\code{\link[=get_first_dose_date]{get_first_dose_date()}},
+\code{\link[=get_rand_date]{get_rand_date()}}
 }
 \concept{date extraction}

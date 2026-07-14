@@ -8,17 +8,18 @@
 #' @return Numeric value in days
 #' @noRd
 parse_time_unit <- function(value_str) {
-  if (grepl("h$|小时$", value_str)) {
+  value_str <- trimws(as.character(value_str))
+  if (grepl("h$|小时$", value_str, ignore.case = TRUE)) {
     # Hours to days
-    num <- as.numeric(gsub("h$|小时$", "", value_str))
+    num <- as.numeric(gsub("h$|小时$", "", value_str, ignore.case = TRUE))
     return(num / 24)
-  } else if (grepl("w$|周$", value_str)) {
+  } else if (grepl("w$|周$", value_str, ignore.case = TRUE)) {
     # Weeks to days
-    num <- as.numeric(gsub("w$|周$", "", value_str))
+    num <- as.numeric(gsub("w$|周$", "", value_str, ignore.case = TRUE))
     return(num * 7)
-  } else if (grepl("d$|天$|日$", value_str)) {
+  } else if (grepl("d$|天$|日$", value_str, ignore.case = TRUE)) {
     # Days
-    num <- as.numeric(gsub("d$|天$|日$", "", value_str))
+    num <- as.numeric(gsub("d$|天$|日$", "", value_str, ignore.case = TRUE))
     return(num)
   } else {
     # Default: treat as days

@@ -823,7 +823,10 @@ calculate_window_range <- function(planned_date, window_type, window_value) {
 #' @param sv_date_var Character string, visit date variable (default in functions: "SVDAT")
 #' @param ex_datasets Character vector, exposure dataset names (default in functions: "EX")
 #' @param ex_date_var Character vector, dosing start date variable names (default in functions: "EXSTDAT")
+#' @param ex_time_var Character vector, dosing start time variable names (default in functions: NULL)
 #' @param ex_end_date_var Character vector, dosing end date variable names (default in functions: NULL)
+#' @param rd_datasets Character vector, randomization dataset names (default in functions: "RAND")
+#' @param rd_date_var Character vector, randomization date variable names (default in functions: "RANDDT")
 #' @param eot_dataset Character vector, end of treatment dataset names (default in functions: "EOT")
 #' @param eot_date_var Character vector, end of treatment date variable names (default in functions: "EOTDAT")
 #' @param ds_dataset Character string, disposition dataset name (default in functions: "DS")
@@ -850,6 +853,8 @@ calculate_window_range <- function(planned_date, window_type, window_value) {
 #'   sv_date_var = "SVSTDTC",
 #'   ex_datasets = c("EC"),
 #'   ex_date_var = "ECSTDTC",
+#'   rd_datasets = "RAND",
+#'   rd_date_var = "RANDDT",
 #'   ic_dataset = "IC",
 #'   ic_date_var = "ICDAT"
 #' )
@@ -871,7 +876,10 @@ set_pdchecker_options <- function(sv_dataset = NULL,
                                   sv_date_var = NULL,
                                   ex_datasets = NULL,
                                   ex_date_var = NULL,
+                                  ex_time_var = NULL,
                                   ex_end_date_var = NULL,
+                                  rd_datasets = NULL,
+                                  rd_date_var = NULL,
                                   eot_dataset = NULL,
                                   eot_date_var = NULL,
                                   ds_dataset = NULL,
@@ -892,7 +900,10 @@ set_pdchecker_options <- function(sv_dataset = NULL,
     sv_date_var = sv_date_var,
     ex_datasets = ex_datasets,
     ex_date_var = ex_date_var,
+    ex_time_var = ex_time_var,
     ex_end_date_var = ex_end_date_var,
+    rd_datasets = rd_datasets,
+    rd_date_var = rd_date_var,
     eot_dataset = eot_dataset,
     eot_date_var = eot_date_var,
     ds_dataset = ds_dataset,
@@ -948,7 +959,8 @@ set_pdchecker_options <- function(sv_dataset = NULL,
 get_pdchecker_options <- function() {
   option_names <- c(
     "sv_dataset", "sv_visit_var", "sv_visitnum_var", "sv_date_var",
-    "ex_datasets", "ex_date_var", "ex_end_date_var",
+    "ex_datasets", "ex_date_var", "ex_time_var", "ex_end_date_var",
+    "rd_datasets", "rd_date_var",
     "eot_dataset", "eot_date_var",
     "ds_dataset", "ds_date_var",
     "ic_dataset", "ic_date_var",
@@ -960,7 +972,9 @@ get_pdchecker_options <- function() {
   defaults <- list(
     sv_dataset = "SV", sv_visit_var = "VISIT",
     sv_visitnum_var = "VISITNUM", sv_date_var = "SVDAT",
-    ex_datasets = "EX", ex_date_var = "EXSTDAT", ex_end_date_var = NULL,
+    ex_datasets = "EX", ex_date_var = "EXSTDAT", ex_time_var = NULL,
+    ex_end_date_var = NULL,
+    rd_datasets = "RAND", rd_date_var = "RANDDT",
     eot_dataset = "EOT", eot_date_var = "EOTDAT",
     ds_dataset = "DS", ds_date_var = "DSDAT",
     ic_dataset = "IC", ic_date_var = "ICDAT",

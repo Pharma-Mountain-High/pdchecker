@@ -14,8 +14,8 @@ utils::globalVariables(c(
   "VISIT", "VISITNUM", "VISITNAME", "SVDAT",
   "visit_date", "planned_date", "actual_date",
   "status", "visit_category", "visittype",
-  "first_dose_date", "last_dose_date", "eot_date", "eos_date",
-  "dose_date",
+  "first_dose_date", "first_dose_time", "last_dose_date", "eot_date", "eos_date",
+  "cyc_dose_date", "cyc_dose_time", "dose_date", "dose_time",
 
   # =========================================================================
   # Test/Lab Related
@@ -100,7 +100,9 @@ utils::globalVariables(c(
   "window_start", "window_end",
   "start_date", "last_visit", "last_date", "test_date",
   "target_date", "in_window",
-  "type", "wpvalue",
+  "type", "wpvalue", "wp_unit",
+  "anchor_datetime", "window_start_dt", "window_end_dt",
+  "test_datetime", "deviation_hours",
 
   # =========================================================================
   # Visit Code File Related (Chinese column names)

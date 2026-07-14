@@ -142,7 +142,39 @@ test_that("get_first_dose_date() 返回空数据框当无有效数据时", {
 
   expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 0)
-  expect_true(all(c("SUBJID", "first_dose_date") %in% names(result)))
+  expect_true(all(c("SUBJID", "first_dose_date", "first_dose_time") %in% names(result)))
+})
+
+test_that("get_first_dose_date() 支持提取给药时间", {
+  data <- list(
+    EX = data.frame(
+      SUBJID = c("001", "001", "002"),
+      EXSTDAT = c("2024-01-01", "2024-01-01", "2024-01-05"),
+      EXSTTIM = c("10:00", "08:30", "14:00"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_first_dose_date(data, ex_time_var = "EXSTTIM")
+
+  # 同一首剂日期取较早时间
+  expect_equal(result$first_dose_time[result$SUBJID == "001"], "08:30")
+  expect_equal(result$first_dose_time[result$SUBJID == "002"], "14:00")
+})
+
+test_that("get_first_dose_date() 未指定时间变量时时间为 NA", {
+  data <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      EXSTDAT = "2024-01-01",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_first_dose_date(data)
+
+  expect_true("first_dose_time" %in% names(result))
+  expect_true(is.na(result$first_dose_time[1]))
 })
 
 # =============================================================================
@@ -577,4 +609,219 @@ test_that("日期函数处理日期列不存在的情况", {
 
   # 应返回空数据框
   expect_equal(nrow(result), 0)
+})
+
+# =============================================================================
+# 测试 get_rand_date() 函数
+# =============================================================================
+
+test_that("get_rand_date 按受试者取最早随机日期", {
+  data <- list(
+    RAND = data.frame(
+      SUBJID = c("001", "001", "002"),
+      RANDDT = c("2024-01-20", "2024-01-15", "2024-01-18"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_rand_date(data)
+
+  expect_equal(nrow(result), 2)
+  expect_true(all(c("SUBJID", "rd_date") %in% names(result)))
+  expect_equal(result$rd_date[result$SUBJID == "001"], as.Date("2024-01-15"))
+  expect_equal(result$rd_date[result$SUBJID == "002"], as.Date("2024-01-18"))
+})
+
+test_that("get_rand_date 支持多个数据集合并", {
+  data <- list(
+    RAND1 = data.frame(
+      SUBJID = "001",
+      RANDDT = "2024-01-20",
+      stringsAsFactors = FALSE
+    ),
+    RAND2 = data.frame(
+      SUBJID = "001",
+      RANDDT = "2024-01-10",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_rand_date(data, rd_datasets = c("RAND1", "RAND2"))
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$rd_date, as.Date("2024-01-10"))
+})
+
+test_that("get_rand_date 支持自定义变量名", {
+  data <- list(
+    RAND = data.frame(
+      SUBJID = "001",
+      RANDDAT = "2024-01-15",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_rand_date(data, rd_date_var = "RANDDAT")
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$rd_date, as.Date("2024-01-15"))
+})
+
+test_that("get_rand_date 排除SAS缺失值并处理缺失数据集", {
+  data <- list(
+    RAND = data.frame(
+      SUBJID = c("001", "002"),
+      RANDDT = c("2024-01-15", "."),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_rand_date(data)
+  expect_equal(nrow(result), 1)
+  expect_equal(result$SUBJID, "001")
+
+  result_empty <- get_rand_date(list(LB = data.frame(SUBJID = "001")))
+  expect_equal(nrow(result_empty), 0)
+  expect_true(all(c("SUBJID", "rd_date") %in% names(result_empty)))
+})
+
+test_that("get_rand_date 校验输入参数", {
+  expect_error(get_rand_date("not a list"), "'data' must be a list")
+  expect_error(
+    get_rand_date(list(), rd_datasets = character(0)),
+    "'rd_datasets' must be a non-empty character vector"
+  )
+})
+
+# =============================================================================
+# 测试 get_cyc_dose_date() 函数
+# =============================================================================
+
+test_that("get_cyc_dose_date 按受试者和访视取最早给药日期", {
+  data <- list(
+    EX = data.frame(
+      SUBJID = c("001", "001", "001", "002"),
+      VISITNUM = c(2, 2, 3, 2),
+      EXSTDAT = c("2024-01-02", "2024-01-01", "2024-01-29", "2024-01-05"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_cyc_dose_date(data)
+
+  expect_equal(nrow(result), 3)
+  expect_true(all(c("SUBJID", "VISITNUM", "cyc_dose_date", "cyc_dose_time") %in% names(result)))
+  expect_type(result$VISITNUM, "character")
+
+  # 同一访视多条给药记录取最早
+  v2_001 <- result[result$SUBJID == "001" & result$VISITNUM == "2", ]
+  expect_equal(v2_001$cyc_dose_date, as.Date("2024-01-01"))
+  expect_true(is.na(v2_001$cyc_dose_time))
+
+  v3_001 <- result[result$SUBJID == "001" & result$VISITNUM == "3", ]
+  expect_equal(v3_001$cyc_dose_date, as.Date("2024-01-29"))
+})
+
+test_that("get_cyc_dose_date 支持提取给药时间", {
+  data <- list(
+    EX = data.frame(
+      SUBJID = c("001", "001", "001"),
+      VISITNUM = c(2, 2, 3),
+      EXSTDAT = c("2024-01-01", "2024-01-01", "2024-01-29"),
+      EXSTTIM = c("10:00", "08:00", "09:30"),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_cyc_dose_date(data, ex_time_var = "EXSTTIM")
+
+  v2 <- result[result$SUBJID == "001" & result$VISITNUM == "2", ]
+  expect_equal(v2$cyc_dose_date, as.Date("2024-01-01"))
+  expect_equal(v2$cyc_dose_time, "08:00")
+
+  v3 <- result[result$SUBJID == "001" & result$VISITNUM == "3", ]
+  expect_equal(v3$cyc_dose_time, "09:30")
+})
+
+test_that("get_cyc_dose_date 支持多个数据集合并", {
+  data <- list(
+    EX1 = data.frame(
+      SUBJID = "001",
+      VISITNUM = 2,
+      EXSTDAT = "2024-01-10",
+      stringsAsFactors = FALSE
+    ),
+    EX2 = data.frame(
+      SUBJID = "001",
+      VISITNUM = 2,
+      EXSTDAT = "2024-01-05",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_cyc_dose_date(data, ex_datasets = c("EX1", "EX2"))
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$cyc_dose_date, as.Date("2024-01-05"))
+})
+
+test_that("get_cyc_dose_date 支持自定义变量名", {
+  data <- list(
+    EX = data.frame(
+      SUBJID = "001",
+      VISNO = 2,
+      DOSEDAT = "2024-01-10",
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_cyc_dose_date(
+    data,
+    ex_date_var = "DOSEDAT",
+    visitnum_var = "VISNO"
+  )
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$VISITNUM, "2")
+})
+
+test_that("get_cyc_dose_date 排除SAS缺失值", {
+  data <- list(
+    EX = data.frame(
+      SUBJID = c("001", "002", "003"),
+      VISITNUM = c(2, 2, 2),
+      EXSTDAT = c("2024-01-01", ".", ""),
+      stringsAsFactors = FALSE
+    )
+  )
+
+  result <- get_cyc_dose_date(data)
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$SUBJID, "001")
+})
+
+test_that("get_cyc_dose_date 处理缺失数据集或缺失列", {
+  # 数据集不存在
+  result1 <- get_cyc_dose_date(list(LB = data.frame(SUBJID = "001")))
+  expect_equal(nrow(result1), 0)
+  expect_true(all(c("SUBJID", "VISITNUM", "cyc_dose_date", "cyc_dose_time") %in% names(result1)))
+
+  # 缺少 VISITNUM 列
+  result2 <- get_cyc_dose_date(
+    list(EX = data.frame(SUBJID = "001", EXSTDAT = "2024-01-01", stringsAsFactors = FALSE))
+  )
+  expect_equal(nrow(result2), 0)
+})
+
+test_that("get_cyc_dose_date 校验输入参数", {
+  expect_error(get_cyc_dose_date("not a list"), "'data' must be a list")
+  expect_error(
+    get_cyc_dose_date(list(), ex_datasets = character(0)),
+    "'ex_datasets' must be a non-empty character vector"
+  )
+  expect_error(
+    get_cyc_dose_date(list(), visitnum_var = c("A", "B")),
+    "'visitnum_var' must be a single character string"
+  )
 })

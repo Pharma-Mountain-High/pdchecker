@@ -11,7 +11,10 @@ set_pdchecker_options(
   sv_date_var = NULL,
   ex_datasets = NULL,
   ex_date_var = NULL,
+  ex_time_var = NULL,
   ex_end_date_var = NULL,
+  rd_datasets = NULL,
+  rd_date_var = NULL,
   eot_dataset = NULL,
   eot_date_var = NULL,
   ds_dataset = NULL,
@@ -40,7 +43,13 @@ set_pdchecker_options(
 
 \item{ex_date_var}{Character vector, dosing start date variable names (default in functions: "EXSTDAT")}
 
+\item{ex_time_var}{Character vector, dosing start time variable names (default in functions: NULL)}
+
 \item{ex_end_date_var}{Character vector, dosing end date variable names (default in functions: NULL)}
+
+\item{rd_datasets}{Character vector, randomization dataset names (default in functions: "RAND")}
+
+\item{rd_date_var}{Character vector, randomization date variable names (default in functions: "RANDDT")}
 
 \item{eot_dataset}{Character vector, end of treatment dataset names (default in functions: "EOT")}
 
@@ -86,6 +95,8 @@ set_pdchecker_options(
   sv_date_var = "SVSTDTC",
   ex_datasets = c("EC"),
   ex_date_var = "ECSTDTC",
+  rd_datasets = "RAND",
+  rd_date_var = "RANDDT",
   ic_dataset = "IC",
   ic_date_var = "ICDAT"
 )
