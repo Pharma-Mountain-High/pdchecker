@@ -37,13 +37,20 @@ parse_testwp_cell <- function(cell_value) {
   }
 
   parsed <- parse_window_period(wp_str)
+  # Keep wpvalue numeric so bind_rows() can combine all rows.
+  # Non-numeric values (range / other formats) become NA_real_.
+  wpvalue <- if (is.numeric(parsed$value)) {
+    as.numeric(parsed$value)
+  } else {
+    NA_real_
+  }
 
   list(
     ref = ref,
     wp_rule = cell_value,
     wp = wp_str,
     type = parsed$type,
-    wpvalue = parsed$value
+    wpvalue = wpvalue
   )
 }
 
@@ -189,14 +196,14 @@ read_testwp_file <- function(file_path,
       }
 
       result_list[[length(result_list) + 1L]] <- data.frame(
-        TESTCAT = testcats[j],
-        VISITNUM = visitnum,
-        VISIT = visit_name,
-        wp_rule = parsed$wp_rule,
-        ref = parsed$ref,
-        wp = parsed$wp,
-        type = parsed$type,
-        wpvalue = parsed$wpvalue,
+        TESTCAT = as.character(testcats[j]),
+        VISITNUM = as.character(visitnum),
+        VISIT = as.character(visit_name),
+        wp_rule = as.character(parsed$wp_rule),
+        ref = as.character(parsed$ref),
+        wp = as.character(parsed$wp),
+        type = as.character(parsed$type),
+        wpvalue = as.numeric(parsed$wpvalue),
         stringsAsFactors = FALSE
       )
     }

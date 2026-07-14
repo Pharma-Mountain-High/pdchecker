@@ -111,6 +111,39 @@ test_that("read_testwp_file validates header row", {
   unlink(temp_file)
 })
 
+test_that("parse_testwp_cell always returns numeric wpvalue", {
+  zero <- pdchecker:::parse_testwp_cell("EX(0)")
+  expect_type(zero$wpvalue, "double")
+
+  std <- pdchecker:::parse_testwp_cell("SV(±3d)")
+  expect_type(std$wpvalue, "double")
+
+  # Unrecognized WP falls through to type "其他"; wpvalue must still be numeric NA
+  other <- pdchecker:::parse_testwp_cell("SV(abc)")
+  expect_equal(other$type, "其他")
+  expect_type(other$wpvalue, "double")
+  expect_true(is.na(other$wpvalue))
+})
+
+test_that("read_testwp_file binds rows when wpvalue types would differ", {
+  mat <- rbind(
+    c("VISIT", "VISITNUM", "血常规", "血生化"),
+    c("筛选期", "1", "RD(0)", "RD(-7d)"),
+    c("C1D1", "6", "EX(≤24h)", "SV(abc)"),
+    c("C2D1", "10", "SV(±3d)", NA)
+  )
+
+  temp_file <- create_temp_testwp_excel(mat, "mixed_wpvalue.xlsx")
+
+  result <- read_testwp_file(temp_file)
+
+  expect_equal(nrow(result), 5)
+  expect_type(result$wpvalue, "double")
+  expect_true(is.na(result$wpvalue[result$wp == "abc"]))
+
+  unlink(temp_file)
+})
+
 test_that("read_testwp_file joins visitcode when provided", {
   mat <- rbind(
     c("VISIT", "VISITNUM", "血常规"),
