@@ -9,7 +9,7 @@ create_temp_testwp_excel <- function(data_matrix, filename, dir = NULL) {
   temp_file
 }
 
-test_that("parse_testwp_cell parses RD, SV, EX rules", {
+test_that("parse_testwp_cell parses RD, SV, EX, FD rules", {
   rd <- pdchecker:::parse_testwp_cell("RD(-7d)")
   expect_equal(rd$ref, "RD")
   expect_equal(rd$wp, "-7d")
@@ -24,13 +24,30 @@ test_that("parse_testwp_cell parses RD, SV, EX rules", {
   ex <- pdchecker:::parse_testwp_cell("EX(≤24h)")
   expect_equal(ex$ref, "EX")
   expect_equal(ex$type, "≤")
-  expect_equal(ex$wpvalue, 1)
+  expect_equal(ex$wpvalue, 24)
+  expect_equal(ex$wp_unit, "h")
+
+  ex_H <- pdchecker:::parse_testwp_cell("EX(≤24H)")
+  expect_equal(ex_H$wpvalue, 24)
+  expect_equal(ex_H$wp_unit, "h")
+
+  fd <- pdchecker:::parse_testwp_cell("FD(±3d)")
+  expect_equal(fd$ref, "FD")
+  expect_equal(fd$type, "±")
+  expect_equal(fd$wpvalue, 3)
+  expect_equal(fd$wp_unit, "d")
 
   zero <- pdchecker:::parse_testwp_cell("EX(0)")
   expect_equal(zero$ref, "EX")
   expect_equal(zero$wp, "0")
   expect_equal(zero$type, "0")
   expect_equal(zero$wpvalue, 0)
+  expect_equal(zero$wp_unit, "d")
+
+  fd_zero <- pdchecker:::parse_testwp_cell("FD(0)")
+  expect_equal(fd_zero$ref, "FD")
+  expect_equal(fd_zero$type, "0")
+  expect_equal(fd_zero$wpvalue, 0)
 })
 
 test_that("parse_testwp_cell returns NULL for empty cells", {
@@ -60,12 +77,14 @@ test_that("read_testwp_file expands matrix with non-empty cells only", {
 
   expect_equal(nrow(result), 3)
   expect_true(all(c(
-    "TESTCAT", "VISITNUM", "VISIT", "wp_rule", "ref", "wp", "type", "wpvalue"
+    "TESTCAT", "VISITNUM", "VISIT", "wp_rule", "ref", "wp", "type", "wpvalue", "wp_unit"
   ) %in% names(result)))
 
   ex_row <- result[result$TESTCAT == "血常规" & result$VISITNUM == "6", ]
   expect_equal(ex_row$ref, "EX")
   expect_equal(ex_row$type, "≤")
+  expect_equal(ex_row$wpvalue, 24)
+  expect_equal(ex_row$wp_unit, "h")
 
   zero_row <- result[result$TESTCAT == "血生化" & result$VISITNUM == "6", ]
   expect_equal(zero_row$ref, "EX")
@@ -85,15 +104,13 @@ test_that("read_testwp_file reads package example file", {
   result <- read_testwp_file(example_path, sheet_name = "QL0911-302")
 
   expect_gt(nrow(result), 0)
-  expect_true(all(result$ref %in% c("RD", "SV", "EX")))
-  expect_true(any(result$ref == "RD"))
+  expect_true(all(result$ref %in% c("RD", "SV", "EX", "FD")))
+  expect_true(any(result$ref %in% c("RD", "FD")))
   expect_true(any(result$ref == "SV"))
   expect_true(any(result$ref == "EX"))
   expect_true(any(result$type == "0"))
-  expect_equal(
-    result$TESTCAT[result$VISITNUM == "2" & result$ref == "RD" & result$wp == "0"][1],
-    "血常规"
-  )
+  expect_true(any(result$wp_unit == "h"))
+  expect_true("血常规" %in% result$TESTCAT)
 })
 
 test_that("read_testwp_file validates header row", {

@@ -86,7 +86,17 @@
 #'   Config must contain: TESTCAT (test category), VISITNUM (visit number, one per row).
 #'   Generates expected visit-test combinations as skeleton,
 #'   showing empty records (TESTDAT=NA) even when original data has no records.
-#'   Use \code{\link{read_testconfig_file}} to read config from Excel/CSV files
+#'   Use \code{\link{read_testconfig_file}} to read config from Excel/CSV files.
+#'   The output of \code{\link{read_testwp_file}} is also accepted; its
+#'   window-rule columns (wp_rule, ref, wp, type, wpvalue, wp_unit) are joined back to
+#'   the result by TESTCAT + VISITNUM for downstream test-window checks.
+#'   Randomization, first-dose and per-visit dosing dates / times
+#'   (\code{rd_date}, \code{first_dose_date}, \code{first_dose_time},
+#'   \code{cyc_dose_date}, \code{cyc_dose_time})
+#'   are always attached from \code{data} via \code{\link{get_rand_date}},
+#'   \code{\link{get_first_dose_date}} and \code{\link{get_cyc_dose_date}}
+#'   (NA when the source datasets are absent; times NA when
+#'   \code{ex_time_var} is NULL)
 #' @param config_cat Character vector, test categories to filter from config (default: NULL).
 #'   If NULL, uses all TESTCAT in config;
 #'   If provided (e.g., c("CBC", "Chemistry")), only uses those TESTCAT records
@@ -97,6 +107,12 @@
 #'   - "SUBJECT|AGE>=18" - Filter age >= 18 from SUBJECT
 #'   - "ENROL|ENRYN=='Y';SUBJECT|SEX=='M'" - Enrolled males (intersection)
 #'   If NULL, no subject filtering is applied
+#' @param rd_datasets Character vector, randomization dataset names (default: "RAND")
+#' @param rd_date_var Character vector, randomization date variable (default: "RANDDT")
+#' @param ex_datasets Character vector, exposure dataset names (default: "EX")
+#' @param ex_date_var Character vector, dosing date variable (default: "EXSTDAT")
+#' @param ex_time_var Character vector, dosing time variable (default: NULL).
+#'   If NULL or empty, \code{first_dose_time} and \code{cyc_dose_time} are NA
 #'
 #' @return Data frame with column order:
 #'   \describe{
@@ -112,6 +128,13 @@
 #'     \item{TESTDAT}{Test date (derived, mapped from test_date_var)}
 #'     \item{TESTTIM}{Test time (derived, mapped from test_time_var)}
 #'     \item{ORRES}{Test result (derived, mapped from test_result_var)}
+#'     \item{rd_date}{Randomization date from \code{\link{get_rand_date}} (NA if unavailable)}
+#'     \item{first_dose_date}{First dose date from \code{\link{get_first_dose_date}} (NA if unavailable)}
+#'     \item{first_dose_time}{First dose time (NA if \code{ex_time_var} is NULL or unavailable)}
+#'     \item{cyc_dose_date}{Per-visit dosing date from \code{\link{get_cyc_dose_date}} (NA if unavailable)}
+#'     \item{cyc_dose_time}{Per-visit dosing time (NA if \code{ex_time_var} is NULL or unavailable)}
+#'     \item{wp_rule, ref, wp, type, wpvalue, wp_unit}{Test-window rule columns, only
+#'       present when config contains them (e.g. from \code{\link{read_testwp_file}})}
 #'     \item{...}{All other original columns from test dataset}
 #'   }
 #'   Note: SV dataset only keeps SUBJID, VISIT, VISITNUM, SVDAT in output
@@ -148,6 +171,9 @@
 #' @seealso
 #' \code{\link{check_missing_test}} for checking missing tests
 #' \code{\link{read_testconfig_file}} for reading test config files
+#' \code{\link{read_testwp_file}} for reading test-window config files
+#' \code{\link{generate_test_window_dates}} for deriving test windows
+#' \code{\link{get_rand_date}} / \code{\link{get_cyc_dose_date}} for date extraction
 #'
 #' @family data preparation
 #'
@@ -170,7 +196,12 @@ prepare_test_data <- function(data,
                               sv_date_var = getOption("pdchecker.sv_date_var", "SVDAT"),
                               config = NULL,
                               config_cat = NULL,
-                              filter_cond = NULL) {
+                              filter_cond = NULL,
+                              rd_datasets = getOption("pdchecker.rd_datasets", "RAND"),
+                              rd_date_var = getOption("pdchecker.rd_date_var", "RANDDT"),
+                              ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
+                              ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT"),
+                              ex_time_var = getOption("pdchecker.ex_time_var", NULL)) {
   # ============================================================================
   # Parameter validation
   # ============================================================================
@@ -394,6 +425,68 @@ prepare_test_data <- function(data,
   }
 
   # ============================================================================
+  # Carry test-window columns from config (e.g. read_testwp_file output)
+  # ============================================================================
+
+  # If config comes from read_testwp_file(), it carries window-rule columns.
+  # Join them back by TESTCAT + VISITNUM so downstream window checks can use
+  # them. Plain testconfig files have none of these columns, so nothing changes.
+  window_cols <- intersect(
+    c("wp_rule", "ref", "wp", "type", "wpvalue", "wp_unit"),
+    names(config_expanded)
+  )
+  conflict_cols <- intersect(window_cols, names(merged_data))
+  if (length(conflict_cols) > 0) {
+    warning(
+      "Config window column(s) already exist in test data and were not added: ",
+      paste(conflict_cols, collapse = ", ")
+    )
+    window_cols <- setdiff(window_cols, conflict_cols)
+  }
+  if (length(window_cols) > 0) {
+    window_info <- config_expanded %>%
+      select(TESTCAT, VISITNUM, all_of(window_cols)) %>%
+      dplyr::distinct(TESTCAT, VISITNUM, .keep_all = TRUE)
+
+    merged_data <- merged_data %>%
+      left_join(window_info, by = c("TESTCAT", "VISITNUM"))
+  }
+
+  # ============================================================================
+  # Attach RD / EX dates from data list
+  # ============================================================================
+
+  # Always add rd_date, first_dose_date/time and cyc_dose_date/time
+  # (NA when source datasets are absent; times NA when ex_time_var is NULL)
+  # so generate_test_window_dates() can use them as RD/FD/EX anchors.
+  rd_dates <- get_rand_date(
+    data,
+    rd_datasets = rd_datasets,
+    rd_date_var = rd_date_var
+  )
+  merged_data <- merged_data %>%
+    left_join(rd_dates, by = "SUBJID")
+
+  first_dose_dates <- get_first_dose_date(
+    data,
+    ex_datasets = ex_datasets,
+    ex_date_var = ex_date_var,
+    ex_time_var = ex_time_var
+  )
+  merged_data <- merged_data %>%
+    left_join(first_dose_dates, by = "SUBJID")
+
+  cyc_dose_dates <- get_cyc_dose_date(
+    data,
+    ex_datasets = ex_datasets,
+    ex_date_var = ex_date_var,
+    ex_time_var = ex_time_var,
+    visitnum_var = sv_visitnum_var
+  )
+  merged_data <- merged_data %>%
+    left_join(cyc_dose_dates, by = c("SUBJID", "VISITNUM"))
+
+  # ============================================================================
   # Finalize output
   # ============================================================================
 
@@ -408,11 +501,22 @@ prepare_test_data <- function(data,
   # Reorder columns
   key_cols <- c("SUBJID", "VISIT", "VISITNUM", "SVDAT")
   derived_cols <- c("TBNAME", "TESTCAT", "TESTCAT_ORIG", "TESTDE", "TESTYN", "TESTDAT", "TESTTIM", "ORRES")
-  other_cols <- setdiff(names(merged_data), c(key_cols, derived_cols))
+  date_cols <- c(
+    "rd_date",
+    "first_dose_date", "first_dose_time",
+    "cyc_dose_date", "cyc_dose_time"
+  )
+  other_cols <- setdiff(
+    names(merged_data),
+    c(key_cols, derived_cols, date_cols, window_cols)
+  )
 
   result <- merged_data %>%
     mutate(VISITNUM = as.numeric(VISITNUM)) %>%
-    select(all_of(key_cols), all_of(derived_cols), all_of(other_cols))
+    select(
+      all_of(key_cols), all_of(derived_cols),
+      all_of(date_cols), all_of(window_cols), all_of(other_cols)
+    )
 
   return(result)
 }

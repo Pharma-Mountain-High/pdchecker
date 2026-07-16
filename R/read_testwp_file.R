@@ -1,7 +1,19 @@
-#' Parse a test window rule cell (e.g. "EX(≤24h)", "RD(0)", "SV(±3d)")
+#' Detect whether a window string uses hour units (h / H / 小时)
+#'
+#' @param wp_str Window string inside REF(...), e.g. "≤24h", "±3d"
+#' @return Logical
+#' @noRd
+is_hour_wp <- function(wp_str) {
+  if (is.na(wp_str) || is.null(wp_str) || !nzchar(as.character(wp_str))) {
+    return(FALSE)
+  }
+  grepl("[hH]|小时", as.character(wp_str))
+}
+
+#' Parse a test window rule cell (e.g. "EX(≤24h)", "RD(0)", "FD(±3d)", "SV(±3d)")
 #'
 #' @param cell_value Character scalar from the test-window matrix cell.
-#' @return List with ref, wp_rule, wp, type, wpvalue; or NULL if cell is empty.
+#' @return List with ref, wp_rule, wp, type, wpvalue, wp_unit; or NULL if cell is empty.
 #' @noRd
 parse_testwp_cell <- function(cell_value) {
   if (is.na(cell_value) || is.null(cell_value)) {
@@ -13,12 +25,12 @@ parse_testwp_cell <- function(cell_value) {
     return(NULL)
   }
 
-  matched <- regexec("^(RD|SV|EX)\\((.+)\\)$", cell_value, perl = TRUE)
+  matched <- regexec("^(RD|SV|EX|FD)\\((.+)\\)$", cell_value, perl = TRUE)
   parts <- regmatches(cell_value, matched)[[1]]
   if (length(parts) == 0) {
     stop(
       "Invalid test window rule '", cell_value, "'. ",
-      "Expected format REF(WP), e.g. RD(-7d), SV(±3d), EX(≤24h), EX(0).",
+      "Expected format REF(WP), e.g. RD(-7d), SV(±3d), EX(≤24h), FD(0), EX(0).",
       call. = FALSE
     )
   }
@@ -32,15 +44,22 @@ parse_testwp_cell <- function(cell_value) {
       wp_rule = cell_value,
       wp = wp_str,
       type = "0",
-      wpvalue = 0
+      wpvalue = 0,
+      wp_unit = "d"
     ))
   }
 
   parsed <- parse_window_period(wp_str)
   # Keep wpvalue numeric so bind_rows() can combine all rows.
   # Non-numeric values (range / other formats) become NA_real_.
+  # Hour rules keep hours (not converted days) for hour-level checks.
+  use_hour <- is_hour_wp(wp_str)
   wpvalue <- if (is.numeric(parsed$value)) {
-    as.numeric(parsed$value)
+    if (use_hour) {
+      as.numeric(parsed$value) * 24
+    } else {
+      as.numeric(parsed$value)
+    }
   } else {
     NA_real_
   }
@@ -50,7 +69,8 @@ parse_testwp_cell <- function(cell_value) {
     wp_rule = cell_value,
     wp = wp_str,
     type = parsed$type,
-    wpvalue = wpvalue
+    wpvalue = wpvalue,
+    wp_unit = if (use_hour) "h" else "d"
   )
 }
 
@@ -79,12 +99,13 @@ parse_testwp_cell <- function(cell_value) {
 #' | RD | Randomization date |
 #' | SV | Actual visit date at this visit |
 #' | EX | Actual dosing date at this visit |
+#' | FD | First dose date |
 #'
 #' \code{WP} uses the same syntax as the \code{WP} column in
 #' \code{\link{read_visitcode_file}} (\code{±3d}, \code{≤24h}, \code{+3d}, etc.).
 #' \code{0} inside parentheses means the test must be performed on the anchor day.
 #'
-#' Examples: \code{RD(-7d)}, \code{RD(0)}, \code{EX(≤24h)}, \code{SV(±3d)}.
+#' Examples: \code{RD(-7d)}, \code{RD(0)}, \code{EX(≤24h)}, \code{FD(±3d)}, \code{SV(±3d)}.
 #'
 #' @param file_path Character. File path (`.xlsx` or `.xls`).
 #' @param sheet_name Character. Excel sheet name (default: `"Sheet1"`).
@@ -98,10 +119,12 @@ parse_testwp_cell <- function(cell_value) {
 #'     \item{VISITNUM}{Visit number (character)}
 #'     \item{VISIT}{Visit name from the file (character)}
 #'     \item{wp_rule}{Original cell value, e.g. \code{EX(≤24h)}}
-#'     \item{ref}{Reference date type: \code{RD}, \code{SV}, or \code{EX}}
+#'     \item{ref}{Reference date type: \code{RD}, \code{SV}, \code{EX}, or \code{FD}}
 #'     \item{wp}{Window period string inside parentheses}
 #'     \item{type}{Parsed window type (\code{±}, \code{≤}, \code{0}, etc.)}
-#'     \item{wpvalue}{Parsed window value in days (numeric; may be \code{NA})}
+#'     \item{wpvalue}{Parsed window value (numeric; may be \code{NA}).
+#'       Unit is days when \code{wp_unit} is \code{"d"}, hours when \code{"h"}}
+#'     \item{wp_unit}{\code{"h"} if the rule uses hours (h/H/小时), otherwise \code{"d"}}
 #'   }
 #'
 #' @examples
@@ -149,8 +172,13 @@ read_testwp_file <- function(file_path,
     stop("Package 'readxl' is required to read Excel files.", call. = FALSE)
   }
 
-  raw_df <- readxl::read_excel(file_path, sheet = sheet_name, col_names = FALSE)
-  raw_df <- tibble::as_tibble(raw_df)
+  raw_df <- readxl::read_excel(
+    file_path,
+    sheet = sheet_name,
+    col_names = FALSE,
+    .name_repair = "minimal"
+  )
+  raw_df <- tibble::as_tibble(raw_df, .name_repair = "minimal")
 
   if (nrow(raw_df) < 2 || ncol(raw_df) < 3) {
     stop(
@@ -204,6 +232,7 @@ read_testwp_file <- function(file_path,
         wp = as.character(parsed$wp),
         type = as.character(parsed$type),
         wpvalue = as.numeric(parsed$wpvalue),
+        wp_unit = as.character(parsed$wp_unit),
         stringsAsFactors = FALSE
       )
     }
@@ -220,6 +249,7 @@ read_testwp_file <- function(file_path,
       wp = character(),
       type = character(),
       wpvalue = numeric(),
+      wp_unit = character(),
       stringsAsFactors = FALSE
     ))
   }
@@ -269,7 +299,9 @@ read_testwp_file <- function(file_path,
       dplyr::select(-VISIT_visitcode)
   }
 
-  key_cols <- c("TESTCAT", "VISITNUM", "VISIT", "wp_rule", "ref", "wp", "type", "wpvalue")
+  key_cols <- c(
+    "TESTCAT", "VISITNUM", "VISIT", "wp_rule", "ref", "wp", "type", "wpvalue", "wp_unit"
+  )
   testwp_expanded <- testwp_expanded %>%
     dplyr::select(dplyr::all_of(key_cols))
 

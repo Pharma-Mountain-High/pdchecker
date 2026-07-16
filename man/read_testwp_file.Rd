@@ -22,10 +22,12 @@ A data frame with columns:
 \item{VISITNUM}{Visit number (character)}
 \item{VISIT}{Visit name from the file (character)}
 \item{wp_rule}{Original cell value, e.g. \code{EX(≤24h)}}
-    \item{ref}{Reference date type: \code{RD}, \code{SV}, or \code{EX}}
+    \item{ref}{Reference date type: \code{RD}, \code{SV}, \code{EX}, or \code{FD}}
 \item{wp}{Window period string inside parentheses}
 \item{type}{Parsed window type (\code{±}, \code{≤}, \code{0}, etc.)}
-\item{wpvalue}{Parsed window value in days (numeric; may be \code{NA})}
+\item{wpvalue}{Parsed window value (numeric; may be \code{NA}).
+Unit is days when \code{wp_unit} is \code{"d"}, hours when \code{"h"}}
+\item{wp_unit}{\code{"h"} if the rule uses hours (h/H/小时), otherwise \code{"d"}}
 }
 }
 \description{
@@ -51,6 +53,7 @@ Each non-empty cell uses \code{REF(WP)}:\tabular{ll}{
    RD \tab Randomization date \cr
    SV \tab Actual visit date at this visit \cr
    EX \tab Actual dosing date at this visit \cr
+   FD \tab First dose date \cr
 }
 
 
@@ -58,7 +61,7 @@ Each non-empty cell uses \code{REF(WP)}:\tabular{ll}{
 \code{\link{read_visitcode_file}} (\code{±3d}, \code{≤24h}, \code{+3d}, etc.).
 \code{0} inside parentheses means the test must be performed on the anchor day.
 
-Examples: \code{RD(-7d)}, \code{RD(0)}, \code{EX(≤24h)}, \code{SV(±3d)}.
+Examples: \code{RD(-7d)}, \code{RD(0)}, \code{EX(≤24h)}, \code{FD(±3d)}, \code{SV(±3d)}.
 }
 }
 \examples{
