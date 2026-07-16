@@ -67,10 +67,12 @@ generate_markdown_report <- function(checks_df, output_file = NULL,
   summary_stats <- checks_df %>%
     group_by(check_name) %>%
     summarize(
+      # Count TRUE rows before overwriting has_deviation with any()
+      deviation_count = sum(has_deviation),
       has_deviation = any(has_deviation),
-      deviation_count = sum(if_else(has_deviation, n(), 0L)),
       .groups = "drop"
     ) %>%
+    select(check_name, has_deviation, deviation_count) %>%
     arrange(check_name)
 
   # Add summary section
@@ -339,10 +341,12 @@ generate_excel_report <- function(checks_df, output_file,
   summary_stats <- checks_df %>%
     group_by(check_name) %>%
     summarize(
+      # Count TRUE rows before overwriting has_deviation with any()
+      deviation_count = sum(has_deviation),
       has_deviation = any(has_deviation),
-      deviation_count = sum(if_else(has_deviation, n(), 0L)),
       .groups = "drop"
     ) %>%
+    select(check_name, has_deviation, deviation_count) %>%
     arrange(desc(has_deviation), desc(deviation_count))
 
   num_cols <- ncol(summary_stats)
