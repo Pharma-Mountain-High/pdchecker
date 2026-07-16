@@ -1,6 +1,6 @@
 Package: pdchecker
 Title: Protocol Deviation Checker for Clinical Trials
-Version: 0.9.5
+Version: 0.9.5.9000
 Authors@R:
     person("Qinghuan", "Wang", , "qinghuan.wang@qilu-pharma.com", role = c("aut", "cre"))
 Description: Automates the detection of protocol deviations in clinical
@@ -36,7 +36,7 @@ Suggests:
     writexl
 VignetteBuilder:
     knitr
+Config/roxygen2/version: 8.0.0
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-Config/roxygen2/version: 8.0.0
