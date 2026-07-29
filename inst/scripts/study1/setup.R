@@ -1,3 +1,4 @@
+# nolint start
 rm(list = ls())
 
 if (!requireNamespace("pdchecker", quietly = TRUE)) {
@@ -44,3 +45,4 @@ set_pdchecker_options(
   ic_date_var     = "ICFDAT", # 知情同意日期变量
   tb_name_var     = "TNAME", # 表名变量
 )
+# nolint end
