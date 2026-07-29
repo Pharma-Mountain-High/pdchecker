@@ -548,7 +548,7 @@ parse_als_with_ai <- function(als_file,
 
   form_label <- form
   if (!grepl("[\\(（]", form_label, perl = TRUE) &&
-        grepl("[\\(（]", testcat_raw, perl = TRUE)) {
+    grepl("[\\(（]", testcat_raw, perl = TRUE)) {
     form_label <- testcat_raw
   }
   if (!nzchar(form_label)) {

@@ -24,8 +24,10 @@ test_that("check_icf_time_deviation works with valid deviations", {
   expect_true(result$has_deviation)
   expect_equal(length(result$messages), 1)
   expect_true(nrow(result$details) >= 1)
-  expect_true(all(c("SUBJID", "action", "event_datetime",
-                    "icf_datetime", "diff_date", "TBNAME") %in% names(result$details)))
+  expect_true(all(c(
+    "SUBJID", "action", "event_datetime",
+    "icf_datetime", "diff_date", "TBNAME"
+  ) %in% names(result$details)))
   expect_true(all(result$details$diff_date < 0)) # All differences should be negative
   expect_true("001" %in% result$details$SUBJID) # Subject 001 should have deviation
 })
