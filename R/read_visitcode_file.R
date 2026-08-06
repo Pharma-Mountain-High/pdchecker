@@ -117,8 +117,8 @@ parse_window_period <- function(window_str) {
 #' @return A tibble with all columns from input file, plus new (or overwritten) columns:
 #'   \item{type}{Window type (character): +/-, <=, >=, +, -, range, other, or NA}
 #'   \item{wpvalue}{Window value (numeric) in days. NA if unparseable (e.g., range or other types)}
-#'   \item{visit_category}{Visit category (character): screening, treatment, end_of_treatment,
-#'     follow_up, or unknown. Only generated if CYCLE column exists.}
+#'   \item{visit_category}{Visit category (character): screening, treatment, tumor_assessment,
+#'     end_of_treatment, follow_up, or unknown. Only generated if CYCLE column exists.}
 #'   \item{...}{All other columns from the input file (including optional CYCDAY)}
 #'
 #' @examples

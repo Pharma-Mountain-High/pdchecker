@@ -8,14 +8,15 @@
 #' @details
 #' ## Visit Categories
 #'
-#' The function handles four types of visits:
+#' The function handles six types of visits:
 #'
-#' | Category | Description |
-#' |----------|-------------|
-#' | Screening | Based on first dose date |
-#' | Treatment | D1 visits use iterative cycle calculation; non-D1 based on cycle D1 date |
-#' | End of Treatment | Based on EOT date or EOS date |
-#' | Follow-up | Based on EOT date or last dose date |
+#' | Category | Description | Planned Date Calculation |
+#' |----------|-------------|--------------------------|
+#' | Screening | Based on first dose date | `first_dose_date` |
+#' | Treatment | D1 visits use iterative cycle calculation; non-D1 based on cycle D1 date | See treatment rules |
+#' | Tumor Assessment | Based on first dose date plus offset days | `first_dose_date + VISITDAY` |
+#' | End of Treatment | Based on EOT date or EOS date | `eot_date` or `eos_date` |
+#' | Follow-up | Based on EOT date or last dose date | `eot_date + N` or `last_dose_date + N` |
 #'
 #' For detailed calculation rules of each visit type, see the internal calculation
 #' functions in `planned_date_calculation.R`.

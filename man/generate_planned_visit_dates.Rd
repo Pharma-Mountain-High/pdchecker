@@ -110,12 +110,13 @@ end of treatment, and follow-up visit date calculations.
 \details{
 \subsection{Visit Categories}{
 
-The function handles four types of visits:\tabular{ll}{
-   Category \tab Description \cr
-   Screening \tab Based on first dose date \cr
-   Treatment \tab D1 visits use iterative cycle calculation; non-D1 based on cycle D1 date \cr
-   End of Treatment \tab Based on EOT date or EOS date \cr
-   Follow-up \tab Based on EOT date or last dose date \cr
+The function handles six types of visits:\tabular{lll}{
+   Category \tab Description \tab Planned Date Calculation \cr
+   Screening \tab Based on first dose date \tab \code{first_dose_date} \cr
+   Treatment \tab D1 visits use iterative cycle calculation; non-D1 based on cycle D1 date \tab See treatment rules \cr
+   Tumor Assessment \tab Based on first dose date plus offset days \tab \code{first_dose_date + VISITDAY} \cr
+   End of Treatment \tab Based on EOT date or EOS date \tab \code{eot_date} or \code{eos_date} \cr
+   Follow-up \tab Based on EOT date or last dose date \tab \code{eot_date + N} or \code{last_dose_date + N} \cr
 }
 
 

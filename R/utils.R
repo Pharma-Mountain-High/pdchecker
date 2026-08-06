@@ -718,7 +718,7 @@ subj_filter <- function(data, filter_cond) {
 #'   (e.g., "筛选" for screening, "治疗周期1" for treatment cycle 1)
 #'
 #' @return Character string, one of: "screening", "pre_treatment", "treatment",
-#'   "end_of_treatment", "follow_up", "end_of_study", or "unknown"
+#'   "tumor_assessment", "end_of_treatment", "follow_up", "end_of_study", or "unknown"
 #'
 #' @keywords internal
 #' @noRd

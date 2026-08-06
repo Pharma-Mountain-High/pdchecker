@@ -481,13 +481,34 @@ calculate_visit_planned_date <- function(visit_category,
 #' Internal function to calculate planned date for tumor assessment visits.
 #'
 #' @details
-#' VISITDAY is the number of days after the first dose date (e.g. W8 with
-#' VISITDAY 56 -> first_dose_date + 56).
+#' ## Calculation Rule
 #'
-#' @param visit_day Character or numeric, days after first dose
-#' @param first_dose_date Date, first dose date
+#' Tumor assessment visits are scheduled as a fixed offset from the first dose date.
+#' The VISITDAY column value represents the number of days from first dose:
 #'
-#' @return Date, planned date for the tumor assessment visit
+#' \strong{planned_date = first_dose_date + VISITDAY}
+#'
+#' ## Example
+#'
+#' | VISITDAY | Meaning | First Dose | Planned Date |
+#' |----------|---------|------------|--------------|
+#' | 56 | Week 8 | 2024-01-01 | 2024-02-26 |
+#' | 84 | Week 12 | 2024-01-01 | 2024-03-25 |
+#' | 168 | Week 24 | 2024-01-01 | 2024-06-17 |
+#'
+#' ## Key Differences from Treatment Visits
+#'
+#' Unlike treatment visits where planned dates can shift based on actual D1 visit dates,
+#' tumor assessment planned dates are fixed relative to the first dose date. This is
+#' because tumor assessments typically follow a calendar-based schedule (e.g., every
+#' 8 weeks) independent of treatment cycle scheduling.
+#'
+#' @param visit_day Character or numeric, days offset from first dose date
+#'   (must be convertible to a positive numeric value)
+#' @param first_dose_date Date, subject's first dose date
+#'
+#' @return Date, planned date for the tumor assessment visit.
+#'   Returns NA if visit_day is not numeric or first_dose_date is NA.
 #'
 #' @keywords internal
 #' @noRd
