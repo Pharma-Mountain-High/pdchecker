@@ -303,7 +303,8 @@ read_testwp_file <- function(file_path,
     "TESTCAT", "VISITNUM", "VISIT", "wp_rule", "ref", "wp", "type", "wpvalue", "wp_unit"
   )
   testwp_expanded <- testwp_expanded %>%
-    dplyr::select(dplyr::all_of(key_cols))
+    dplyr::select(dplyr::all_of(key_cols)) %>%
+    dplyr::arrange(TESTCAT, as.numeric(VISITNUM))
 
   testwp_expanded
 }
