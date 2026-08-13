@@ -152,6 +152,7 @@ pdchecker 需要两个外部配置文件：**访视计划文件**和**检查项�
 | 筛选 / Screening          | screening        |
 | 预治疗 / 预激                | pre_treatment    |
 | 治疗（不含"治疗结束"）/ Cycle     | treatment        |
+| 肿瘤评估 / Tumor assessment | tumor_assessment |
 | 治疗结束 / End of Treatment | end_of_treatment |
 | 随访 / Follow             | follow_up        |
 
