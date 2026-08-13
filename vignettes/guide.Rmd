@@ -143,6 +143,7 @@ lb <- data$LB
 | 格式 | 适用访视类别 | 含义 |
 |------|-------------|------|
 | 正整数 | treatment | 相对于周期 D1 的天数（如 `1`、`8`、`15`） |
+| 正整数 | tumor_assessment | 相对于首次给药的天数（如 `56` 表示 W8） |
 | 负整数 | screening | 相对于首次给药的天数（如 `-28`） |
 | `FD` 或 `First Dose` | pre_treatment | 首次给药日期 |
 | `LD+N` 或 `Last Dose+N` | follow_up | 末次给药后 N 天（如 `LD+28`） |
@@ -156,6 +157,7 @@ lb <- data$LB
 |-----------------|--------|
 | 筛选 / Screening | screening |
 | 预激 / 预治疗 | pre_treatment |
+| 肿瘤评估 / tumor assessment | tumor_assessment |
 | 治疗（不含"治疗结束"）/ Cycle | treatment |
 | 治疗结束 / 退出 / End of Treatment | end_of_treatment |
 | 研究结束 / End of Study | end_of_study |
@@ -436,6 +438,7 @@ eos_dates <- get_eos_date(data)
 | 治疗期 C1D1 | 优先使用实际访视日期；若缺失则使用首次给药日期 |
 | 治疗期 CnD1（n≥2） | 上一周期 D1 日期 + 周期间隔（CYCDAY 或 cycle_days） |
 | 治疗期非 D1 访视 | 当前周期 D1 日期 + visitday − 1 |
+| 肿瘤评估 | 首次给药日期 + VISITDAY（固定偏移，不随治疗周期变化） |
 | 治疗结束 | 各 EOT 数据集中的最大 EOT 日期（见 `get_eot_date()`） |
 | 随访 | EOT 或末次给药日期 + visitday |
 
@@ -683,7 +686,7 @@ if (result$has_deviation) {
 
 | 访视类别 | 应完成的条件 |
 |----------|-------------|
-| 筛选期 / 预治疗期 / 治疗期 | 计划日期 < min(EOT 日期, EOS 日期, 截止日期) |
+| 筛选期 / 预治疗期 / 治疗期 / 肿瘤评估 | 计划日期 < min(EOT 日期, EOS 日期, 截止日期)，且需要有用药记录 |
 | 治疗结束 / 随访 | 计划日期 ≤ min(EOS 日期, 截止日期) |
 
 满足应完成条件且 `status == "missing"` → 偏离
@@ -748,6 +751,48 @@ if (result$has_deviation) {
   # details 包含：PDNO, SUBJID, VISIT, planned_date, actual_date,
   #               wp_start, wp_end, deviation_days, DESCRIPTION
 }
+```
+
+---
+
+### 6.3 肿瘤评估周期缺失和超窗 （可参考 inst/scripts/study2）
+
+**核心步骤：**
+
+1. 参考(inst/extdata/example_rscyc.xlsx)准备肿瘤评估周期编码文件；
+2. 处理rawdata**衍生一个周期编号列（TUCYCN）**与编码文件中的 `VISITNUM` 对应；
+3. 将处理过的rawdata作为新数据集存放到datalist中；
+4. 参考一般访视缺失/超窗逻辑进行判断。
+
+**核心思路：**`generate_planned_visit_dates()` 的 `sv_dataset / sv_visit_var / sv_visitnum_var / sv_date_var` 四个参数不一定要指向真正的 SV 表，可以指向肿瘤评估数据集（TU_TL / TU_NTL），分别把评估周期名、周期编号、评估日期作为"访视名称、访视编号、访视日期"。这样即可复用整套缺失/超窗检查逻辑。
+
+```r
+# 1. 读取肿瘤评估周期编码文件（RSCYC）
+rscode <- read_visitcode_file("inst/extdata/example_rscyc.xlsx", sheet_name = "RSCYC")
+
+# 2. 衍生评估周期编号（TUCYCN），与 RSCYC 的 VISITNUM 保持一致
+#    新数据集存放入 raw 列表中：raw$TU_TL_def
+raw$TU_TL_def <- raw$TU_TL %>%
+  mutate(TUCYCN = case_when(
+    grepl("W", TUCYC) ~ 10000 + as.numeric(str_remove(TUCYC, "W")),
+    grepl("治疗结束", TUCYC) ~ 19999
+  ))
+
+# 3. 将肿瘤评估数据集作为"访视数据集"生成计划日期
+rs_plan_tl <- generate_planned_visit_dates(
+  raw,
+  visitcode      = rscode,
+  sv_dataset    = "TU_TL_def",
+  sv_visit_var  = "TUCYC",
+  sv_visitnum_var = "TUCYCN",
+  sv_date_var   = "TUDAT"
+)
+
+# 4. 检查肿瘤评估周期访视缺失
+missing_rs_tl  <- check_missing_visit(rs_plan_tl,  pdno = "6.1.1")
+
+# 5. 检查肿瘤评估周期访视超窗
+window_rs_tl  <- check_visit_window(rs_plan_tl,  pdno = "6.1.2")
 ```
 
 ---
