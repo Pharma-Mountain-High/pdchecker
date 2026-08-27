@@ -7,12 +7,18 @@ icf <- raw$IC %>%
 
 first_ex <- get_first_dose_date(raw)
 #---------------------------------------访视相关--------------------------------------------
+
+# 读取 访视编码文件
 visitcode <- read_visitcode_file(visitcode_path,
                                  sheet_name = "QLC7401-303")
 
+# 产生 计划访视日期                              
 plan_svdate <-generate_planned_visit_dates(raw)
 
+# 检查 访视缺失
 missing_visit <- check_missing_visit(plan_svdate, cutoffdt = as.Date("2026-04-24"),pdno = "8.1.1")
+
+# 检查 访视超窗
 window_visit <- check_visit_window(plan_svdate,pdno = "8.4.1")
 
 pd_8_1_1_output <- as_check_df(missing_visit,
@@ -24,10 +30,11 @@ pd_8_4_1_output <- as_check_df(window_visit,
 
 
 #---------------------------------------检查项相关--------------------------------------------
-
+# 读取 检查项配置文件
 testconfig <- read_testconfig_file(file_path = testconfig_path,
                                    sheet_name = "QLC7401-303")
 
+# 准备 检查项数据集
 # "血常规 血生化 尿常规 空腹血脂 凝血功能 甲状腺功能 糖化血红蛋白"
 lb_data <- prepare_test_data(raw,
                              test_dataset = "LB",
@@ -41,7 +48,7 @@ lb_data <- prepare_test_data(raw,
                              filter_cond = "ENROL|RANDYN=='是'"
 )
 
-
+# 准备 检查项数据集
 # "生命体征"
 vs_data <- prepare_test_data(raw,
                              test_dataset = "VS",
@@ -55,6 +62,7 @@ vs_data <- prepare_test_data(raw,
                              filter_cond = "ENROL|RANDYN=='是'"
 )
 
+# 准备 检查项数据集
 # "体格检查"
 pe_data <- prepare_test_data(raw,
                              test_dataset = "PE",
@@ -143,6 +151,7 @@ pc_data <- prepare_test_data(raw,
                               filter_cond = "ENROL|RANDYN=='是'"
 )
 
+# 合并 多个检查项数据集
 test_data <- bind_rows(lb_data,vs_data,pe_data,eg_data,rp_data,vir_data,ada_data)
 
 #D1之前最近检查日期
@@ -168,8 +177,10 @@ urea <- test_data %>%
   select(SUBJID,VISIT,TESTCAT,TESTDE,ureayn) %>%
   distinct(SUBJID,VISIT,TESTCAT,ureayn)
 
+# 检查 检查项缺失
 missing_test <- check_missing_test(test_data,missing_de = T)
 
+# 对生成结果 针对性处理
 missing_test$details <- missing_test$details %>%
   mutate(PDNO=case_when(grepl("生命体征",test_name) ~ "8.2.1",
                         grepl("体格检查",test_name) ~ "8.2.2",
