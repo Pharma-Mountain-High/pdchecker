@@ -325,11 +325,11 @@ check_test_window <- function(data,
             "受试者编号%s，在访视%s，检查项[%s]（检查时间:%s），锚点为%s(%s)，不在窗口期(%s至%s)范围内。"
           ),
           .data$SUBJID, .data$VISIT, .data$TESTCAT,
-          format(.data$test_datetime, "%Y-%m-%d %H:%M:%S"),
+          format(.data$test_datetime, "%Y-%m-%d %H:%M"),
           ref_labels[.data$ref],
-          format(.data$anchor_datetime, "%Y-%m-%d %H:%M:%S"),
-          format(.data$window_start_dt, "%Y-%m-%d %H:%M:%S"),
-          format(.data$window_end_dt, "%Y-%m-%d %H:%M:%S")
+          format(.data$anchor_datetime, "%Y-%m-%d %H:%M"),
+          format(.data$window_start_dt, "%Y-%m-%d %H:%M"),
+          format(.data$window_end_dt, "%Y-%m-%d %H:%M")
         ),
         sprintf(
           paste0(

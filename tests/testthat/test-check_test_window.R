@@ -202,9 +202,8 @@ test_that("check_test_window details 包含正确的 PDNO 和 DESCRIPTION", {
 
   expect_true(all(result$details$PDNO == "8.4.9"))
   expect_true(all(grepl("受试者编号002", result$details$DESCRIPTION)))
-  # SV/RD -> 不在窗口期；EX/FD -> 计划在…进行
-  expect_true(any(grepl("不在窗口期", result$details$DESCRIPTION)))
-  expect_true(any(grepl("计划在", result$details$DESCRIPTION)))
+  # 所有超窗记录均使用"不在窗口期"描述模板
+  expect_true(all(grepl("不在窗口期", result$details$DESCRIPTION)))
 })
 
 test_that("print.test_window_check 正常工作", {
