@@ -105,7 +105,10 @@ parse_testwp_cell <- function(cell_value) {
 #' \code{\link{read_visitcode_file}} (\code{±3d}, \code{≤24h}, \code{+3d}, etc.).
 #' \code{0} inside parentheses means the test must be performed on the anchor day.
 #'
-#' Examples: \code{RD(-7d)}, \code{RD(0)}, \code{EX(≤24h)}, \code{FD(±3d)}, \code{SV(±3d)}.
+#' Examples: \code{RD(-7d)}, \code{RD(0)}, \code{EX(≤24h)}, \code{FD(±3d)}, \code{SV(±3d)},
+#' \code{EX(PREV)}, \code{SV(prev-d)} (before the anchor, day-level, inclusive,
+#' no lower bound), \code{EX(prev-h)} (before the anchor, hour-level, inclusive,
+#' no lower bound).
 #'
 #' @param file_path Character. File path (`.xlsx` or `.xls`).
 #' @param sheet_name Character. Excel sheet name (default: `"Sheet1"`).

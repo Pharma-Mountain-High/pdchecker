@@ -50,6 +50,31 @@ test_that("parse_testwp_cell parses RD, SV, EX, FD rules", {
   expect_equal(fd_zero$wpvalue, 0)
 })
 
+test_that("parse_testwp_cell parses PREV rules", {
+  ex <- pdchecker:::parse_testwp_cell("EX(PREV)")
+  expect_equal(ex$ref, "EX")
+  expect_equal(ex$wp, "PREV")
+  expect_equal(ex$type, "PREV")
+  expect_true(is.na(ex$wpvalue))
+  expect_equal(ex$wp_unit, "d")
+
+  sv <- pdchecker:::parse_testwp_cell("SV(prev)")
+  expect_equal(sv$ref, "SV")
+  expect_equal(sv$type, "PREV")
+  expect_true(is.na(sv$wpvalue))
+  expect_equal(sv$wp_unit, "d")
+
+  prev_d <- pdchecker:::parse_testwp_cell("EX(prev-d)")
+  expect_equal(prev_d$ref, "EX")
+  expect_equal(prev_d$type, "PREV")
+  expect_equal(prev_d$wp_unit, "d")
+
+  prev_h <- pdchecker:::parse_testwp_cell("EX(prev-h)")
+  expect_equal(prev_h$ref, "EX")
+  expect_equal(prev_h$type, "PREV")
+  expect_equal(prev_h$wp_unit, "h")
+})
+
 test_that("parse_testwp_cell returns NULL for empty cells", {
   expect_null(pdchecker:::parse_testwp_cell(NA))
   expect_null(pdchecker:::parse_testwp_cell(""))

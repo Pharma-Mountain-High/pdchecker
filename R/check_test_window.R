@@ -101,7 +101,7 @@
 #'
 #' @family test checks
 #'
-#' @importFrom dplyr filter select mutate group_by summarise first arrange bind_rows
+#' @importFrom dplyr filter select mutate group_by summarise first arrange bind_rows case_when
 #' @importFrom rlang .data
 #' @importFrom magrittr %>%
 #' @export
@@ -151,8 +151,7 @@ check_test_window <- function(data,
     ) %>%
     filter(
       !is.na(.data$test_date) &
-        !is.na(.data$window_start) &
-        !is.na(.data$window_end)
+        !(is.na(.data$window_start) & is.na(.data$window_end))
     )
 
   if (nrow(checked) == 0) {
@@ -203,8 +202,10 @@ check_test_window <- function(data,
       ) %>%
       summarise(
         in_window = any(
-          .data$test_date >= first(.data$window_start) &
-            .data$test_date <= first(.data$window_end)
+          (is.na(first(.data$window_start)) |
+            .data$test_date >= first(.data$window_start)) &
+            (is.na(first(.data$window_end)) |
+              .data$test_date <= first(.data$window_end))
         ),
         test_date = .data$test_date[
           which.min(abs(as.numeric(.data$test_date - first(.data$anchor_date))))
@@ -236,8 +237,10 @@ check_test_window <- function(data,
         ) %>%
         summarise(
           in_window = any(
-            .data$test_date >= first(.data$window_start) &
-              .data$test_date <= first(.data$window_end)
+            (is.na(first(.data$window_start)) |
+              .data$test_date >= first(.data$window_start)) &
+              (is.na(first(.data$window_end)) |
+                .data$test_date <= first(.data$window_end))
           ),
           test_date = .data$test_date[
             which.min(abs(as.numeric(.data$test_date - first(.data$anchor_date))))
@@ -253,8 +256,7 @@ check_test_window <- function(data,
     } else {
       hour_rows <- hour_rows %>%
         filter(
-          !is.na(.data$window_start_dt) &
-            !is.na(.data$window_end_dt) &
+          !(is.na(.data$window_start_dt) & is.na(.data$window_end_dt)) &
             !is.na(.data$test_datetime)
         )
 
@@ -269,8 +271,10 @@ check_test_window <- function(data,
           ) %>%
           summarise(
             in_window = any(
-              .data$test_datetime >= first(.data$window_start_dt) &
-                .data$test_datetime <= first(.data$window_end_dt)
+              (is.na(first(.data$window_start_dt)) |
+                .data$test_datetime >= first(.data$window_start_dt)) &
+                (is.na(first(.data$window_end_dt)) |
+                  .data$test_datetime <= first(.data$window_end_dt))
             ),
             best_i = which.min(abs(as.numeric(
               difftime(.data$test_datetime, first(.data$anchor_datetime), units = "secs")
@@ -317,13 +321,24 @@ check_test_window <- function(data,
         .data$wp_unit == "h" & !is.na(.data$test_datetime) & !is.na(.data$anchor_datetime),
         as.numeric(difftime(.data$test_datetime, .data$anchor_datetime, units = "hours")),
         NA_real_
-      ),
-      DESCRIPTION = ifelse(
-        .data$wp_unit == "h",
-        sprintf(
-          paste0(
-            "受试者编号%s，在访视%s，检查项[%s]（检查时间:%s），锚点为%s(%s)，不在窗口期(%s至%s)范围内。"
-          ),
+      )
+    ) %>%
+    mutate(
+      DESCRIPTION = case_when(
+        grepl("^prev", .data$wp, ignore.case = TRUE) & .data$wp_unit == "h" ~ sprintf(
+          "受试者编号%s，在访视%s，检查项[%s]（检查时间:%s），锚点为%s(%s)，不在锚点时间之前。",
+          .data$SUBJID, .data$VISIT, .data$TESTCAT,
+          format(.data$test_datetime, "%Y-%m-%d %H:%M"),
+          ref_labels[.data$ref],
+          format(.data$anchor_datetime, "%Y-%m-%d %H:%M")
+        ),
+        grepl("^prev", .data$wp, ignore.case = TRUE) ~ sprintf(
+          "受试者编号%s，在访视%s，检查项[%s]（检查日期:%s），锚点为%s(%s)，不在锚点日期之前。",
+          .data$SUBJID, .data$VISIT, .data$TESTCAT, .data$test_date,
+          ref_labels[.data$ref], format(.data$anchor_date, "%Y-%m-%d")
+        ),
+        .data$wp_unit == "h" ~ sprintf(
+          "受试者编号%s，在访视%s，检查项[%s]（检查时间:%s），锚点为%s(%s)，不在窗口期(%s至%s)范围内。",
           .data$SUBJID, .data$VISIT, .data$TESTCAT,
           format(.data$test_datetime, "%Y-%m-%d %H:%M"),
           ref_labels[.data$ref],
@@ -331,10 +346,8 @@ check_test_window <- function(data,
           format(.data$window_start_dt, "%Y-%m-%d %H:%M"),
           format(.data$window_end_dt, "%Y-%m-%d %H:%M")
         ),
-        sprintf(
-          paste0(
-            "受试者编号%s，在访视%s，检查项[%s]（检查日期:%s），锚点为%s(%s)，不在窗口期(%s至%s)范围内。"
-          ),
+        TRUE ~ sprintf(
+          "受试者编号%s，在访视%s，检查项[%s]（检查日期:%s），锚点为%s(%s)，不在窗口期(%s至%s)范围内。",
           .data$SUBJID, .data$VISIT, .data$TESTCAT, .data$test_date,
           ref_labels[.data$ref], format(.data$anchor_date, "%Y-%m-%d"),
           format(.data$window_start, "%Y-%m-%d"),

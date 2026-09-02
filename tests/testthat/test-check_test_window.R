@@ -139,6 +139,58 @@ test_that("check_test_window 窗口边界值在窗内", {
   expect_true(check_test_window(data)$has_deviation)
 })
 
+test_that("check_test_window 识别 PREV 无下界窗口", {
+  data <- create_test_window_dates()
+  data <- data[data$SUBJID == "001" & data$VISITNUM == 1 & data$TESTCAT == "血生化", ]
+  data$wp_rule <- "SV(PREV)"
+  data$ref <- "SV"
+  data$wp <- "PREV"
+  data$type <- "PREV"
+  data$window_start <- as.Date(NA)
+  data$window_end <- as.Date("2024-01-10")
+  data$anchor_date <- as.Date("2024-01-10")
+
+  # 早于锚点（含当天）均合规
+  data$TESTDAT <- as.Date("2024-01-05")
+  expect_false(check_test_window(data)$has_deviation)
+
+  data$TESTDAT <- as.Date("2024-01-10")  # 含当天
+  expect_false(check_test_window(data)$has_deviation)
+
+  # 晚于锚点则超窗
+  data$TESTDAT <- as.Date("2024-01-11")
+  result <- check_test_window(data)
+  expect_true(result$has_deviation)
+  expect_equal(result$details$deviation_days, 1)
+  expect_true(grepl("不在锚点日期之前", result$details$DESCRIPTION))
+})
+
+test_that("check_test_window 识别小时级 PREV 无下界窗口", {
+  data <- data.frame(
+    SUBJID = "001", VISIT = "V1", VISITNUM = 1,
+    SVDAT = as.Date("2024-02-01"), TBNAME = "LB", TESTCAT = "血常规",
+    TESTDAT = as.Date("2024-02-01"), TESTTIM = "09:00",
+    cyc_dose_date = as.Date("2024-02-01"), cyc_dose_time = "10:00",
+    wp_rule = "EX(prev-h)", ref = "EX", wp = "prev-h",
+    type = "PREV", wpvalue = NA, wp_unit = "h",
+    stringsAsFactors = FALSE
+  )
+  res <- generate_test_window_dates(data)
+
+  # 早于锚点时间（含同时刻）均合规
+  res$TESTDAT <- as.Date("2024-02-01")
+  res$TESTTIM <- "09:00"
+  expect_false(check_test_window(res)$has_deviation)
+
+  # 晚于锚点时间则超窗
+  res$TESTDAT <- as.Date("2024-02-01")
+  res$TESTTIM <- "11:00"
+  result <- check_test_window(res)
+  expect_true(result$has_deviation)
+  expect_equal(result$details$deviation_hours, 1)
+  expect_true(grepl("不在锚点时间之前", result$details$DESCRIPTION))
+})
+
 test_that("check_test_window 同一检查多条记录时任一在窗内即合规", {
   data <- create_test_window_dates()
   data <- data[data$SUBJID == "001" & data$TESTCAT == "血生化" & data$VISITNUM == 1, ]

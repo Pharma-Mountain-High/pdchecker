@@ -45,6 +45,10 @@ parse_hours_from_wp <- function(wp) {
       return(NA_real_)
     }
     x <- trimws(as.character(x))
+    # PREV has no numeric hours (no lower bound); return NA quietly
+    if (grepl("^prev(-[dh])?$", x, ignore.case = TRUE)) {
+      return(NA_real_)
+    }
     x <- gsub("^±|^(≤|<=)|^(≥|>=)|^\\+|-", "", x, perl = TRUE)
     x <- gsub("小时|[hH]", "", x)
     as.numeric(trimws(x))
@@ -103,6 +107,9 @@ parse_hours_from_wp <- function(wp) {
 #' - \code{±}: anchor - wpvalue to anchor + wpvalue
 #' - \code{+} / \code{≥}: anchor to anchor + wpvalue
 #' - \code{-} / \code{≤}: anchor - wpvalue to anchor
+#' - \code{PREV}: before the anchor (inclusive), no lower bound —
+#'   \code{window_start} is \code{NA} and only \code{window_end} is set.
+#'   \code{prev-d} forces day-level, \code{prev-h} forces hour-level comparison.
 #'
 #' When the rule uses hour units (\code{h}/\code{H}/\code{小时}, see \code{wp_unit}),
 #' windows are computed on POSIXct datetimes (date + time; missing time = 00:00:00)
@@ -338,6 +345,7 @@ generate_test_window_dates <- function(data) {
     is_p <- type_d %in% c("+", "≥")
     is_pm_end <- type_d %in% c("±", "+", "≥")
     is_m_end <- type_d %in% c("-", "≤")
+    is_prev <- type_d == "PREV"
 
     start_d[is0] <- anchor_d[is0]
     end_d[is0] <- anchor_d[is0]
@@ -345,6 +353,8 @@ generate_test_window_dates <- function(data) {
     start_d[is_p] <- anchor_d[is_p]
     end_d[is_pm_end] <- anchor_d[is_pm_end] + val_d[is_pm_end]
     end_d[is_m_end] <- anchor_d[is_m_end]
+    # PREV: before anchor (inclusive of anchor day), no lower bound
+    end_d[is_prev] <- anchor_d[is_prev]
 
     result$window_start[day_idx] <- start_d
     result$window_end[day_idx] <- end_d
@@ -372,6 +382,7 @@ generate_test_window_dates <- function(data) {
     is_p <- type_h %in% c("+", "≥")
     is_pm_end <- type_h %in% c("±", "+", "≥")
     is_m_end <- type_h %in% c("-", "≤")
+    is_prev <- type_h == "PREV"
 
     start_dt[is0] <- anchor_dt[is0]
     end_dt[is0] <- anchor_dt[is0]
@@ -379,6 +390,8 @@ generate_test_window_dates <- function(data) {
     start_dt[is_p] <- anchor_dt[is_p]
     end_dt[is_pm_end] <- anchor_dt[is_pm_end] + delta[is_pm_end]
     end_dt[is_m_end] <- anchor_dt[is_m_end]
+    # PREV: before anchor (inclusive), no lower bound
+    end_dt[is_prev] <- anchor_dt[is_prev]
 
     result$window_start_dt[hour_idx] <- start_dt
     result$window_end_dt[hour_idx] <- end_dt
@@ -387,8 +400,10 @@ generate_test_window_dates <- function(data) {
     result$window_end[hour_idx] <- as.Date(end_dt)
   }
 
-  # Rules whose type/wpvalue cannot produce a window (e.g. range/other)
+  # Rules whose type/wpvalue cannot produce a window (e.g. range/other).
+  # PREV intentionally leaves window_start NA (no lower bound), so it is exempt.
   unsupported <- result$window_status == "ok" &
+    (is.na(result$type) | result$type != "PREV") &
     (is.na(result$window_start) | is.na(result$window_end))
   result$window_status[unsupported] <- "unsupported_rule"
 

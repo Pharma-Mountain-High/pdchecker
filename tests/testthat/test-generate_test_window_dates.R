@@ -188,6 +188,50 @@ test_that("缺少 first_dose_date 列时 FD 行标记 no_anchor_data 并警告",
   expect_equal(result$window_status, "no_anchor_data")
 })
 
+test_that("PREV 规则推导无下界窗口（含当天）", {
+  data <- create_testwp_prepared_data()
+  data <- data[data$SUBJID == "001" & data$VISITNUM == 1, ][1, ]
+  data$wp_rule <- "SV(PREV)"
+  data$ref <- "SV"
+  data$wp <- "PREV"
+  data$type <- "PREV"
+  data$wpvalue <- NA
+  data$SVDAT <- as.Date("2024-01-10")
+
+  result <- generate_test_window_dates(data)
+
+  expect_equal(result$window_status, "ok")
+  expect_equal(result$anchor_date, as.Date("2024-01-10"))
+  expect_true(is.na(result$window_start))
+  expect_equal(result$window_end, as.Date("2024-01-10"))
+})
+
+test_that("小时级 PREV 规则推导无下界窗口", {
+  data <- create_testwp_prepared_data()
+  data <- data[data$SUBJID == "001" & data$VISITNUM == 1, ][1, ]
+  data$wp_rule <- "EX(prev-h)"
+  data$ref <- "EX"
+  data$wp <- "prev-h"
+  data$type <- "PREV"
+  data$wpvalue <- NA
+  data$wp_unit <- "h"
+  data$cyc_dose_date <- as.Date("2024-02-01")
+  data$cyc_dose_time <- "10:00"
+
+  result <- generate_test_window_dates(data)
+
+  expect_equal(result$window_status, "ok")
+  expect_equal(
+    format(result$anchor_datetime, tz = "UTC"),
+    "2024-02-01 10:00:00"
+  )
+  expect_true(is.na(result$window_start_dt))
+  expect_equal(
+    format(result$window_end_dt, tz = "UTC"),
+    "2024-02-01 10:00:00"
+  )
+})
+
 test_that("锚点日期缺失的行标记 missing_anchor_date", {
   data <- create_testwp_prepared_data()
   # 002 没有随机日期

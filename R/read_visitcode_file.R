@@ -1,79 +1,3 @@
-#' Parse Time Unit String to Days
-#'
-#' @description
-#' Convert time unit string to number of days.
-#' Supports hours (h), days (d), and weeks (w).
-#'
-#' @param value_str Time value string (e.g., "3d", "24h", "2w")
-#' @return Numeric value in days
-#' @noRd
-parse_time_unit <- function(value_str) {
-  value_str <- trimws(as.character(value_str))
-  if (grepl("h$|小时$", value_str, ignore.case = TRUE)) {
-    # Hours to days
-    num <- as.numeric(gsub("h$|小时$", "", value_str, ignore.case = TRUE))
-    return(num / 24)
-  } else if (grepl("w$|周$", value_str, ignore.case = TRUE)) {
-    # Weeks to days
-    num <- as.numeric(gsub("w$|周$", "", value_str, ignore.case = TRUE))
-    return(num * 7)
-  } else if (grepl("d$|天$|日$", value_str, ignore.case = TRUE)) {
-    # Days
-    num <- as.numeric(gsub("d$|天$|日$", "", value_str, ignore.case = TRUE))
-    return(num)
-  } else {
-    # Default: treat as days
-    return(as.numeric(value_str))
-  }
-}
-
-#' Parse Visit Window Period String
-#'
-#' @param window_str Window period string (e.g., "+/-3d", "<=24h", "+2d", "-1d")
-#' @return List containing window type and value
-#' @noRd
-parse_window_period <- function(window_str) {
-  # Handle missing values
-  if (is.na(window_str) || window_str == "" || is.null(window_str)) {
-    return(list(type = NA, value = NA))
-  }
-
-  # Convert to string and trim whitespace
-  window_str <- trimws(as.character(window_str))
-
-  # Define window type pattern table: pattern, type, gsub_pattern
-  window_patterns <- list(
-    list(pattern = "^±", type = "±", gsub_pattern = "^±"),
-    list(pattern = "^(≤|<=)", type = "≤", gsub_pattern = "^(≤|<=)"),
-    list(pattern = "^(≥|>=)", type = "≥", gsub_pattern = "^(≥|>=)"),
-    list(pattern = "^\\+", type = "+", gsub_pattern = "^\\+"),
-    list(pattern = "^-(?!.*(到|至))", type = "-", gsub_pattern = "^-")
-  )
-
-  # Iterate through pattern table for matching
-  for (wp in window_patterns) {
-    if (grepl(wp$pattern, window_str, perl = TRUE)) {
-      value_part <- gsub(wp$gsub_pattern, "", window_str)
-      value <- parse_time_unit(value_part)
-      return(list(type = wp$type, value = value))
-    }
-  }
-
-  # Range type (e.g., -2到+4, 1至3天)
-  if (grepl("到|至", window_str)) {
-    return(list(type = "范围", value = window_str))
-  }
-
-  # Numeric without prefix (e.g., 2d) -> default to +
-  if (grepl("^[0-9]", window_str)) {
-    value <- parse_time_unit(window_str)
-    return(list(type = "+", value = value))
-  }
-
-  # Other formats
-  return(list(type = "其他", value = window_str))
-}
-
 #' Read Visit Schedule Data and Parse Window Periods
 #'
 #' @description
@@ -89,6 +13,10 @@ parse_window_period <- function(window_str) {
 #' - "-1d" -> type: -, value: 1
 #' - "1w" -> type: +, value: 7 (1 week = 7 days)
 #' - "+/-2w" -> type: +/-, value: 14 (2 weeks = 14 days)
+#' - "PREV" / "prev-d" -> type: PREV, value: NA (before anchor, day-level,
+#'   inclusive, no lower bound)
+#' - "prev-h" -> type: PREV, value: NA (before anchor, hour-level, inclusive,
+#'   no lower bound)
 #'
 #' @details
 #' ## Window Period Column
