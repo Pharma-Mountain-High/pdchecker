@@ -79,6 +79,9 @@ The window range is derived from the anchor with \code{type}/\code{wpvalue}:
 \item \code{±}: anchor - wpvalue to anchor + wpvalue
 \item \code{+} / \code{≥}: anchor to anchor + wpvalue
 \item \code{-} / \code{≤}: anchor - wpvalue to anchor
+\item \code{PREV}: before the anchor (inclusive), no lower bound —
+\code{window_start} is \code{NA} and only \code{window_end} is set.
+\code{prev-d} forces day-level, \code{prev-h} forces hour-level comparison.
 }
 
 When the rule uses hour units (\code{h}/\code{H}/\code{小时}, see \code{wp_unit}),

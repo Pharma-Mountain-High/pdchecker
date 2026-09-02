@@ -37,6 +37,10 @@ Supported window period format examples:
 \item "-1d" -> type: -, value: 1
 \item "1w" -> type: +, value: 7 (1 week = 7 days)
 \item "+/-2w" -> type: +/-, value: 14 (2 weeks = 14 days)
+\item "PREV" / "prev-d" -> type: PREV, value: NA (before anchor, day-level,
+inclusive, no lower bound)
+\item "prev-h" -> type: PREV, value: NA (before anchor, hour-level, inclusive,
+no lower bound)
 }
 }
 \details{
