@@ -19,6 +19,7 @@ config
 cre
 csv
 cutoffdt
+cyc
 CYCDAY
 dataLayer
 datetime
@@ -30,6 +31,7 @@ dplyr
 dropdown
 DS
 DSDAT
+DSRAND
 eCRF
 EDC
 ee
@@ -104,8 +106,11 @@ PDNO
 Pharma
 pharmaverse
 Pharmaverse
+POSIXct
 Pre
 pre
+PREV
+prev
 RANDDT
 Rawdata
 RBC

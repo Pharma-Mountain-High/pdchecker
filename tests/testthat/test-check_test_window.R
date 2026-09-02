@@ -154,7 +154,7 @@ test_that("check_test_window 识别 PREV 无下界窗口", {
   data$TESTDAT <- as.Date("2024-01-05")
   expect_false(check_test_window(data)$has_deviation)
 
-  data$TESTDAT <- as.Date("2024-01-10")  # 含当天
+  data$TESTDAT <- as.Date("2024-01-10")
   expect_false(check_test_window(data)$has_deviation)
 
   # 晚于锚点则超窗

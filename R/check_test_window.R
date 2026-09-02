@@ -202,10 +202,8 @@ check_test_window <- function(data,
       ) %>%
       summarise(
         in_window = any(
-          (is.na(first(.data$window_start)) |
-             .data$test_date >= first(.data$window_start)) &
-            (is.na(first(.data$window_end)) |
-               .data$test_date <= first(.data$window_end))
+          (is.na(first(.data$window_start)) | .data$test_date >= first(.data$window_start)) &
+            (is.na(first(.data$window_end)) | .data$test_date <= first(.data$window_end))
         ),
         test_date = .data$test_date[
           which.min(abs(as.numeric(.data$test_date - first(.data$anchor_date))))
@@ -237,10 +235,8 @@ check_test_window <- function(data,
         ) %>%
         summarise(
           in_window = any(
-            (is.na(first(.data$window_start)) |
-               .data$test_date >= first(.data$window_start)) &
-              (is.na(first(.data$window_end)) |
-                 .data$test_date <= first(.data$window_end))
+            (is.na(first(.data$window_start)) | .data$test_date >= first(.data$window_start)) &
+              (is.na(first(.data$window_end)) | .data$test_date <= first(.data$window_end))
           ),
           test_date = .data$test_date[
             which.min(abs(as.numeric(.data$test_date - first(.data$anchor_date))))
@@ -271,10 +267,8 @@ check_test_window <- function(data,
           ) %>%
           summarise(
             in_window = any(
-              (is.na(first(.data$window_start_dt)) |
-                 .data$test_datetime >= first(.data$window_start_dt)) &
-                (is.na(first(.data$window_end_dt)) |
-                   .data$test_datetime <= first(.data$window_end_dt))
+              (is.na(first(.data$window_start_dt)) | .data$test_datetime >= first(.data$window_start_dt)) &
+                (is.na(first(.data$window_end_dt)) | .data$test_datetime <= first(.data$window_end_dt))
             ),
             best_i = which.min(abs(as.numeric(
               difftime(.data$test_datetime, first(.data$anchor_datetime), units = "secs")

@@ -547,8 +547,7 @@ parse_als_with_ai <- function(als_file,
   tbname <- trimws(as.character(tbname))
 
   form_label <- form
-  if (!grepl("[\\(（]", form_label, perl = TRUE) &&
-        grepl("[\\(（]", testcat_raw, perl = TRUE)) {
+  if (!grepl("[\\(（]", form_label, perl = TRUE) && grepl("[\\(（]", testcat_raw, perl = TRUE)) {
     form_label <- testcat_raw
   }
   if (!nzchar(form_label)) {
