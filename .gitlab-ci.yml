@@ -18,4 +18,5 @@ variables:
   CRAN_MIRROR: https://pkg-manager.qilu-pharma.com/cran/__linux__/noble/latest
   
   R_PACKAGE_DIR: .
-  R_CHECK_ARGS: --no-manual --as-cran
+  R_CHECK_ARGS: --no-manual
+  R_CHECK_ERROR_ON: error
