@@ -23,7 +23,8 @@ Imports:
     readr,
     readxl,
     rlang,
-    tibble
+    tibble,
+    writexl
 Suggests:
     httr2,
     jsonlite,
@@ -32,8 +33,7 @@ Suggests:
     rmarkdown,
     rstudioapi,
     testthat (>= 3.0.0),
-    withr,
-    writexl
+    withr
 VignetteBuilder:
     knitr
 Config/testthat/edition: 3
