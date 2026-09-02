@@ -27,9 +27,9 @@ test_that("parse_testwp_cell parses RD, SV, EX, FD rules", {
   expect_equal(ex$wpvalue, 24)
   expect_equal(ex$wp_unit, "h")
 
-  ex_H <- pdchecker:::parse_testwp_cell("EX(≤24H)")
-  expect_equal(ex_H$wpvalue, 24)
-  expect_equal(ex_H$wp_unit, "h")
+  ex_h <- pdchecker:::parse_testwp_cell("EX(≤24H)")
+  expect_equal(ex_h$wpvalue, 24)
+  expect_equal(ex_h$wp_unit, "h")
 
   fd <- pdchecker:::parse_testwp_cell("FD(±3d)")
   expect_equal(fd$ref, "FD")

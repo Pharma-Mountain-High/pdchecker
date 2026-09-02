@@ -22,7 +22,8 @@
 #'       \item{PDNO}{Protocol deviation number specified by \code{pdno} parameter.}
 #'       \item{SUBJID}{Subject IDs who have screening visits but no informed consent date.}
 #'       \item{VISIT}{Visit name from the visit dataset.}
-#'       \item{TBNAME}{Table name from the variable specified by \code{tb_name_var}, empty if \code{tb_name_var} is NULL.}
+#'       \item{TBNAME}{Table name from the variable specified by
+#'         \code{tb_name_var}, empty if \code{tb_name_var} is NULL.}
 #'       \item{DESCRIPTION}{Description of the deviation for each subject.}
 #'     }
 #'     Returns empty data frame with these columns if no deviations found.}

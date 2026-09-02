@@ -84,7 +84,8 @@
 #'     \item{last_dose_date}{Date. Subject's last dose date}
 #'     \item{eot_date}{Date. Subject's end of treatment date}
 #'     \item{eos_date}{Date. Subject's end of study date}
-#'     \item{TBNAME}{Character. Table name from the variable specified by \code{tb_name_var}, empty if \code{tb_name_var} is NULL}
+#'     \item{TBNAME}{Character. Table name from the variable specified by
+#'       \code{tb_name_var}, empty if \code{tb_name_var} is NULL}
 #'   }
 #'
 #' @examples

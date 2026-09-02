@@ -22,7 +22,8 @@
 #'         \item event_datetime: Date when the event occurred
 #'         \item icf_datetime: Date when informed consent was obtained
 #'         \item diff_date: Numeric. Difference in days (negative values indicate event occurred before IC)
-#'         \item TBNAME: Table name from the variable specified by \code{tb_name_var}, empty if \code{tb_name_var} is NULL
+#'         \item TBNAME: Table name from the variable specified by
+#'           \code{tb_name_var}, empty if \code{tb_name_var} is NULL
 #'         \item DESCRIPTION: Description of the deviation for each record
 #'       }
 #'     }
