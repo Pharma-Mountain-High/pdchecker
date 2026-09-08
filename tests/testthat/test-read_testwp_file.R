@@ -4,8 +4,7 @@ create_temp_testwp_excel <- function(data_matrix, filename, dir = NULL) {
   if (is.null(dir)) dir <- withr::local_tempdir(.local_envir = parent.frame())
   temp_file <- file.path(dir, filename)
   df <- as.data.frame(data_matrix, stringsAsFactors = FALSE)
-  colnames(df) <- NULL
-  writexl::write_xlsx(list(Sheet1 = df), temp_file)
+  writexl::write_xlsx(list(Sheet1 = df), temp_file, col_names = FALSE)
   temp_file
 }
 
