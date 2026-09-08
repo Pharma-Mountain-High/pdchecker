@@ -18,7 +18,7 @@ vignette: >
 
 - **知情同意类检查**：检测 ICF 签署前操作、未签署知情同意等问题
 - **访视合规类检查**：检测遗漏访视、访视超窗等问题
-- **检查项缺失类检查**：检测实验室检查、体征检查等缺失情况
+- **检查项合规类检查**：检测检查项缺失、检查项超窗等问题
 - **报告生成**：将检查结果导出为 Excel 格式报告
 
 ## 2. 准备工作
@@ -233,7 +233,65 @@ testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
 
 ---
 
-### 2.5 set_pdchecker_options() / get_pdchecker_options() — 全局选项配置
+### 2.5 read_testwp_file() — 读取检查项窗口配置文件
+
+读取检查项窗口配置文件，定义每个检查类别在每个访视的**窗口规则**，供检查项超窗检查（`check_test_window()`）使用。与 `read_testconfig_file()` 不同，该函数读取的文件采用**矩阵布局**。
+
+> **与 `read_testconfig_file()` 的区别**：两者都定义了「检查类别 × 访视」的对应关系，`prepare_test_data()` 的 `config` 参数二者皆可接受。主要差别是——
+>
+> - `read_testconfig_file()`：列表式布局，输出 `TESTCAT` + `VISITNUM`，只能检查项缺失；
+> - `read_testwp_file()`：矩阵式布局，在检查类别 × 访视基础上额外写入**窗口规则**，输出还包含 `wp_rule/ref/wp/type/wpvalue/wp_unit`，因此既能检查项缺失，也能检查项超窗。
+>
+> 详见 [7 章开头关于 `config` 的说明](#7-检查项合规类检查)及 [7.2 节](#72-check_test_window--检查项超窗)。
+
+**参数：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `file_path` | 字符串 | （必填） | 文件路径（`.xlsx`/`.xls`） |
+| `sheet_name` | 字符串 | `"Sheet1"` | Excel 工作表名 |
+| `visitcode` | 数据框 | `NULL` | `read_visitcode_file()` 的返回值，用于关联 VISIT 列 |
+
+**返回值：** 数据框，包含 TESTCAT、VISITNUM、VISIT、wp_rule、ref、wp、type、wpvalue、wp_unit。
+
+**输入文件格式要求（矩阵布局）：**
+
+第 1 行是表头（第 1 列 `VISIT`、第 2 列 `VISITNUM`，其余列为 `TESTCAT`），之后每行一个访视。非空单元格表示该检查项在该访视需要执行，且单元格内填写窗口规则。
+
+非空单元格的窗口规则格式为 **`REF(WP)`**，其中 `REF` 指定锚点，`WP` 指定窗口范围：
+
+| REF | 锚点日期 |
+|-----|----------|
+| RD | 随机化日期 |
+| SV | 该访视的实际访视日期 |
+| EX | 该访视的实际给药日期 |
+| FD | 首次给药日期 |
+
+`WP` 语法与访视计划的 `WP` 列一致（`±3d`、`≤24h`、`+3d` 等）；括号内为 `0` 表示必须恰在锚点当天；`PREV`（或 `prev-d` / `prev-h`）表示必须在锚点之前（含锚点当天/时刻），无下界。
+
+**示例单元格：** `RD(-7d)`、`RD(0)`、`EX(≤24h)`、`FD(±3d)`、`SV(±3d)`、`EX(PREV)`、`SV(prev-d)`、`EX(prev-h)`。
+
+**示例文件（test_wp.xlsx）：**
+
+| VISIT | VISITNUM | 血常规 | 血生化 |
+|-------|----------|--------|--------|
+| C1D1 | 1 | `RD(0)` | `SV(±3d)` |
+| C1D8 | 2 | `EX(≤24h)` | `SV(±3d)` |
+| EOT | 99 | `FD(±3d)` | `SV(±3d)` |
+
+```r
+# 基本用法
+testwp <- read_testwp_file("test_wp.xlsx", sheet_name = "QL0911-302")
+
+# 传入 visitcode 以关联访视名称
+testwp <- read_testwp_file("test_wp.xlsx", sheet_name = "QL0911-302", visitcode = visitcode)
+```
+
+> **提示**：建议将结果赋值给变量名 `testwp`，后续的 `prepare_test_data()` 会将其作为 `config` 使用（同时也建议保留 `testconfig` 变量供检查项缺失使用）。完整的检查项超窗流程请参见 [7.2 节](#72-check_test_window--检查项超窗)。
+
+---
+
+### 2.6 set_pdchecker_options() / get_pdchecker_options() — 全局选项配置
 
 不同项目的数据集名称和变量名可能不同。使用 `set_pdchecker_options()` 可以在脚本开头统一设置，避免后续每个函数都重复指定参数。
 
@@ -480,7 +538,9 @@ planned_dates <- generate_planned_visit_dates(
 
 ### 4.2 prepare_test_data() — 准备检查项数据
 
-从数据列表中提取指定的检查数据集，与访视数据合并，生成标准化的数据框供 `check_missing_test()` 使用。
+从数据列表中提取指定的检查数据集，与访视数据合并，生成标准化的数据框供检查项相关检查使用。
+
+> **`config` 参数说明**：`config` 既可以传 `read_testconfig_file()` 的输出，也可以传 `read_testwp_file()` 的输出（详见 [7 章开头](#7-检查项合规类检查)）。两者的功能关系是**后者包含前者**——用 `read_testwp_file()` 的输出作 `config` 时，`prepare_test_data()` 生成的窗口规则列会被保留下来，既能判断检查项缺失，也能进一步判断检查项超窗；而 `read_testconfig_file()` 的输出不包含窗口规则列，只能判断检查项缺失。两者唯一需要保证不同之处是**外部配置文件格式**（列表式 vs 矩阵式）。
 
 **参数：**
 
@@ -752,11 +812,20 @@ if (result$has_deviation) {
 
 ---
 
-## 7. 检查项缺失类检查
+## 7. 检查项合规类检查
 
-检查项缺失类检查用于发现受试者在已完成的访视中，是否遗漏了方案规定的检查项目。
+检查项合规类检查用于发现受试者在已完成访视中，是否遗漏了方案规定的检查项目，或检查日期（时间）是否超出了方案规定的窗口期。
 
 > **前置条件**：需要先调用 `prepare_test_data()` 准备检查数据，详见 [4.2 节](#42-prepare_test_data--准备检查项数据)。
+>
+> **`prepare_test_data()` 的 `config` 说明**：`config` 既可以传 `read_testconfig_file()` 的输出，也可以传 `read_testwp_file()` 的输出（见 [7.2 节](#72-check_test_window--检查项超窗)）。两者的关系是**后者的功能包含前者**：
+>
+> | config 来源 | 检查项缺失（`check_missing_test()`） | 检查项超窗（`check_test_window()`） | 外部配置文件格式 |
+> |-------------|:----:|:----:|------|
+> | `read_testconfig_file()` | ✅ | ❌（不衍生窗口期） | 列表式（`TESTCAT` + `VISITNUM` 逗号分隔） |
+> | `read_testwp_file()` | ✅ | ✅ | 矩阵式（每访视一行 × 每检查类别一列，单元格填 `REF(WP)`） |
+>
+> 用 `testwp` 作为 `config` 时，`prepare_test_data()` 的输出既能判断检查项缺失，也能在此基础上进一步判断检查项超窗；两者唯一差别在于**准备的外部配置文件格式不同**。
 
 ### 7.1 check_missing_test() — 检查项缺失
 
@@ -831,6 +900,127 @@ result_eg <- check_missing_test(data = prepared_eg)
 # 合并所有检查数据一起进行检查
 test_data <- bind_rows(prepared_lb, prepared_vs, prepared_eg)
 result <- check_missing_test(data = test_data)
+```
+
+---
+
+### 7.2 check_test_window() — 检查项超窗
+
+对已完成并实际执行的检查，检查其实际检查日期（或时间）是否落在方案规定的窗口期内。与访视超窗不同，检查项超窗的窗口针对的是**具体检查项**，且可以锚定到随机日期（RD）、实际访视日期（SV）、实际给药日期（EX）或首次给药日期（FD）之一。
+
+> **前置条件**：检查项超窗需要专门准备窗口配置，调用链路与检查项缺失不同，完整流程如下：
+>
+> ```r
+> # Step 1: 读取检查项窗口配置（read_testwp_file，区别于 read_testconfig_file）
+> testwp <- read_testwp_file("test_wp.xlsx", sheet_name = "QL0911-302")
+>
+> # Step 2: 用 testwp 作为 config 准备检查数据
+> prepared_lb <- prepare_test_data(
+>   data = data, test_dataset = "LB", config = testwp,
+>   ex_time_var = "EXSTTIM", test_time_var = "LBTIM"
+> )
+>
+> # Step 3: 生成锚点日期与窗口范围
+> testwp_dates <- generate_test_window_dates(prepared_lb)
+>
+> # Step 4: 检查检查项超窗
+> result <- check_test_window(testwp_dates)
+> ```
+
+#### 窗口配置格式
+
+`read_testwp_file()` 读取的检查项窗口文件采用**矩阵布局**：第 1 行是表头（第 1 列 `VISIT`、第 2 列 `VISITNUM`，其余列为 `TESTCAT`），之后每行一个访视，非空单元格表示该检查项在该访视需要执行，且单元格内填写窗口规则。
+
+窗口规则格式为 **`REF(WP)`**，其中 `REF` 指定锚点，`WP` 指定窗口范围：
+
+| REF | 锚点日期 |
+|-----|----------|
+| RD | 随机化日期 |
+| SV | 该访视的实际访视日期 |
+| EX | 该访视的实际给药日期 |
+| FD | 首次给药日期 |
+
+`WP` 语法与访视计划的 `WP` 列一致（`±3d`、`≤24h`、`+3d` 等）；括号内为 `0` 表示必须恰在锚点当天；`PREV`（或 `prev-d` / `prev-h`）表示必须在锚点之前（含锚点当天/时刻），**无下界**。
+
+示例单元格：`RD(-7d)`、`RD(0)`、`EX(≤24h)`、`FD(±3d)`、`SV(±3d)`、`EX(PREV)`、`SV(prev-d)`、`EX(prev-h)`。
+
+#### 判断规则
+
+按 **受试者 × 访视 × 检查项类别（TESTCAT）** 分组判断。同一组内存在多条检查记录时，只要**至少一条**落在窗口内即合规（用 `any(...)` 判定）；若全部在窗口外，则记一条偏离，并取**距离锚点最近**的那条记录作为明细。
+
+| 规则 | 窗口范围 | 说明 |
+|------|----------|------|
+| `0` | 恰为锚点当天 | 检查必须在锚点当天 |
+| `±` | 锚点 − wp ～ 锚点 + wp | 前后各 wp |
+| `+` / `≥` | 锚点 ～ 锚点 + wp | 仅不早于锚点 |
+| `-` / `≤` | 锚点 − wp ～ 锚点 | 仅不晚于锚点 |
+| `PREV` | 锚点之前（含锚点当天/时刻），无下界 | `window_start` 为 NA |
+
+比较按 `wp_unit` 区分：
+
+- **天级（`d`）**：比较 `TESTDAT` 与 `window_start` / `window_end`（Date）。
+- **小时级（`h`，如 `EX(≤24h)`）**：将 `TESTDAT` + `TESTTIM` 合并为日期时间，与 `window_start_dt` / `window_end_dt`（POSIXct）比较；时间缺省按 `00:00:00`。小时级规则需要 `prepare_test_data()` 同时传入 `ex_time_var` 与 `test_time_var`。
+
+> **注意**：以下情况不判为超窗——
+> - `TESTDAT` 缺失：归 `check_missing_test()` 处理；
+> - 窗口无法推导（`window_status` 为 `no_rule` / `no_anchor_data` / `missing_anchor_date` / `unsupported_rule`），这些行会被跳过。
+
+**参数：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `data` | 数据框 | （必填） | `generate_test_window_dates()` 的返回值 |
+| `pdno` | 字符串 | `"8.4.2"` | 方案偏离编号 |
+
+```r
+# 基本用法
+result <- check_test_window(testwp_dates)
+print(result)
+
+# 自定义偏离编号
+result <- check_test_window(testwp_dates, pdno = "8.4.9")
+
+# 查看偏离明细
+if (result$has_deviation) {
+  print(result$details)
+  # details 包含：PDNO, SUBJID, VISIT, VISITNUM, TESTCAT, wp_rule, ref,
+  #               wp_unit, anchor_date, test_date, window_start, window_end,
+  #               deviation_days, deviation_hours, TBNAME, DESCRIPTION
+}
+```
+
+**`deviation_days` 与 `deviation_hours` 的取值：**
+
+- 天级规则：`deviation_days` = 检查日期 − 锚点日期（正值表示晚于锚点，负值表示早于锚点）；`deviation_hours` 为 NA。
+- 小时级规则：`deviation_hours` = 检查时间 − 锚点时间（小时）；`deviation_days` 为 NA。
+
+**完整流程示例：**
+
+```r
+# 读取检查项窗口配置（矩阵布局），并关联访视名称
+testwp <- read_testwp_file(
+  "inst/extdata/example_test_wp.xlsx",
+  sheet_name = "QL0911-302",
+  visitcode = visitcode
+)
+
+# 用 testwp 作为 config 准备检查数据
+prepared_lb <- prepare_test_data(
+  data = data,
+  test_dataset = "LB",
+  config = testwp,
+  ex_time_var = "EXSTTIM",
+  test_time_var = "LBTIM"
+)
+
+# 生成锚点日期与窗口范围
+testwp_dates <- generate_test_window_dates(prepared_lb)
+
+# 检查检查项超窗
+result <- check_test_window(testwp_dates)
+
+# 转换为标准数据框，供报告合并使用
+test_window_output <- as_check_df(result)
 ```
 
 ---
@@ -944,6 +1134,7 @@ df <- as_check_df(result, check_name = "icf_time_deviation")
 | `test_result_var` | `"ORRES"` | `prepare_test_data` |
 | `test_cat_var` | `"LBCAT"` | `prepare_test_data` |
 | `test_de_var` | `NULL` | `prepare_test_data` |
+| `ex_time_var` | `NULL` | `prepare_test_data` |
 
 ---
 
@@ -1010,6 +1201,27 @@ df <- as_check_df(result, check_name = "icf_time_deviation")
 | missing_type | 缺失类型（TESTCAT_EMPTY / TESTCAT_MISSING / TESTDE_MISSING） |
 | DESCRIPTION | 偏离描述 |
 
+**check_test_window() 的 details 列：**
+
+| 列名 | 说明 |
+|------|------|
+| PDNO | 偏离编号 |
+| SUBJID | 受试者编号 |
+| VISIT | 访视名称 |
+| VISITNUM | 访视编号 |
+| TESTCAT | 检查项类别 |
+| wp_rule | 原始窗口规则（如 `EX(≤24h)`） |
+| ref | 锚点类型（RD / SV / EX / FD） |
+| wp_unit | 偏移单位：`"d"`（天）或 `"h"`（小时） |
+| anchor_date | 锚点日期 |
+| test_date | 实际检查日期（多条记录时取离锚点最近的一条） |
+| window_start | 窗口开始日期 |
+| window_end | 窗口结束日期 |
+| deviation_days | 偏离天数（天级规则；正值=晚于锚点，负值=早于锚点；小时级为 NA） |
+| deviation_hours | 偏离小时数（小时级规则；天级为 NA） |
+| TBNAME | 数据集表名 |
+| DESCRIPTION | 偏离描述 |
+
 **generate_planned_visit_dates() 的返回列：**
 
 | 列名 | 说明 |
@@ -1070,7 +1282,7 @@ prepared_lb <- prepare_test_data(data = data, test_dataset = "LB", config = my_c
 
 **Q4: 如何避免每个函数都重复指定相同参数？**
 
-使用 `set_pdchecker_options()` 在脚本开头统一设置，详见 [2.5 全局选项配置](#25-set_pdchecker_options--get_pdchecker_options--全局选项配置)。
+使用 `set_pdchecker_options()` 在脚本开头统一设置，详见 [2.6 全局选项配置](#26-set_pdchecker_options--get_pdchecker_options--全局选项配置)。
 ```
 
 ---
