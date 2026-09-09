@@ -331,6 +331,36 @@ test_that("generate_excel_report() Summary lists all checks; All Deviations only
   expect_equal(sum_tbl$deviation_count[sum_tbl$check_name == "age_check"], 2)
 })
 
+test_that("generate_excel_report() deviation_count counts only TRUE rows", {
+  skip_if_not_installed("openxlsx")
+
+  # 同 check_name 下混有 FALSE 占位行与 TRUE 偏离行时，只计 TRUE
+  mixed_df <- data.frame(
+    check_name = rep("3.1 不符合入选标准却入组", 4),
+    has_deviation = c(FALSE, FALSE, FALSE, TRUE),
+    message = rep("msg", 4),
+    details = c(NA, NA, NA, "详情"),
+    PDNO = c(NA, NA, NA, "3.1.6"),
+    SUBJID = c(NA, NA, NA, "14003"),
+    SITEID = c(NA, NA, NA, "01"),
+    TBNAME = c(NA, NA, NA, "实验室检查"),
+    DESCRIPTION = c(NA, NA, NA, "描述"),
+    stringsAsFactors = FALSE
+  )
+
+  temp_file <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(temp_file), add = TRUE)
+
+  generate_excel_report(checks_df = mixed_df, output_file = temp_file)
+
+  sum_tbl <- openxlsx::read.xlsx(temp_file, sheet = "Summary", startRow = 3)
+  expect_equal(sum_tbl$deviation_count, 1)
+
+  data_dev <- openxlsx::read.xlsx(temp_file, sheet = "All Deviations")
+  expect_equal(nrow(data_dev), 1)
+  expect_equal(data_dev$SUBJID, "14003")
+})
+
 # =============================================================================
 # Test package availability checks
 # =============================================================================

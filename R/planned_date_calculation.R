@@ -8,6 +8,14 @@ build_cycle_intervals <- function(visit_info, cycle_days = NULL) {
     return(list(mode = "uniform", value = cycle_days))
   }
 
+  has_treatment_d1 <- any(
+    visit_info$visit_category == "treatment" & visit_info$is_d1,
+    na.rm = TRUE
+  )
+  if (!has_treatment_d1) {
+    return(list(mode = "none"))
+  }
+
   if (!"CYCDAY" %in% names(visit_info)) {
     stop(
       "'cycle_days' is NULL but visitcode has no CYCDAY column. ",
@@ -218,7 +226,7 @@ calc_planned_dates <- function(subj_id,
     # Check actual visit status
     actual_visit <- subj_actual[subj_actual$VISITNUM == visit_num, ]
 
-    if (nrow(actual_visit) > 0) {
+    if (nrow(actual_visit) > 0 && !is.na(actual_visit$actual_date[1])) {
       visit_status <- "completed"
       actual_date <- actual_visit$actual_date[1]
     } else {
@@ -460,9 +468,61 @@ calculate_visit_planned_date <- function(visit_category,
   } else if (visit_category == "follow_up") {
     # Follow-up visit
     planned_date <- calculate_followup_visit_date(visit_day, eot_date, last_dose_date)
+  } else if (visit_category == "tumor_assessment") {
+    planned_date <- calculate_tumor_assess_date(visit_day, first_dose_date)
   }
 
   return(planned_date)
+}
+
+#' Calculate Tumor Assessment Visit Planned Date
+#'
+#' @description
+#' Internal function to calculate planned date for tumor assessment visits.
+#'
+#' @details
+#' ## Calculation Rule
+#'
+#' Tumor assessment visits are scheduled as a fixed offset from the first dose date.
+#' The VISITDAY column value represents the number of days from first dose:
+#'
+#' \strong{planned_date = first_dose_date + VISITDAY}
+#'
+#' ## Example
+#'
+#' | VISITDAY | Meaning | First Dose | Planned Date |
+#' |----------|---------|------------|--------------|
+#' | 56 | Week 8 | 2024-01-01 | 2024-02-26 |
+#' | 84 | Week 12 | 2024-01-01 | 2024-03-25 |
+#' | 168 | Week 24 | 2024-01-01 | 2024-06-17 |
+#'
+#' ## Key Differences from Treatment Visits
+#'
+#' Unlike treatment visits where planned dates can shift based on actual D1 visit dates,
+#' tumor assessment planned dates are fixed relative to the first dose date. This is
+#' because tumor assessments typically follow a calendar-based schedule (e.g., every
+#' 8 weeks) independent of treatment cycle scheduling.
+#'
+#' @param visit_day Character or numeric, days offset from first dose date
+#'   (must be convertible to a positive numeric value)
+#' @param first_dose_date Date, subject's first dose date
+#'
+#' @return Date, planned date for the tumor assessment visit.
+#'   Returns NA if visit_day is not numeric or first_dose_date is NA.
+#'
+#' @keywords internal
+#' @noRd
+calculate_tumor_assess_date <- function(visit_day, first_dose_date) {
+  planned_date <- NA
+
+  if (!is.na(visit_day) &&
+    is.numeric(as.numeric(visit_day)) &&
+    !is.na(first_dose_date)) {
+    days_offset <- as.numeric(visit_day)
+    planned_date <- first_dose_date + days_offset
+  }
+
+  planned_date
 }
 
 #' Calculate Pre-Treatment Visit Planned Date

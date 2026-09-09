@@ -112,6 +112,58 @@ test_that("基本功能：包含 visit_category 列", {
   expect_equal(followup$visit_category[1], "follow_up")
 })
 
+test_that("肿瘤评估访视：计划日期为首次给药日期加 VISITDAY", {
+  tumor_visitcode <- data.frame(
+    VISIT = c("W8", "W16", "治疗结束"),
+    VISITNUM = c(8, 16, 999),
+    CYCLE = c("肿瘤评估", "肿瘤评估", "治疗结束"),
+    VISITDAY = c("56", "112", "EOT"),
+    WP = c("±7d", "±7d", "±7d"),
+    type = c("±", "±", "±"),
+    wpvalue = c(7, 7, 7),
+    stringsAsFactors = FALSE
+  )
+
+  ex_data <- data.frame(
+    SUBJID = c("001", "002"),
+    EXSTDAT = c("2024-01-01", "2024-01-05"),
+    stringsAsFactors = FALSE
+  )
+
+  sv_data <- data.frame(
+    SUBJID = c("001", "002"),
+    VISIT = c("W8", "W16"),
+    VISITNUM = c(8, 16),
+    SVDAT = c("2024-02-27", "2024-04-26"),
+    stringsAsFactors = FALSE
+  )
+
+  eot_data <- data.frame(
+    SUBJID = c("001", "002"),
+    EOTDAT = c("2024-06-01", "2024-06-10"),
+    stringsAsFactors = FALSE
+  )
+
+  data_list <- list(EX = ex_data, SV = sv_data, EOT = eot_data, DS = data.frame())
+
+  result <- generate_planned_visit_dates(
+    data = data_list,
+    visitcode = tumor_visitcode
+  )
+
+  w8_001 <- result[result$SUBJID == "001" & result$VISIT == "W8", ]
+  expect_equal(w8_001$visit_category, "tumor_assessment")
+  expect_equal(as.character(w8_001$planned_date), "2024-02-26")
+  expect_equal(as.character(w8_001$wp_start), "2024-02-19")
+  expect_equal(as.character(w8_001$wp_end), "2024-03-04")
+
+  w16_002 <- result[result$SUBJID == "002" & result$VISIT == "W16", ]
+  expect_equal(as.character(w16_002$planned_date), "2024-04-26")
+
+  eot_001 <- result[result$SUBJID == "001" & result$VISIT == "治疗结束", ]
+  expect_equal(as.character(eot_001$planned_date), "2024-06-01")
+})
+
 test_that("基本功能：计算首次给药日期", {
   test_data <- setup_test_data()
 
