@@ -1376,7 +1376,7 @@ prepared_lb <- prepare_test_data(data = data, test_dataset = "LB", config = my_c
 
 ## 版本信息
 
-本手册基于 pdchecker 包当前版本（0.9.5）编写。如有更新，请参阅包的 `NEWS.md` 文件。
+本手册基于 pdchecker 包当前版本（1.0.0）编写。如有更新，请参阅包的 `NEWS.md` 文件。
 
 ---
 

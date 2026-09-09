@@ -24,7 +24,7 @@ devtools::install_github("Pharma-Mountain-High/pdchecker", build_vignettes = TRU
 然后本地安装：
 
 ```r
-install.packages("pdchecker_0.9.0.tar.gz", repos = NULL, type = "source")
+install.packages("pdchecker_1.0.0.tar.gz", repos = NULL, type = "source")
 ```
 
 > **注意**：通过方式一安装时需要加 `build_vignettes = TRUE` 参数，否则用户手册不会被构建，`vignette("guide")` 将无法使用。`upgrade = "never"` 表示不自动更新已安装的依赖包，避免安装过程中弹出更新提示；如需同时更新依赖可去掉此参数。
