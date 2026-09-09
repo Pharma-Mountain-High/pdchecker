@@ -7,7 +7,8 @@
 get_first_dose_date(
   data,
   ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
-  ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT")
+  ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT"),
+  ex_time_var = getOption("pdchecker.ex_time_var", NULL)
 )
 }
 \arguments{
@@ -21,22 +22,34 @@ Multiple datasets can be specified, e.g., c("EX1", "EX2")}
 \item If length 1, all datasets use the same column name
 \item If length equals \code{ex_datasets}, corresponds one-to-one with datasets
 }}
+
+\item{ex_time_var}{Character vector, dosing start time variable names (default: NULL).
+If NULL or empty, \code{first_dose_time} is returned as NA.
+\itemize{
+\item If length 1, all datasets use the same column name
+\item If length equals \code{ex_datasets}, corresponds one-to-one with datasets
+}}
 }
 \value{
 Data frame with columns:
 \describe{
 \item{SUBJID}{Character. Subject ID}
 \item{first_dose_date}{Date. First dose date}
+\item{first_dose_time}{Character. First dose time (NA if unavailable)}
 }
 }
 \description{
-Extract the earliest dosing start date from exposure datasets for each subject.
+Extract the earliest dosing start date (and optional dosing time) from
+exposure datasets for each subject.
 }
 \details{
 \subsection{Calculation Rules}{
 \itemize{
 \item Extracts \strong{earliest} dosing start date from all specified exposure datasets
 \item Always uses dosing \strong{start date} variable (\code{ex_date_var})
+\item When \code{ex_time_var} is specified, also returns the dosing time from the
+earliest-date record (among same-date records, the earliest non-missing
+time string is preferred)
 \item Supports multiple datasets, automatically merges and takes minimum date per subject
 \item SAS missing values (NA, ".", "") are automatically excluded
 }
@@ -113,8 +126,10 @@ first_dates <- get_first_dose_date(
 \code{\link{get_last_dose_date}} for extracting last dose dates
 
 Other date extraction:
+\code{\link[=get_cyc_dose_date]{get_cyc_dose_date()}},
 \code{\link[=get_eos_date]{get_eos_date()}},
 \code{\link[=get_eot_date]{get_eot_date()}},
-\code{\link[=get_last_dose_date]{get_last_dose_date()}}
+\code{\link[=get_last_dose_date]{get_last_dose_date()}},
+\code{\link[=get_rand_date]{get_rand_date()}}
 }
 \concept{date extraction}

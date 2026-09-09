@@ -825,7 +825,10 @@ calculate_window_range <- function(planned_date, window_type, window_value) {
 #' @param sv_date_var Character string, visit date variable (default in functions: "SVDAT")
 #' @param ex_datasets Character vector, exposure dataset names (default in functions: "EX")
 #' @param ex_date_var Character vector, dosing start date variable names (default in functions: "EXSTDAT")
+#' @param ex_time_var Character vector, dosing start time variable names (default in functions: NULL)
 #' @param ex_end_date_var Character vector, dosing end date variable names (default in functions: NULL)
+#' @param rd_datasets Character vector, randomization dataset names (default in functions: "RAND")
+#' @param rd_date_var Character vector, randomization date variable names (default in functions: "RANDDT")
 #' @param eot_dataset Character vector, end of treatment dataset names (default in functions: "EOT")
 #' @param eot_date_var Character vector, end of treatment date variable names (default in functions: "EOTDAT")
 #' @param ds_dataset Character string, disposition dataset name (default in functions: "DS")
@@ -852,6 +855,8 @@ calculate_window_range <- function(planned_date, window_type, window_value) {
 #'   sv_date_var = "SVSTDTC",
 #'   ex_datasets = c("EC"),
 #'   ex_date_var = "ECSTDTC",
+#'   rd_datasets = "RAND",
+#'   rd_date_var = "RANDDT",
 #'   ic_dataset = "IC",
 #'   ic_date_var = "ICDAT"
 #' )
@@ -873,7 +878,10 @@ set_pdchecker_options <- function(sv_dataset = NULL,
                                   sv_date_var = NULL,
                                   ex_datasets = NULL,
                                   ex_date_var = NULL,
+                                  ex_time_var = NULL,
                                   ex_end_date_var = NULL,
+                                  rd_datasets = NULL,
+                                  rd_date_var = NULL,
                                   eot_dataset = NULL,
                                   eot_date_var = NULL,
                                   ds_dataset = NULL,
@@ -894,7 +902,10 @@ set_pdchecker_options <- function(sv_dataset = NULL,
     sv_date_var = sv_date_var,
     ex_datasets = ex_datasets,
     ex_date_var = ex_date_var,
+    ex_time_var = ex_time_var,
     ex_end_date_var = ex_end_date_var,
+    rd_datasets = rd_datasets,
+    rd_date_var = rd_date_var,
     eot_dataset = eot_dataset,
     eot_date_var = eot_date_var,
     ds_dataset = ds_dataset,
@@ -950,7 +961,8 @@ set_pdchecker_options <- function(sv_dataset = NULL,
 get_pdchecker_options <- function() {
   option_names <- c(
     "sv_dataset", "sv_visit_var", "sv_visitnum_var", "sv_date_var",
-    "ex_datasets", "ex_date_var", "ex_end_date_var",
+    "ex_datasets", "ex_date_var", "ex_time_var", "ex_end_date_var",
+    "rd_datasets", "rd_date_var",
     "eot_dataset", "eot_date_var",
     "ds_dataset", "ds_date_var",
     "ic_dataset", "ic_date_var",
@@ -962,7 +974,9 @@ get_pdchecker_options <- function() {
   defaults <- list(
     sv_dataset = "SV", sv_visit_var = "VISIT",
     sv_visitnum_var = "VISITNUM", sv_date_var = "SVDAT",
-    ex_datasets = "EX", ex_date_var = "EXSTDAT", ex_end_date_var = NULL,
+    ex_datasets = "EX", ex_date_var = "EXSTDAT", ex_time_var = NULL,
+    ex_end_date_var = NULL,
+    rd_datasets = "RAND", rd_date_var = "RANDDT",
     eot_dataset = "EOT", eot_date_var = "EOTDAT",
     ds_dataset = "DS", ds_date_var = "DSDAT",
     ic_dataset = "IC", ic_date_var = "ICDAT",
@@ -977,4 +991,86 @@ get_pdchecker_options <- function() {
   names(result) <- option_names
 
   result
+}
+
+#' Parse Time Unit String to Days
+#'
+#' @description
+#' Convert time unit string to number of days.
+#' Supports hours (h), days (d), and weeks (w).
+#'
+#' @param value_str Time value string (e.g., "3d", "24h", "2w")
+#' @return Numeric value in days
+#' @noRd
+parse_time_unit <- function(value_str) {
+  value_str <- trimws(as.character(value_str))
+  if (grepl("h$|小时$", value_str, ignore.case = TRUE)) {
+    # Hours to days
+    num <- as.numeric(gsub("h$|小时$", "", value_str, ignore.case = TRUE))
+    return(num / 24)
+  } else if (grepl("w$|周$", value_str, ignore.case = TRUE)) {
+    # Weeks to days
+    num <- as.numeric(gsub("w$|周$", "", value_str, ignore.case = TRUE))
+    return(num * 7)
+  } else if (grepl("d$|天$|日$", value_str, ignore.case = TRUE)) {
+    # Days
+    num <- as.numeric(gsub("d$|天$|日$", "", value_str, ignore.case = TRUE))
+    return(num)
+  } else {
+    # Default: treat as days
+    return(as.numeric(value_str))
+  }
+}
+
+#' Parse Visit Window Period String
+#'
+#' @param window_str Window period string (e.g., "+/-3d", "<=24h", "+2d", "-1d")
+#' @return List containing window type and value
+#' @noRd
+parse_window_period <- function(window_str) {
+  # Handle missing values
+  if (is.na(window_str) || window_str == "" || is.null(window_str)) {
+    return(list(type = NA, value = NA))
+  }
+
+  # Convert to string and trim whitespace
+  window_str <- trimws(as.character(window_str))
+
+  # PREV / prev: before the anchor (inclusive of the anchor day), no lower bound.
+  #   prev / prev-d -> day-level; prev-h -> hour-level (case-insensitive).
+  if (grepl("^prev(-[dh])?$", window_str, ignore.case = TRUE)) {
+    return(list(type = "PREV", value = NA))
+  }
+
+  # Define window type pattern table: pattern, type, gsub_pattern
+  window_patterns <- list(
+    list(pattern = "^±", type = "±", gsub_pattern = "^±"),
+    list(pattern = "^(≤|<=)", type = "≤", gsub_pattern = "^(≤|<=)"),
+    list(pattern = "^(≥|>=)", type = "≥", gsub_pattern = "^(≥|>=)"),
+    list(pattern = "^\\+", type = "+", gsub_pattern = "^\\+"),
+    list(pattern = "^-(?!.*(到|至))", type = "-", gsub_pattern = "^-")
+  )
+
+  # Iterate through pattern table for matching
+  for (wp in window_patterns) {
+    if (grepl(wp$pattern, window_str, perl = TRUE)) {
+      value_part <- gsub(wp$gsub_pattern, "", window_str)
+      value <- parse_time_unit(value_part)
+      return(list(type = wp$type, value = value))
+    }
+  }
+
+  # Range type (e.g., -2到+4, 1至3天)
+  if (grepl("到|至", window_str)) {
+    return(list(type = "范围", value = window_str))
+  }
+
+  # Numeric without prefix (e.g., 2d) -> default to +
+  if (grepl("^[0-9]", window_str)) {
+    value <- parse_time_unit(window_str)
+    return(list(type = "+", value = value))
+  }
+
+  # Other formats
+  return(list(type = "其他", value = window_str))
 }

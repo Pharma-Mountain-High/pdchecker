@@ -1,5 +1,276 @@
 # Test utility functions in utils.R
 
+# ============================================================================
+# Tests for parse_window_period() function
+# ============================================================================
+
+test_that("parse_window_period handles missing values", {
+  result <- pdchecker:::parse_window_period(NA)
+  expect_true(is.na(result$type))
+  expect_true(is.na(result$value))
+
+  result <- pdchecker:::parse_window_period("")
+  expect_true(is.na(result$type))
+  expect_true(is.na(result$value))
+
+  result <- pdchecker:::parse_window_period(NULL)
+  expect_true(is.na(result$type))
+  expect_true(is.na(result$value))
+})
+
+test_that("parse_window_period parses ± type", {
+  result <- pdchecker:::parse_window_period("±3d")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 3)
+
+  result <- pdchecker:::parse_window_period("±24h")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 1)
+
+  result <- pdchecker:::parse_window_period("±2周")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 14)
+
+  result <- pdchecker:::parse_window_period("±1w")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 7)
+})
+
+test_that("parse_window_period parses ≤ type", {
+  result <- pdchecker:::parse_window_period("≤24h")
+  expect_equal(result$type, "≤")
+  expect_equal(result$value, 1)
+
+  result <- pdchecker:::parse_window_period("≤1d")
+  expect_equal(result$type, "≤")
+  expect_equal(result$value, 1)
+
+  result <- pdchecker:::parse_window_period("<=2天")
+  expect_equal(result$type, "≤")
+  expect_equal(result$value, 2)
+})
+
+test_that("parse_window_period parses ≥ type", {
+  result <- pdchecker:::parse_window_period("≥1d")
+  expect_equal(result$type, "≥")
+  expect_equal(result$value, 1)
+
+  result <- pdchecker:::parse_window_period(">=3天")
+  expect_equal(result$type, "≥")
+  expect_equal(result$value, 3)
+})
+
+test_that("parse_window_period parses + type", {
+  result <- pdchecker:::parse_window_period("+2d")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 2)
+
+  result <- pdchecker:::parse_window_period("+3天")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 3)
+
+  result <- pdchecker:::parse_window_period("+48h")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 2)
+})
+
+test_that("parse_window_period parses - type", {
+  result <- pdchecker:::parse_window_period("-1d")
+  expect_equal(result$type, "-")
+  expect_equal(result$value, 1)
+
+  result <- pdchecker:::parse_window_period("-2天")
+  expect_equal(result$type, "-")
+  expect_equal(result$value, 2)
+})
+
+test_that("parse_window_period parses range type", {
+  result <- pdchecker:::parse_window_period("-2到+4")
+  expect_equal(result$type, "范围")
+  expect_equal(result$value, "-2到+4")
+
+  result <- pdchecker:::parse_window_period("1至3天")
+  expect_equal(result$type, "范围")
+  expect_equal(result$value, "1至3天")
+})
+
+test_that("parse_window_period parses numeric without prefix", {
+  result <- pdchecker:::parse_window_period("2d")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 2)
+
+  result <- pdchecker:::parse_window_period("3天")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 3)
+
+  result <- pdchecker:::parse_window_period("1w")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 7)
+})
+
+test_that("parse_window_period converts time units", {
+  # Hours to days
+  result <- pdchecker:::parse_window_period("±24h")
+  expect_equal(result$value, 1)
+
+  result <- pdchecker:::parse_window_period("±12小时")
+  expect_equal(result$value, 0.5)
+
+  # Weeks to days
+  result <- pdchecker:::parse_window_period("±1w")
+  expect_equal(result$value, 7)
+
+  result <- pdchecker:::parse_window_period("±2周")
+  expect_equal(result$value, 14)
+
+  # Days
+  result <- pdchecker:::parse_window_period("±3d")
+  expect_equal(result$value, 3)
+
+  result <- pdchecker:::parse_window_period("±4天")
+  expect_equal(result$value, 4)
+
+  result <- pdchecker:::parse_window_period("±5日")
+  expect_equal(result$value, 5)
+})
+
+test_that("parse_window_period handles other formats", {
+  result <- pdchecker:::parse_window_period("固定访视")
+  expect_equal(result$type, "其他")
+  expect_equal(result$value, "固定访视")
+})
+
+test_that("parse_window_period parses PREV type", {
+  result <- pdchecker:::parse_window_period("PREV")
+  expect_equal(result$type, "PREV")
+  expect_true(is.na(result$value))
+
+  result <- pdchecker:::parse_window_period("prev")
+  expect_equal(result$type, "PREV")
+  expect_true(is.na(result$value))
+
+  result <- pdchecker:::parse_window_period("  Prev  ")
+  expect_equal(result$type, "PREV")
+  expect_true(is.na(result$value))
+
+  result <- pdchecker:::parse_window_period("prev-d")
+  expect_equal(result$type, "PREV")
+  expect_true(is.na(result$value))
+
+  result <- pdchecker:::parse_window_period("PREV-H")
+  expect_equal(result$type, "PREV")
+  expect_true(is.na(result$value))
+})
+
+test_that("parse_window_period handles input with whitespace", {
+  result <- pdchecker:::parse_window_period("  ±3d  ")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 3)
+})
+
+test_that("parse_window_period handles decimal time units", {
+  # Decimal days
+  result <- pdchecker:::parse_window_period("±1.5d")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 1.5)
+
+  # Decimal hours
+  result <- pdchecker:::parse_window_period("±6h")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 0.25)
+
+  # Decimal weeks
+  result <- pdchecker:::parse_window_period("+0.5w")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 3.5)
+})
+
+test_that("parse_window_period handles zero values", {
+  result <- pdchecker:::parse_window_period("±0d")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 0)
+
+  result <- pdchecker:::parse_window_period("0天")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 0)
+})
+
+test_that("parse_window_period handles large values", {
+  result <- pdchecker:::parse_window_period("±100d")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 100)
+
+  result <- pdchecker:::parse_window_period("±52w")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 364)
+})
+
+test_that("parse_window_period handles invalid numeric values", {
+  # Invalid values produce NA with warning
+  # Use regex to match both English and Chinese warning messages
+  expect_warning(
+    result <- pdchecker:::parse_window_period("±abc天"),
+    "NAs introduced by coercion|强制改变过程中产生了NA"
+  )
+  expect_equal(result$type, "±")
+  expect_true(is.na(result$value))
+
+  expect_warning(
+    result <- pdchecker:::parse_window_period("≤xyz小时"),
+    "NAs introduced by coercion|强制改变过程中产生了NA"
+  )
+  expect_equal(result$type, "≤")
+  expect_true(is.na(result$value))
+})
+
+test_that("parse_window_period handles different date unit notations", {
+  # Test "日" as unit
+  result <- pdchecker:::parse_window_period("±3日")
+  expect_equal(result$type, "±")
+  expect_equal(result$value, 3)
+
+  # Test "小时" as unit
+  result <- pdchecker:::parse_window_period("+6小时")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 0.25)
+})
+
+test_that("parse_window_period handles pure numbers without units", {
+  result <- pdchecker:::parse_window_period("7")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 7)
+
+  result <- pdchecker:::parse_window_period("+5")
+  expect_equal(result$type, "+")
+  expect_equal(result$value, 5)
+})
+
+test_that("parse_window_period handles negative with range keywords", {
+  # Contains "到" or "至" should be identified as range, not negative
+  result <- pdchecker:::parse_window_period("-3到+7")
+  expect_equal(result$type, "范围")
+  expect_equal(result$value, "-3到+7")
+
+  result <- pdchecker:::parse_window_period("-1至+1")
+  expect_equal(result$type, "范围")
+  expect_equal(result$value, "-1至+1")
+})
+
+test_that("parse_window_period handles various other formats", {
+  result <- pdchecker:::parse_window_period("固定")
+  expect_equal(result$type, "其他")
+  expect_equal(result$value, "固定")
+
+  result <- pdchecker:::parse_window_period("不限")
+  expect_equal(result$type, "其他")
+  expect_equal(result$value, "不限")
+
+  result <- pdchecker:::parse_window_period("NA")
+  expect_equal(result$type, "其他")
+  expect_equal(result$value, "NA")
+})
+
+
 # =============================================================================
 # Test is_sas_na() function
 # =============================================================================

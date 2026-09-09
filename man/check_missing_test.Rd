@@ -156,5 +156,8 @@ result <- check_missing_test(data = prepared_lb, missing_de = FALSE)
 \seealso{
 \code{\link{prepare_test_data}} for preparing test data
 \code{\link{check_missing_visit}} for checking missing visits
+
+Other test checks:
+\code{\link[=check_test_window]{check_test_window()}}
 }
 \concept{test checks}

@@ -33,13 +33,17 @@ expand_date_vars <- function(date_var,
 #' Get First Dose Date for Each Subject
 #'
 #' @description
-#' Extract the earliest dosing start date from exposure datasets for each subject.
+#' Extract the earliest dosing start date (and optional dosing time) from
+#' exposure datasets for each subject.
 #'
 #' @details
 #' ## Calculation Rules
 #'
 #' - Extracts **earliest** dosing start date from all specified exposure datasets
 #' - Always uses dosing **start date** variable (\code{ex_date_var})
+#' - When \code{ex_time_var} is specified, also returns the dosing time from the
+#'   earliest-date record (among same-date records, the earliest non-missing
+#'   time string is preferred)
 #' - Supports multiple datasets, automatically merges and takes minimum date per subject
 #' - SAS missing values (NA, ".", "") are automatically excluded
 #'
@@ -56,11 +60,16 @@ expand_date_vars <- function(date_var,
 #' @param ex_date_var Character vector, dosing start date variable names (default: "EXSTDAT").
 #'   - If length 1, all datasets use the same column name
 #'   - If length equals \code{ex_datasets}, corresponds one-to-one with datasets
+#' @param ex_time_var Character vector, dosing start time variable names (default: NULL).
+#'   If NULL or empty, \code{first_dose_time} is returned as NA.
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{ex_datasets}, corresponds one-to-one with datasets
 #'
 #' @return Data frame with columns:
 #'   \describe{
 #'     \item{SUBJID}{Character. Subject ID}
 #'     \item{first_dose_date}{Date. First dose date}
+#'     \item{first_dose_time}{Character. First dose time (NA if unavailable)}
 #'   }
 #'
 #' @examples
@@ -123,12 +132,13 @@ expand_date_vars <- function(date_var,
 #'
 #' @family date extraction
 #'
-#' @importFrom dplyr filter mutate select group_by ungroup slice sym bind_rows
+#' @importFrom dplyr filter mutate select group_by ungroup slice sym bind_rows arrange
 #' @importFrom magrittr %>%
 #' @export
 get_first_dose_date <- function(data,
                                 ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
-                                ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT")) {
+                                ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT"),
+                                ex_time_var = getOption("pdchecker.ex_time_var", NULL)) {
   # Parameter validation
   if (!is.list(data)) {
     stop("'data' must be a list")
@@ -142,8 +152,19 @@ get_first_dose_date <- function(data,
     stop("'ex_date_var' must be a non-empty character vector")
   }
 
-  # Expand date variable names to match dataset count
+  use_time <- !is.null(ex_time_var) && length(ex_time_var) > 0 &&
+    any(nzchar(ex_time_var))
+  if (use_time && (!is.character(ex_time_var) || length(ex_time_var) == 0)) {
+    stop("'ex_time_var' must be NULL or a non-empty character vector")
+  }
+
+  # Expand date / time variable names to match dataset count
   ex_date_vars <- expand_date_vars(ex_date_var, ex_datasets, "ex_date_var", "ex_datasets")
+  ex_time_vars <- if (use_time) {
+    expand_date_vars(ex_time_var, ex_datasets, "ex_time_var", "ex_datasets")
+  } else {
+    rep(NA_character_, length(ex_datasets))
+  }
 
   # Collect first dose dates
   first_dose_dates_list <- list()
@@ -151,15 +172,32 @@ get_first_dose_date <- function(data,
   for (i in seq_along(ex_datasets)) {
     ex_ds <- ex_datasets[i]
     current_date_var <- ex_date_vars[i]
+    current_time_var <- ex_time_vars[i]
 
     if (ex_ds %in% names(data)) {
       ex_df <- data[[ex_ds]]
       if (current_date_var %in% names(ex_df) && "SUBJID" %in% names(ex_df)) {
+        has_time_col <- use_time && !is.na(current_time_var) &&
+          current_time_var %in% names(ex_df)
+
         ex_dates <- ex_df %>%
           filter(!is_sas_na(!!sym(current_date_var))) %>%
           mutate(dose_date = as.Date(!!sym(current_date_var))) %>%
-          filter(!is.na(dose_date)) %>%
-          select(SUBJID, dose_date)
+          filter(!is.na(dose_date))
+
+        if (has_time_col) {
+          time_raw <- ex_dates[[current_time_var]]
+          ex_dates$dose_time <- unname(ifelse(
+            is_sas_na(time_raw),
+            NA_character_,
+            as.character(time_raw)
+          ))
+        } else {
+          ex_dates$dose_time <- rep(NA_character_, nrow(ex_dates))
+        }
+
+        ex_dates <- ex_dates %>%
+          select(SUBJID, dose_date, dose_time)
 
         if (nrow(ex_dates) > 0) {
           first_dose_dates_list[[length(first_dose_dates_list) + 1]] <- ex_dates
@@ -168,18 +206,24 @@ get_first_dose_date <- function(data,
     }
   }
 
-  # Calculate first dose date
+  # Calculate first dose date (and corresponding time)
   if (length(first_dose_dates_list) > 0) {
     first_dose_dates <- bind_rows(first_dose_dates_list) %>%
       group_by(SUBJID) %>%
       filter(dose_date == min(dose_date)) %>%
+      arrange(is.na(dose_time), dose_time, .by_group = TRUE) %>%
       slice(1) %>%
       ungroup() %>%
-      select(SUBJID, first_dose_date = dose_date)
+      select(
+        SUBJID,
+        first_dose_date = dose_date,
+        first_dose_time = dose_time
+      )
   } else {
     first_dose_dates <- data.frame(
       SUBJID = character(),
       first_dose_date = as.Date(character()),
+      first_dose_time = character(),
       stringsAsFactors = FALSE
     )
   }
@@ -590,4 +634,286 @@ get_eos_date <- function(data,
   }
 
   return(eos_dates)
+}
+
+#' Get Randomization Date for Each Subject
+#'
+#' @description
+#' Extract the randomization date from RAND datasets for each subject.
+#' Used as the RD anchor date via \code{\link{prepare_test_data}} and
+#' \code{\link{generate_test_window_dates}}.
+#'
+#' @details
+#' ## Calculation Rules
+#'
+#' - Extracts the **earliest** randomization date per subject
+#' - Supports multiple datasets, automatically merges before taking the minimum
+#' - Missing datasets are silently skipped
+#' - SAS missing values (NA, ".", "") are automatically excluded
+#'
+#' @param data List containing clinical trial datasets
+#' @param rd_datasets Character vector, randomization dataset names (default: "RAND").
+#'   Multiple datasets can be specified, e.g., c("RAND", "DSRAND")
+#' @param rd_date_var Character vector, randomization date variable names (default: "RANDDT").
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{rd_datasets}, corresponds one-to-one with datasets
+#'
+#' @return Data frame with columns:
+#'   \describe{
+#'     \item{SUBJID}{Character. Subject ID}
+#'     \item{rd_date}{Date. Randomization date}
+#'   }
+#'
+#' @examples
+#' \dontrun{
+#' data <- list(
+#'   RAND = data.frame(
+#'     SUBJID = c("001", "002"),
+#'     RANDDT = c("2024-01-15", "2024-01-20"),
+#'     stringsAsFactors = FALSE
+#'   )
+#' )
+#' rd_dates <- get_rand_date(data)
+#' }
+#'
+#' @seealso
+#' \code{\link{get_cyc_dose_date}} for extracting per-visit dosing dates
+#' \code{\link{prepare_test_data}} for attaching rd_date to prepared test data
+#'
+#' @family date extraction
+#'
+#' @importFrom dplyr filter mutate select group_by summarise sym bind_rows
+#' @importFrom magrittr %>%
+#' @export
+get_rand_date <- function(data,
+                          rd_datasets = getOption("pdchecker.rd_datasets", "RAND"),
+                          rd_date_var = getOption("pdchecker.rd_date_var", "RANDDT")) {
+  # Parameter validation
+  if (!is.list(data)) {
+    stop("'data' must be a list")
+  }
+
+  if (!is.character(rd_datasets) || length(rd_datasets) == 0) {
+    stop("'rd_datasets' must be a non-empty character vector")
+  }
+
+  if (!is.character(rd_date_var) || length(rd_date_var) == 0) {
+    stop("'rd_date_var' must be a non-empty character vector")
+  }
+
+  # Expand date variable names to match dataset count
+  rd_date_vars <- expand_date_vars(rd_date_var, rd_datasets, "rd_date_var", "rd_datasets")
+
+  # Collect randomization dates
+  rd_dates_list <- list()
+
+  for (i in seq_along(rd_datasets)) {
+    rd_ds <- rd_datasets[i]
+    current_date_var <- rd_date_vars[i]
+
+    if (rd_ds %in% names(data)) {
+      rd_df <- data[[rd_ds]]
+      if (current_date_var %in% names(rd_df) && "SUBJID" %in% names(rd_df)) {
+        rd_dates <- rd_df %>%
+          filter(!is_sas_na(!!sym(current_date_var))) %>%
+          mutate(rd_date = as.Date(!!sym(current_date_var))) %>%
+          filter(!is.na(rd_date)) %>%
+          select(SUBJID, rd_date)
+
+        if (nrow(rd_dates) > 0) {
+          rd_dates_list[[length(rd_dates_list) + 1]] <- rd_dates
+        }
+      }
+    }
+  }
+
+  # Calculate earliest randomization date per subject
+  if (length(rd_dates_list) > 0) {
+    rd_dates <- bind_rows(rd_dates_list) %>%
+      group_by(SUBJID) %>%
+      summarise(rd_date = min(rd_date), .groups = "drop")
+  } else {
+    rd_dates <- data.frame(
+      SUBJID = character(),
+      rd_date = as.Date(character()),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  return(rd_dates)
+}
+
+#' Get Dosing Date per Subject and Visit
+#'
+#' @description
+#' Extract the dosing date (and optional dosing time) at each visit from
+#' exposure datasets for each subject. Used as the EX anchor via
+#' \code{\link{prepare_test_data}} and \code{\link{generate_test_window_dates}}.
+#'
+#' @details
+#' ## Calculation Rules
+#'
+#' - Extracts the **earliest** dosing start date per subject per visit
+#'   (multiple dosing records within one visit take the minimum date)
+#' - When \code{ex_time_var} is specified, also returns the dosing time from the
+#'   earliest-date record (among same-date records, the earliest non-missing
+#'   time string is preferred)
+#' - Supports multiple datasets, automatically merges before taking the minimum
+#' - Missing datasets are silently skipped
+#' - SAS missing values (NA, ".", "") are automatically excluded
+#' - VISITNUM is returned as character for joining with prepared test data
+#'
+#' @param data List containing clinical trial datasets
+#' @param ex_datasets Character vector, exposure dataset names (default: "EX").
+#'   Multiple datasets can be specified, e.g., c("EX1", "EX2")
+#' @param ex_date_var Character vector, dosing start date variable names (default: "EXSTDAT").
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{ex_datasets}, corresponds one-to-one with datasets
+#' @param ex_time_var Character vector, dosing start time variable names (default: NULL).
+#'   If NULL or empty, \code{cyc_dose_time} is returned as NA.
+#'   - If length 1, all datasets use the same column name
+#'   - If length equals \code{ex_datasets}, corresponds one-to-one with datasets
+#' @param visitnum_var Character string, visit number variable name in the
+#'   exposure datasets (default: "VISITNUM")
+#'
+#' @return Data frame with columns:
+#'   \describe{
+#'     \item{SUBJID}{Character. Subject ID}
+#'     \item{VISITNUM}{Character. Visit number}
+#'     \item{cyc_dose_date}{Date. Dosing date at this visit}
+#'     \item{cyc_dose_time}{Character. Dosing time at this visit (NA if unavailable)}
+#'   }
+#'
+#' @examples
+#' \dontrun{
+#' data <- list(
+#'   EX = data.frame(
+#'     SUBJID = c("001", "001", "001", "002"),
+#'     VISITNUM = c(2, 2, 3, 2),
+#'     EXSTDAT = c("2024-01-01", "2024-01-02", "2024-01-29", "2024-01-05"),
+#'     EXSTTIM = c("09:00", "08:00", "10:00", "14:00"),
+#'     stringsAsFactors = FALSE
+#'   )
+#' )
+#' cyc_dose_dates <- get_cyc_dose_date(data, ex_time_var = "EXSTTIM")
+#' # Subject 001 / VISITNUM 2: 2024-01-01 09:00 (min of two records)
+#' # Subject 001 / VISITNUM 3: 2024-01-29 10:00
+#' # Subject 002 / VISITNUM 2: 2024-01-05 14:00
+#' }
+#'
+#' @seealso
+#' \code{\link{get_first_dose_date}} for extracting first dose dates
+#' \code{\link{get_rand_date}} for extracting randomization dates
+#' \code{\link{prepare_test_data}} for attaching cyc_dose_date to prepared test data
+#'
+#' @family date extraction
+#'
+#' @importFrom dplyr filter mutate select group_by summarise slice ungroup arrange sym bind_rows
+#' @importFrom magrittr %>%
+#' @export
+get_cyc_dose_date <- function(data,
+                              ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
+                              ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT"),
+                              ex_time_var = getOption("pdchecker.ex_time_var", NULL),
+                              visitnum_var = getOption("pdchecker.sv_visitnum_var", "VISITNUM")) {
+  # Parameter validation
+  if (!is.list(data)) {
+    stop("'data' must be a list")
+  }
+
+  if (!is.character(ex_datasets) || length(ex_datasets) == 0) {
+    stop("'ex_datasets' must be a non-empty character vector")
+  }
+
+  if (!is.character(ex_date_var) || length(ex_date_var) == 0) {
+    stop("'ex_date_var' must be a non-empty character vector")
+  }
+
+  if (!is.character(visitnum_var) || length(visitnum_var) != 1) {
+    stop("'visitnum_var' must be a single character string")
+  }
+
+  use_time <- !is.null(ex_time_var) && length(ex_time_var) > 0 &&
+    any(nzchar(ex_time_var))
+  if (use_time && (!is.character(ex_time_var) || length(ex_time_var) == 0)) {
+    stop("'ex_time_var' must be NULL or a non-empty character vector")
+  }
+
+  # Expand date / time variable names to match dataset count
+  ex_date_vars <- expand_date_vars(ex_date_var, ex_datasets, "ex_date_var", "ex_datasets")
+  ex_time_vars <- if (use_time) {
+    expand_date_vars(ex_time_var, ex_datasets, "ex_time_var", "ex_datasets")
+  } else {
+    rep(NA_character_, length(ex_datasets))
+  }
+
+  # Collect dosing dates per subject-visit
+  cyc_dose_dates_list <- list()
+
+  for (i in seq_along(ex_datasets)) {
+    ex_ds <- ex_datasets[i]
+    current_date_var <- ex_date_vars[i]
+    current_time_var <- ex_time_vars[i]
+
+    if (ex_ds %in% names(data)) {
+      ex_df <- data[[ex_ds]]
+      required_cols <- c("SUBJID", visitnum_var, current_date_var)
+      if (all(required_cols %in% names(ex_df))) {
+        has_time_col <- use_time && !is.na(current_time_var) &&
+          current_time_var %in% names(ex_df)
+
+        ex_dates <- ex_df %>%
+          filter(!is_sas_na(!!sym(current_date_var))) %>%
+          mutate(
+            dose_date = as.Date(!!sym(current_date_var)),
+            VISITNUM = as.character(!!sym(visitnum_var))
+          ) %>%
+          filter(!is.na(dose_date))
+
+        if (has_time_col) {
+          time_raw <- ex_dates[[current_time_var]]
+          ex_dates$dose_time <- unname(ifelse(
+            is_sas_na(time_raw),
+            NA_character_,
+            as.character(time_raw)
+          ))
+        } else {
+          ex_dates$dose_time <- rep(NA_character_, nrow(ex_dates))
+        }
+
+        ex_dates <- ex_dates %>%
+          select(SUBJID, VISITNUM, dose_date, dose_time)
+
+        if (nrow(ex_dates) > 0) {
+          cyc_dose_dates_list[[length(cyc_dose_dates_list) + 1]] <- ex_dates
+        }
+      }
+    }
+  }
+
+  # Calculate earliest dosing date (and corresponding time) per subject-visit
+  if (length(cyc_dose_dates_list) > 0) {
+    cyc_dose_dates <- bind_rows(cyc_dose_dates_list) %>%
+      group_by(SUBJID, VISITNUM) %>%
+      filter(dose_date == min(dose_date)) %>%
+      arrange(is.na(dose_time), dose_time, .by_group = TRUE) %>%
+      slice(1) %>%
+      ungroup() %>%
+      select(
+        SUBJID,
+        VISITNUM,
+        cyc_dose_date = dose_date,
+        cyc_dose_time = dose_time
+      )
+  } else {
+    cyc_dose_dates <- data.frame(
+      SUBJID = character(),
+      VISITNUM = character(),
+      cyc_dose_date = as.Date(character()),
+      cyc_dose_time = character(),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  return(cyc_dose_dates)
 }

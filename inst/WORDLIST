@@ -19,8 +19,10 @@ config
 cre
 csv
 cutoffdt
+cyc
 CYCDAY
 dataLayer
+datalist
 datetime
 de
 dependenct
@@ -30,6 +32,7 @@ dplyr
 dropdown
 DS
 DSDAT
+DSRAND
 eCRF
 EDC
 ee
@@ -44,6 +47,7 @@ eot
 EOTDAT
 EXENDAT
 EXSTDAT
+extdata
 FK
 FMTNAME
 fn
@@ -92,6 +96,7 @@ MERCHANTABILITY
 MHSTDAT
 na
 navbar
+NTL
 NYHA
 nyha
 OpenAI
@@ -104,9 +109,14 @@ PDNO
 Pharma
 pharmaverse
 Pharmaverse
+POSIXct
 Pre
 pre
+PREV
+prev
+RANDDT
 Rawdata
+rawdata
 RBC
 RD
 readr
@@ -119,6 +129,7 @@ rI
 rlang
 Roxygen
 RoxygenNote
+rscyc
 sas
 sexualized
 socio
@@ -142,6 +153,7 @@ TG
 tg
 tibble
 tinyverse
+TUCYCN
 UA
 Uf
 UI

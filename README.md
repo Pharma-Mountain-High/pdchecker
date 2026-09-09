@@ -3,7 +3,7 @@
 [Lifecycle: experimental](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
-**pdchecker** (Protocol Deviation Checker) 是一个用于临床试验方案偏离自动检测的 R 包。目前包括数据读取、访视缺失/超窗、检查项缺失、知情同意检查等功能，并支持将结果导出为 Excel 报告。
+**pdchecker** (Protocol Deviation Checker) 是一个用于临床试验方案偏离自动检测的 R 包。目前包括数据读取、访视缺失/超窗、检查项缺失/超窗、知情同意检查等功能，并支持将结果导出为 Excel 报告。
 
 ## 安装
 
@@ -82,10 +82,11 @@ res_2 <- check_icf_time_deviation(data)      # 知情同意前操作
 res_3 <- check_missing_visit(planned_dates)  # 遗漏访视
 res_4 <- check_visit_window(planned_dates)   # 访视超窗
 res_5 <- check_missing_test(prepared_lb)     # LB 检查项缺失
+res_6 <- check_test_window(prepared_lb)      # LB 检查项超窗
 
 # 7. 合并所有结果
 all_results <- combine_check_results(
-  res_1,res_2,res_3,res_4,res_5
+  res_1,res_2,res_3,res_4,res_5,res_6
 )
 
 # 8. 生成报告
@@ -176,7 +177,16 @@ visitcode <- read_visitcode_file("visit_schedule.xlsx")
 
 ### 检查项配置文件
 
-用于 `read_testconfig_file()` 读取，定义每个检查类别需要在哪些访视执行，供 `check_missing_test()` 使用。
+用于 `read_testconfig_file()` 读取，定义每个检查类别需要在哪些访视执行。
+
+> **关于 `prepare_test_data()` 的 `config` 参数**：`config` 既可以传 `read_testconfig_file()` 的输出，也可以传 `read_testwp_file()` 的输出（见下一小节）。两者的关系是**后者的功能包含前者**，区别如下：
+>
+> | config 来源 | 能否判断检查项缺失（`check_missing_test()`） | 能否判断检查项超窗（`check_test_window()`） | 外部配置文件格式 |
+> |-------------|:----:|:----:|------|
+> | `read_testconfig_file()` | ✅ | ❌（不衍生窗口期） | 列表式（`TESTCAT` + `VISITNUM` 逗号分隔） |
+> | `read_testwp_file()` | ✅ | ✅ | 矩阵式（每访视一行 × 每检查类别一列，单元格填 `REF(WP)`） |
+>
+> 也就是说，用 `testwp` 作为 `config` 时，`prepare_test_data()` 的输出既能用于检查项缺失，也能在此基础上进一步用于检查项超窗；两者的唯一差别在于**准备的外部配置文件格式不同**。
 
 **必需列：**
 
@@ -202,13 +212,44 @@ VISITNUM 列支持中英文逗号分隔，函数会自动展开为多行。
 testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
 ```
 
-> **提示**：建议将访视计划的读取结果赋值给 `visitcode`，检查项配置的读取结果赋值给 `testconfig`。后续的 `generate_planned_visit_dates()` 和 `prepare_test_data()` 会自动在调用环境中查找这两个变量名，无需手动传参。
+#### 检查项窗口配置文件
+
+用于 `read_testwp_file()` 读取，为**检查项超窗检查**（`check_test_window()`）提供窗口规则。`read_testwp_file()` 读取的文件采用**矩阵布局**：第 1 行是表头（第 1 列 `VISIT`、第 2 列 `VISITNUM`，其余列为 `TESTCAT`），之后每行一个访视，非空单元格表示该检查项在该访视需要执行，且单元格内填写窗口规则。
+
+非空单元格的窗口规则格式为 **`REF(WP)`**，其中 `REF` 指定锚点，`WP` 指定窗口范围：
+
+| REF | 锚点日期 |
+|-----|----------|
+| RD | 随机化日期 |
+| SV | 该访视的实际访视日期 |
+| EX | 该访视的实际给药日期 |
+| FD | 首次给药日期 |
+
+`WP` 语法与访视计划的 `WP` 列一致（`±3d`、`≤24h`、`+3d` 等）；括号内为 `0` 表示必须恰在锚点当天；`PREV`（或 `prev-d` / `prev-h`）表示必须在锚点之前（含锚点当天/时刻），无下界。
+
+**示例文件（test_wp.xlsx）：**
+
+| VISIT | VISITNUM | 血常规 | 血生化 |
+|-------|----------|--------|--------|
+| C1D1  | 1        | `RD(0)` | `SV(±3d)` |
+| C1D8  | 2        | `EX(≤24h)` | `SV(±3d)` |
+| EOT   | 99       | `FD(±3d)` | `SV(±3d)` |
+
+```r
+testwp <- read_testwp_file("test_wp.xlsx", sheet_name = "QL0911-302")
+
+# 传入 visitcode 以关联访视名称
+testwp <- read_testwp_file("test_wp.xlsx", sheet_name = "QL0911-302", visitcode = visitcode)
+```
+
+> **提示**：建议将访视计划的读取结果赋值给 `visitcode`，检查项配置的读取结果赋值给 `testconfig`。后续的 `generate_planned_visit_dates()` 和 `prepare_test_data()` 会自动在调用环境中查找这两个变量名，无需手动传参。检查项超窗使用 `testwp`（而非 `testconfig`）作为 `config`。
 >
-> **示例文件**：包内 `inst/extdata` 目录提供了两个可直接参考的模板文件：`example_visitcode.xlsx`（访视计划，含 CYCDAY 列）和 `example_test.xlsx`（检查项配置）。安装包后可通过以下方式获取路径：
+> **示例文件**：包内 `inst/extdata` 目录提供了三个可直接参考的模板文件：`example_visitcode.xlsx`（访视计划，含 CYCDAY 列）、`example_test.xlsx`（检查项配置）和 `example_test_wp.xlsx`（检查项窗口配置）。安装包后可通过以下方式获取路径：
 >
 > ```r
 > system.file("extdata", "example_visitcode.xlsx", package = "pdchecker")
 > system.file("extdata", "example_test.xlsx", package = "pdchecker")
+> system.file("extdata", "example_test_wp.xlsx", package = "pdchecker")
 > ```
 
 ## 功能概览
@@ -226,12 +267,14 @@ testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
 | -------------------------------- | -------------------------------------- |
 | `read_visitcode_file()`          | 从 Excel 读取访视计划并解析窗口期（如 `+/-3d`、`<=24h`）；保留可选 **CYCDAY** 列 |
 | `read_testconfig_file()`         | 从 Excel读取各访视需要进行的检查项                   |
+| `read_testwp_file()`             | 从 Excel 读取检查项窗口配置（矩阵布局），解析 `REF(WP)` 规则 |
 | `get_first_dose_date()`          | 提取每位受试者的首次给药日期                         |
 | `get_last_dose_date()`           | 提取每位受试者的末次给药日期                         |
 | `get_eot_date()`                 | 提取治疗结束日期（支持多 EOT 数据集，取最大日期）      |
 | `get_eos_date()`                 | 提取研究结束日期                               |
 | `generate_planned_visit_dates()` | 根据访视计划和临床数据生成计划访视日期与窗口；默认从 **CYCDAY** 读取各周期间隔 |
 | `prepare_test_data()`            | 准备和标准化检查项数据，用于检查项缺失检查                  |
+| `generate_test_window_dates()`   | 解析检查项锚点日期并推导窗口范围（含小时级窗口），用于检查项超窗检查 |
 
 ### 方案偏离检查
 
@@ -242,6 +285,7 @@ testconfig <- read_testconfig_file("test_config.xlsx", visitcode = visitcode)
 | `check_missing_visit()`      | 基于计划访视日期和截止标准检查遗漏访视 |
 | `check_visit_window()`       | 检查已完成访视是否在规定的访视窗口内  |
 | `check_missing_test()`       | 检查每次访视中缺失的检测项目      |
+| `check_test_window()`        | 检查每次访视中的检查项是否在规定的窗口期内（检查项超窗） |
 
 ### 结果处理与报告
 

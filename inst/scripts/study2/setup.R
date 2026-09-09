@@ -1,3 +1,4 @@
+# nolint start
 rm(list = ls())
 
 library(haven)
@@ -45,4 +46,4 @@ set_pdchecker_options(
   test_cat_var    = NULL,   # 检查类别变量
   test_de_var     = NULL    # 检查指标变量
 )
-
+# nolint end

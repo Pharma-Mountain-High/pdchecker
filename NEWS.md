@@ -1,3 +1,33 @@
+# pdchecker 1.0.0
+
+## 新功能
+
+### 检查项超窗检查
+
+新增检查项超窗（`check_test_window()`）功能链，用于检测受试者在访视中执行的检查项是否超出方案规定的窗口期。该功能由以下四个函数组成：
+
+- **`read_testwp_file()`**：读取检查项窗口配置文件。该文件采用矩阵布局（每访视一行 × 每检查类别一列），非空单元格填写 `REF(WP)` 窗口规则（如 `RD(-7d)`、`EX(≤24h)`、`SV(±3d)`），其中 `REF` 指定锚点（RD / SV / EX / FD），`WP` 支持 `±`、`+`、`-`、`≤`、`≥`、`0`、`PREV` 等语法。输出包含 `wp_rule/ref/wp/type/wpvalue/wp_unit` 列。
+
+- **`prepare_test_data()`**：`config` 参数新增支持 `read_testwp_file()` 的输出。此时生成的窗口规则列（`wp_rule/ref/wp/type/wpvalue/wp_unit`）会被保留并在结果中回填，供下游窗口推导使用；同时自动附加随机化日期（`rd_date`）、首次给药日期（`first_dose_date`）及逐次给药日期（`cyc_dose_date`）。从数据源读取给药时间需要新增 `ex_time_var` 参数。
+
+- **`generate_test_window_dates()`**：解析每条检查记录的锚点日期，并推导窗口范围。新增 `anchor_date`、`anchor_datetime`、`window_start`、`window_end`、`window_start_dt`、`window_end_dt` 及 `window_status` 列。支持天级（Date）和小时级（POSIXct，如 `≤24h`）两种窗口。锚点类型包括 RD（随机日期）、SV（实际访视日期）、EX（实际给药日期）、FD（首次给药日期）。`PREV` 规则为无下界窗口，仅设定上界（锚点之前，含当天/时刻）。
+
+- **`check_test_window()`**：按「受试者 × 访视 × 检查项类别」分组，判断实际检查日期（时间）是否落在窗口范围内。同一组内至少一条记录在窗内即合规；全部在窗外时记录一条偏离，并取离锚点最近的一条作为明细。支持自定义 `pdno`（默认 `"8.4.2"`）。
+
+**窗口规则支持：**
+
+- 天级（`wp_unit = "d"`）：比较 `TESTDAT` 与 `window_start` / `window_end`（Date）。
+- 小时级（`wp_unit = "h"`，如 `EX(≤24h)`）：将 `TESTDAT` + `TESTTIM` 合并为日期时间，与 `window_start_dt` / `window_end_dt`（POSIXct）比较；时间缺省按 `00:00:00`。
+
+**要点：**
+
+- `TESTDAT` 缺失的检查项由 `check_missing_test()` 处理，不参与超窗判断。
+- 窗口无法推导（`window_status` 为 `no_rule` / `no_anchor_data` / `missing_anchor_date` / `unsupported_rule`）的记录会被跳过。
+
+示例见 `inst/extdata/example_test_wp.xlsx` 及配套示例脚本。
+
+---
+
 # pdchecker 0.9.5
 
 ## 新功能

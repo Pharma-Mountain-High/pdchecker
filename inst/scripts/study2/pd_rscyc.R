@@ -1,4 +1,4 @@
-
+# nolint start
 #---------------------------------------肿瘤评估访视相关--------------------------------------------
 #读取RSCYC编码文件
 rscode <- read_visitcode_file("inst/extdata/example_rscyc.xlsx",
@@ -58,3 +58,4 @@ pd_5_1_1_output <- rbind(as_check_df(missing_rs_tl,check_name = "6.1.1 肿瘤影
 
 pd_5_1_2_output <- rbind(as_check_df(window_rs_tl,check_name = "6.1.2 肿瘤影像学检查超窗"),
                          as_check_df(window_rs_ntl,check_name = "6.1.2 肿瘤影像学检查超窗"))
+# nolint end

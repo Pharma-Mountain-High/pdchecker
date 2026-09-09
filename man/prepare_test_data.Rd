@@ -20,7 +20,12 @@ prepare_test_data(
   sv_date_var = getOption("pdchecker.sv_date_var", "SVDAT"),
   config = NULL,
   config_cat = NULL,
-  filter_cond = NULL
+  filter_cond = NULL,
+  rd_datasets = getOption("pdchecker.rd_datasets", "RAND"),
+  rd_date_var = getOption("pdchecker.rd_date_var", "RANDDT"),
+  ex_datasets = getOption("pdchecker.ex_datasets", "EX"),
+  ex_date_var = getOption("pdchecker.ex_date_var", "EXSTDAT"),
+  ex_time_var = getOption("pdchecker.ex_time_var", NULL)
 )
 }
 \arguments{
@@ -62,7 +67,17 @@ which expands VISITNUM to one per row.
 Config must contain: TESTCAT (test category), VISITNUM (visit number, one per row).
 Generates expected visit-test combinations as skeleton,
 showing empty records (TESTDAT=NA) even when original data has no records.
-Use \code{\link{read_testconfig_file}} to read config from Excel/CSV files}
+Use \code{\link{read_testconfig_file}} to read config from Excel/CSV files.
+The output of \code{\link{read_testwp_file}} is also accepted; its
+window-rule columns (wp_rule, ref, wp, type, wpvalue, wp_unit) are joined back to
+the result by TESTCAT + VISITNUM for downstream test-window checks.
+Randomization, first-dose and per-visit dosing dates / times
+(\code{rd_date}, \code{first_dose_date}, \code{first_dose_time},
+\code{cyc_dose_date}, \code{cyc_dose_time})
+are always attached from \code{data} via \code{\link{get_rand_date}},
+\code{\link{get_first_dose_date}} and \code{\link{get_cyc_dose_date}}
+(NA when the source datasets are absent; times NA when
+\code{ex_time_var} is NULL)}
 
 \item{config_cat}{Character vector, test categories to filter from config (default: NULL).
 If NULL, uses all TESTCAT in config;
@@ -77,6 +92,17 @@ multiple conditions separated by semicolons (intersection/AND logic):
 \item "ENROL|ENRYN=='Y';SUBJECT|SEX=='M'" - Enrolled males (intersection)
 If NULL, no subject filtering is applied
 }}
+
+\item{rd_datasets}{Character vector, randomization dataset names (default: "RAND")}
+
+\item{rd_date_var}{Character vector, randomization date variable (default: "RANDDT")}
+
+\item{ex_datasets}{Character vector, exposure dataset names (default: "EX")}
+
+\item{ex_date_var}{Character vector, dosing date variable (default: "EXSTDAT")}
+
+\item{ex_time_var}{Character vector, dosing time variable (default: NULL).
+If NULL or empty, \code{first_dose_time} and \code{cyc_dose_time} are NA}
 }
 \value{
 Data frame with column order:
@@ -93,6 +119,13 @@ Data frame with column order:
 \item{TESTDAT}{Test date (derived, mapped from test_date_var)}
 \item{TESTTIM}{Test time (derived, mapped from test_time_var)}
 \item{ORRES}{Test result (derived, mapped from test_result_var)}
+\item{rd_date}{Randomization date from \code{\link{get_rand_date}} (NA if unavailable)}
+\item{first_dose_date}{First dose date from \code{\link{get_first_dose_date}} (NA if unavailable)}
+\item{first_dose_time}{First dose time (NA if \code{ex_time_var} is NULL or unavailable)}
+\item{cyc_dose_date}{Per-visit dosing date from \code{\link{get_cyc_dose_date}} (NA if unavailable)}
+\item{cyc_dose_time}{Per-visit dosing time (NA if \code{ex_time_var} is NULL or unavailable)}
+\item{wp_rule, ref, wp, type, wpvalue, wp_unit}{Test-window rule columns, only
+present when config contains them (e.g. from \code{\link{read_testwp_file}})}
 \item{...}{All other original columns from test dataset}
 }
 Note: SV dataset only keeps SUBJID, VISIT, VISITNUM, SVDAT in output
@@ -197,5 +230,11 @@ result <- check_missing_test(data = lb_prepared)
 \seealso{
 \code{\link{check_missing_test}} for checking missing tests
 \code{\link{read_testconfig_file}} for reading test config files
+\code{\link{read_testwp_file}} for reading test-window config files
+\code{\link{generate_test_window_dates}} for deriving test windows
+\code{\link{get_rand_date}} / \code{\link{get_cyc_dose_date}} for date extraction
+
+Other data preparation:
+\code{\link[=generate_test_window_dates]{generate_test_window_dates()}}
 }
 \concept{data preparation}
