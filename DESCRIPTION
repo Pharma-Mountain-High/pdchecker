@@ -10,6 +10,7 @@ Description: Automates the detection of protocol deviations in clinical
     compliance, and laboratory test completeness. Results can be exported
     as Markdown, HTML, or Excel reports.
 License: Apache License 2.0
+Language: en-US
 URL: https://github.com/Pharma-Mountain-High/pdchecker
 BugReports: https://github.com/Pharma-Mountain-High/pdchecker/issues
 Depends:

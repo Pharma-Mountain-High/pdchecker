@@ -22,6 +22,7 @@ cutoffdt
 cyc
 CYCDAY
 dataLayer
+datalist
 datetime
 de
 dependenct
@@ -46,6 +47,7 @@ eot
 EOTDAT
 EXENDAT
 EXSTDAT
+extdata
 FK
 FMTNAME
 fn
@@ -94,6 +96,7 @@ MERCHANTABILITY
 MHSTDAT
 na
 navbar
+NTL
 NYHA
 nyha
 OpenAI
@@ -113,6 +116,7 @@ PREV
 prev
 RANDDT
 Rawdata
+rawdata
 RBC
 RD
 readr
@@ -125,6 +129,7 @@ rI
 rlang
 Roxygen
 RoxygenNote
+rscyc
 sas
 sexualized
 socio
@@ -148,6 +153,7 @@ TG
 tg
 tibble
 tinyverse
+TUCYCN
 UA
 Uf
 UI
