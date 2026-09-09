@@ -12,3 +12,4 @@
 ^staged_dependencies\.yaml$
 ^\.cursorrules$
 ^node_modules$
+AGENTS.md

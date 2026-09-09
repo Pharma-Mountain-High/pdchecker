@@ -56,7 +56,8 @@ data <- read_raw_data_with_formats(
 
 # 2. 读取配置文件
 visitcode  <- read_visitcode_file("path/to/visit_schedule.xlsx")
-testconfig <- read_testconfig_file("path/to/test_config.xlsx", visitcode = visitcode)
+testconfig <- read_testconfig_file("path/to/test_config.xlsx")
+testwp     <- read_testconfig_file("path/to/test_wp.xlsx")
 
 # 3. 统一设置数据集和变量名（一次配置，后续函数自动使用）
 set_pdchecker_options(
@@ -74,22 +75,26 @@ planned_dates <- generate_planned_visit_dates(data)
 # planned_dates <- generate_planned_visit_dates(data, cycle_days = 28)
 
 # 5. 准备检查项数据
-prepared_lb <- prepare_test_data(data, test_dataset = "LB")
+prepared_lb <- prepare_test_data(data, test_dataset = "LB", config = testwp)
 
-# 6. 执行方案偏离检查
+# 6. 生成检查项窗口
+
+lb_window <- generate_test_window_dates(lb_data)
+
+# 7. 执行方案偏离检查
 res_1 <- check_screen_without_ic(data)       # 筛查但无知情同意
 res_2 <- check_icf_time_deviation(data)      # 知情同意前操作
 res_3 <- check_missing_visit(planned_dates)  # 遗漏访视
 res_4 <- check_visit_window(planned_dates)   # 访视超窗
-res_5 <- check_missing_test(prepared_lb)     # LB 检查项缺失
-res_6 <- check_test_window(prepared_lb)      # LB 检查项超窗
+res_5 <- check_missing_test(lb_window)     # LB 检查项缺失
+res_6 <- check_test_window(lb_window)      # LB 检查项超窗
 
-# 7. 合并所有结果
+# 8. 合并所有结果
 all_results <- combine_check_results(
   res_1,res_2,res_3,res_4,res_5,res_6
 )
 
-# 8. 生成报告
+# 9. 生成报告
 generate_excel_report(all_results, "pd_report.xlsx")
 ```
 
