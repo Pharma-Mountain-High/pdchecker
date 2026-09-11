@@ -78,6 +78,70 @@ create_test_data <- function() {
   )
 }
 
+create_vs_test_data <- function() {
+  # Vital signs in long format (one measurement per row)
+  vs_data <- data.frame(
+    SUBJID = c("001", "001", "002", "002", "003", "003"),
+    VISIT = c("V1", "V2", "V1", "V2", "V1", "V2"),
+    VISITNUM = c(1, 2, 1, 2, 1, 2),
+    TNAME = c("VS", "VS", "VS", "VS", "VS", "VS"),
+    VSTEST = c("Height", "Weight", "Height", "Weight", "Height", "Weight"),
+    VSDAT = as.Date(c(
+      "2024-01-01", "2024-01-15",
+      "2024-01-02", "2024-01-16",
+      "2024-01-03", "2024-01-17"
+    )),
+    VSORRES = c("170", "65", "165", "60", "180", "80"),
+    VSYN = c("Yes", "Yes", "Yes", "Yes", "Yes", "Yes"),
+    stringsAsFactors = FALSE
+  )
+
+  sv_data <- data.frame(
+    SUBJID = c("001", "001", "001", "002", "002", "002", "003", "003", "003"),
+    VISIT = c("V1", "V2", "V3", "V1", "V2", "V3", "V1", "V2", "V3"),
+    VISITNUM = c(1, 2, 3, 1, 2, 3, 1, 2, 3),
+    SVDAT = as.Date(c(
+      "2024-01-01", "2024-01-15", "2024-02-01",
+      "2024-01-02", "2024-01-16", "2024-02-02",
+      "2024-01-03", "2024-01-17", "2024-02-03"
+    )),
+    stringsAsFactors = FALSE
+  )
+
+  subject_data <- data.frame(
+    SUBJID = c("001", "002", "003"),
+    SEX = c("M", "F", "M"),
+    AGE = c(25, 30, 45),
+    stringsAsFactors = FALSE
+  )
+
+  enrol_data <- data.frame(
+    SUBJID = c("001", "002", "003"),
+    ENRYN = c("Yes", "Yes", "No"),
+    stringsAsFactors = FALSE
+  )
+
+  list(
+    SV = sv_data,
+    VSLONG = vs_data,
+    SUBJECT = subject_data,
+    ENROL = enrol_data
+  )
+}
+
+create_two_dataset_data <- function() {
+  vs <- create_vs_test_data()
+  lb <- create_test_data()
+  list(
+    SV = lb$SV,
+    LB = lb$LB,
+    VSLONG = vs$VSLONG,
+    SUBJECT = lb$SUBJECT,
+    DM = lb$DM,
+    ENROL = lb$ENROL
+  )
+}
+
 
 # =============================================================================
 # Test basic functionality
@@ -933,4 +997,346 @@ test_that("完整流程 prepare 挂日期到 generate 再到 check", {
 
   expect_true(result$has_deviation)
   expect_true(all(result$details$SUBJID == "002"))
+})
+
+
+# =============================================================================
+# Tests for multi-dataset support (B1-B14)
+# =============================================================================
+
+create_multi_config <- function() {
+  data.frame(
+    TESTCAT = c("CBC", "CBC", "CBC", "VS", "VS", "VS"),
+    VISITNUM = c("1", "2", "3", "1", "2", "3"),
+    stringsAsFactors = FALSE
+  )
+}
+
+test_that("B1 two datasets are combined with correct TBNAME and row count", {
+  data <- create_two_dataset_data()
+  config_df <- create_multi_config()
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = c(LB = "ORRES", VS = "VSORRES"),
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
+    config_cat = list(LB = "CBC", VS = "VS"),
+    config = config_df
+  )
+
+  expect_true(is.data.frame(result))
+  expect_setequal(unique(result$TBNAME), c("LB", "VSLONG"))
+  # LB: 3 subjects * 1 TESTCAT * 3 visits = 9
+  # VS: 3 subjects * 1 TESTCAT * 3 visits = 9
+  expect_equal(nrow(result), 18)
+})
+
+
+test_that("B2 different variable names per dataset are mapped correctly", {
+  data <- create_two_dataset_data()
+  config_df <- create_multi_config()
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = c(LB = "ORRES", VS = "VSORRES"),
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
+    config_cat = list(LB = "CBC", VS = "VS"),
+    config = config_df
+  )
+
+  lb_rows <- result[result$TBNAME == "LB", ]
+  vs_rows <- result[result$TBNAME == "VSLONG", ]
+
+  expect_true(any(!is.na(lb_rows$TESTDAT)))
+  expect_true(any(!is.na(vs_rows$TESTDAT)))
+  expect_true(any(!is.na(vs_rows$TESTDE)))
+  expect_equal(unique(vs_rows$TESTDE[!is.na(vs_rows$TESTDE)]), c("Height", "Weight"))
+})
+
+
+test_that("B3 unnamed single value is reused across datasets", {
+  data <- create_two_dataset_data()
+  # Add generic ORRES column to VSLONG so a single test_result_var can match both datasets
+  data$VSLONG$ORRES <- data$VSLONG$VSORRES
+  config_df <- create_multi_config()
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = "ORRES",   # single value, reused
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
+    config_cat = list(LB = c("CBC"), VS = c("VS")),
+    config = config_df
+  )
+
+  lb_rows <- result[result$TBNAME == "LB", ]
+  vs_rows <- result[result$TBNAME == "VSLONG", ]
+
+  expect_true(any(!is.na(lb_rows$ORRES)))
+  expect_true(any(!is.na(vs_rows$ORRES)))
+})
+
+
+test_that("B4 named arguments align by name regardless of order", {
+  data <- create_two_dataset_data()
+  config_df <- create_multi_config()
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(VS = "VSDAT", LB = "LBDAT"), # order reversed
+    test_yn_var = c(VS = "VSYN", LB = "YN"),
+    test_result_var = c(VS = "VSORRES", LB = "ORRES"),
+    test_cat_var = c(VS = "TNAME", LB = "LBCAT"),
+    test_de_var = c(VS = "VSTEST", LB = "LBTEST"),
+    config_cat = list(LB = "CBC", VS = "VS"),
+    config = config_df
+  )
+
+  lb_rows <- result[result$TBNAME == "LB", ]
+  vs_rows <- result[result$TBNAME == "VSLONG", ]
+
+  expect_true(any(!is.na(lb_rows$TESTDAT)))
+  expect_true(any(!is.na(vs_rows$TESTDAT)))
+  expect_equal(unique(vs_rows$TESTDE[!is.na(vs_rows$TESTDE)]), c("Height", "Weight"))
+})
+
+
+test_that("B5 mismatched names raise an error", {
+  data <- create_two_dataset_data()
+  config_df <- create_multi_config()
+
+  expect_error(
+    prepare_test_data(
+      data = data,
+      test_dataset = c(LB = "LB", VS = "VSLONG"),
+      test_date_var = c(LB = "LBDAT")  # missing VS
+    ),
+    "test_date_var.*Missing: VS"
+  )
+})
+
+
+test_that("B6 different config_cat per dataset are applied", {
+  data <- create_two_dataset_data()
+  config_df <- data.frame(
+    TESTCAT = c("CBC", "CBC", "CBC", "CHEM", "CHEM", "CHEM", "VS", "VS", "VS"),
+    VISITNUM = c("1", "2", "3", "1", "2", "3", "1", "2", "3"),
+    stringsAsFactors = FALSE
+  )
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = c(LB = "ORRES", VS = "VSORRES"),
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
+    config = config_df,
+    config_cat = list(LB = c("CBC", "CHEM"), VS = "VS")
+  )
+
+  expect_setequal(unique(result$TESTCAT[result$TBNAME == "LB"]), c("CBC", "CHEM"))
+  expect_setequal(unique(result$TESTCAT[result$TBNAME == "VSLONG"]), "VS")
+  expect_false("CHEM" %in% result$TESTCAT[result$TBNAME == "VSLONG"])
+})
+
+
+test_that("B7 columns missing in one dataset are filled with NA after bind", {
+  data <- create_two_dataset_data()
+  config_df <- create_multi_config()
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = c(LB = "ORRES", VS = "VSORRES"),
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
+    config_cat = list(LB = "CBC", VS = "VS"),
+    config = config_df
+  )
+
+  # LB has original LBCAT, LBTEST columns; VS does not
+  expect_true("LBCAT" %in% names(result))
+  expect_true("LBTEST" %in% names(result))
+  expect_true(all(is.na(result$LBCAT[result$TBNAME == "VSLONG"])))
+  expect_true(all(is.na(result$LBTEST[result$TBNAME == "VSLONG"])))
+})
+
+
+test_that("B8 single dataset usage remains unchanged", {
+  test_data <- create_test_data()
+  config_df <- create_default_config()
+
+  result <- prepare_test_data(
+    data = test_data,
+    test_dataset = "LB",
+    test_date_var = "LBDAT",
+    test_yn_var = "YN",
+    test_result_var = "ORRES",
+    test_cat_var = "LBCAT",
+    test_de_var = "LBTEST",
+    config = config_df,
+    config_cat = c("CBC", "Chemistry")
+  )
+
+  expect_true(is.data.frame(result))
+  expect_true(all(result$TBNAME == "LB"))
+  expect_true(all(unique(result$TESTCAT) %in% c("CBC", "Chemistry")))
+})
+
+
+test_that("B9 NULL per-dataset argument is reused and produces NA TESTDE", {
+  data <- create_two_dataset_data()
+  config_df <- create_multi_config()
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = c(LB = "ORRES", VS = "VSORRES"),
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = NULL,  # reused NULL
+    config_cat = list(LB = "CBC", VS = "VS"),
+    config = config_df
+  )
+
+  expect_true(all(is.na(result$TESTDE)))
+})
+
+
+test_that("B10 multi-dataset result can be fed to check_missing_test", {
+  data <- create_two_dataset_data()
+  config_df <- create_multi_config()
+
+  prepared <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = c(LB = "ORRES", VS = "VSORRES"),
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
+    config_cat = list(LB = "CBC", VS = "VS"),
+    config = config_df
+  )
+
+  result <- check_missing_test(prepared)
+
+  expect_true(inherits(result, "missing_test_check"))
+  expect_type(result$has_deviation, "logical")
+})
+
+
+test_that("B11 factor and character TESTDE are unified to character", {
+  data <- create_two_dataset_data()
+  # Make LBTEST a factor in LB
+  data$LB$LBTEST <- factor(data$LB$LBTEST)
+  config_df <- create_multi_config()
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = c(LB = "ORRES", VS = "VSORRES"),
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
+    config_cat = list(LB = "CBC", VS = "VS"),
+    config = config_df
+  )
+
+  expect_true(is.character(result$TESTDE))
+  expect_false(any(vapply(result$TESTDE, is.list, logical(1)), na.rm = TRUE))
+})
+
+
+test_that("B12 shared config window columns are preserved", {
+  data <- create_two_dataset_data()
+  config_df <- data.frame(
+    TESTCAT = c("CBC", "CBC", "VS", "VS"),
+    VISITNUM = c("1", "2", "1", "2"),
+    wp_rule = c("RD(-7d)", "EX(<=24h)", "SV(+/-3d)", "RD(-7d)"),
+    ref = c("RD", "EX", "SV", "RD"),
+    wp = c("-7d", "<=24h", "+/-3d", "-7d"),
+    type = c("-", "<=", "+/-", "-"),
+    wpvalue = c(7, 24, 3, 7),
+    wp_unit = c("d", "h", "d", "d"),
+    stringsAsFactors = FALSE
+  )
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = c(LB = "ORRES", VS = "VSORRES"),
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
+    config_cat = list(LB = "CBC", VS = "VS"),
+    config = config_df
+  )
+
+  window_cols <- c("wp_rule", "ref", "wp", "type", "wpvalue", "wp_unit")
+  expect_true(all(window_cols %in% names(result)))
+
+  cbc_v1 <- result[result$TESTCAT == "CBC" & result$VISITNUM == 1, ]
+  expect_true(all(cbc_v1$ref == "RD"))
+})
+
+
+test_that("B13 filter_cond single string is reused across datasets", {
+  data <- create_two_dataset_data()
+  config_df <- create_multi_config()
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c(LB = "LB", VS = "VSLONG"),
+    test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
+    test_yn_var = c(LB = "YN", VS = "VSYN"),
+    test_result_var = c(LB = "ORRES", VS = "VSORRES"),
+    test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
+    test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
+    config_cat = list(LB = "CBC", VS = "VS"),
+    config = config_df,
+    filter_cond = "SUBJECT|SEX=='M'"
+  )
+
+  expect_setequal(unique(result$SUBJID), c("001", "003"))
+})
+
+
+test_that("B14 unnamed test_dataset aligns arguments by position", {
+  data <- create_two_dataset_data()
+  config_df <- create_multi_config()
+
+  result <- prepare_test_data(
+    data = data,
+    test_dataset = c("LB", "VSLONG"),
+    test_date_var = c("LBDAT", "VSDAT"),
+    test_yn_var = c("YN", "VSYN"),
+    test_result_var = c("ORRES", "VSORRES"),
+    test_cat_var = c("LBCAT", "TNAME"),
+    test_de_var = c("LBTEST", "VSTEST"),
+    config_cat = list(c("CBC"), c("VS")),
+    config = config_df
+  )
+
+  expect_setequal(unique(result$TBNAME), c("LB", "VSLONG"))
+  expect_equal(nrow(result), 18)
 })
