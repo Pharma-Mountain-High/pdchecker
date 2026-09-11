@@ -1073,7 +1073,7 @@ test_that("B3 unnamed single value is reused across datasets", {
     test_dataset = c(LB = "LB", VS = "VSLONG"),
     test_date_var = c(LB = "LBDAT", VS = "VSDAT"),
     test_yn_var = c(LB = "YN", VS = "VSYN"),
-    test_result_var = "ORRES",   # single value, reused
+    test_result_var = "ORRES", # single value, reused
     test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
     test_de_var = c(LB = "LBTEST", VS = "VSTEST"),
     config_cat = list(LB = c("CBC"), VS = c("VS")),
@@ -1121,7 +1121,7 @@ test_that("B5 mismatched names raise an error", {
     prepare_test_data(
       data = data,
       test_dataset = c(LB = "LB", VS = "VSLONG"),
-      test_date_var = c(LB = "LBDAT")  # missing VS
+      test_date_var = c(LB = "LBDAT") # missing VS
     ),
     "test_date_var.*Missing: VS"
   )
@@ -1211,7 +1211,7 @@ test_that("B9 NULL per-dataset argument is reused and produces NA TESTDE", {
     test_yn_var = c(LB = "YN", VS = "VSYN"),
     test_result_var = c(LB = "ORRES", VS = "VSORRES"),
     test_cat_var = c(LB = "LBCAT", VS = "TNAME"),
-    test_de_var = NULL,  # reused NULL
+    test_de_var = NULL, # reused NULL
     config_cat = list(LB = "CBC", VS = "VS"),
     config = config_df
   )

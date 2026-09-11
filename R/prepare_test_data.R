@@ -253,15 +253,15 @@ prepare_test_data <- function(data,
     stop(paste0("Visit dataset not found in data: ", sv_dataset))
   }
 
-  test_date_var   <- align_arg(test_date_var,   ds_names, n_ds, "test_date_var")
-  test_time_var   <- align_arg(test_time_var,   ds_names, n_ds, "test_time_var")
-  test_yn_var     <- align_arg(test_yn_var,     ds_names, n_ds, "test_yn_var")
+  test_date_var <- align_arg(test_date_var, ds_names, n_ds, "test_date_var")
+  test_time_var <- align_arg(test_time_var, ds_names, n_ds, "test_time_var")
+  test_yn_var <- align_arg(test_yn_var, ds_names, n_ds, "test_yn_var")
   test_result_var <- align_arg(test_result_var, ds_names, n_ds, "test_result_var")
-  test_cat_var    <- align_arg(test_cat_var,    ds_names, n_ds, "test_cat_var")
-  test_de_var     <- align_arg(test_de_var,     ds_names, n_ds, "test_de_var")
-  tb_name_var     <- align_arg(tb_name_var,     ds_names, n_ds, "tb_name_var")
-  config_cat      <- align_arg(config_cat,      ds_names, n_ds, "config_cat", list_mode = TRUE)
-  filter_cond     <- align_arg(filter_cond,     ds_names, n_ds, "filter_cond", list_mode = TRUE)
+  test_cat_var <- align_arg(test_cat_var, ds_names, n_ds, "test_cat_var")
+  test_de_var <- align_arg(test_de_var, ds_names, n_ds, "test_de_var")
+  tb_name_var <- align_arg(tb_name_var, ds_names, n_ds, "tb_name_var")
+  config_cat <- align_arg(config_cat, ds_names, n_ds, "config_cat", list_mode = TRUE)
+  filter_cond <- align_arg(filter_cond, ds_names, n_ds, "filter_cond", list_mode = TRUE)
 
   results <- lapply(seq_len(n_ds), function(i) {
     prepare_single_test_data(
@@ -297,8 +297,10 @@ align_arg <- function(x, ds_names, n_ds, arg_name, list_mode = FALSE) {
 
   if (has_names) {
     if (is.null(ds_names)) {
-      stop("'", arg_name, "' has names but 'test_dataset' is unnamed. ",
-           "Either name 'test_dataset' or do not name '", arg_name, "'.")
+      stop(
+        "'", arg_name, "' has names but 'test_dataset' is unnamed. ",
+        "Either name 'test_dataset' or do not name '", arg_name, "'."
+      )
     }
     missing_in_x <- setdiff(ds_names, x_names)
     extra_in_x <- setdiff(x_names, ds_names)
@@ -511,7 +513,9 @@ prepare_single_test_data <- function(data,
     test_data_standard$TESTCAT_orig <- test_data_standard[[test_cat_var]]
   } else {
     if (!is.null(test_cat_var) && test_cat_var != "" && !test_cat_var %in% names(test_data_standard)) {
-      warning(paste0("Column not found in test dataset '", test_dataset, "': ", test_cat_var, ", TESTCAT will be set to NA"))
+      warning(
+        paste0("Column not found in test dataset '", test_dataset, "': ", test_cat_var, ", TESTCAT will be set to NA")
+      )
     }
     test_data_standard$TESTCAT_orig <- NA_character_
   }
@@ -544,7 +548,9 @@ prepare_single_test_data <- function(data,
     merged_data$TESTDE <- as.character(merged_data[[test_de_var]])
   } else {
     if (!is.null(test_de_var) && test_de_var != "" && !test_de_var %in% names(merged_data)) {
-      warning(paste0("Column not found in test dataset '", test_dataset, "': ", test_de_var, ", TESTDE will be set to NA"))
+      warning(
+        paste0("Column not found in test dataset '", test_dataset, "': ", test_de_var, ", TESTDE will be set to NA")
+      )
     }
     merged_data$TESTDE <- NA_character_
   }
@@ -553,7 +559,9 @@ prepare_single_test_data <- function(data,
   if (test_yn_var %in% names(merged_data)) {
     merged_data$TESTYN <- as.character(merged_data[[test_yn_var]])
   } else {
-    warning(paste0("Column not found in test dataset '", test_dataset, "': ", test_yn_var, ", TESTYN will be set to NA"))
+    warning(
+      paste0("Column not found in test dataset '", test_dataset, "': ", test_yn_var, ", TESTYN will be set to NA")
+    )
     merged_data$TESTYN <- NA_character_
   }
 
@@ -561,7 +569,9 @@ prepare_single_test_data <- function(data,
   if (test_date_var %in% names(merged_data)) {
     merged_data$TESTDAT <- merged_data[[test_date_var]]
   } else {
-    warning(paste0("Column not found in test dataset '", test_dataset, "': ", test_date_var, ", TESTDAT will be set to NA"))
+    warning(
+      paste0("Column not found in test dataset '", test_dataset, "': ", test_date_var, ", TESTDAT will be set to NA")
+    )
     merged_data$TESTDAT <- NA
   }
 
@@ -570,7 +580,9 @@ prepare_single_test_data <- function(data,
     merged_data$TESTTIM <- as.character(merged_data[[test_time_var]])
   } else {
     if (!is.null(test_time_var) && test_time_var != "" && !test_time_var %in% names(merged_data)) {
-      warning(paste0("Column not found in test dataset '", test_dataset, "': ", test_time_var, ", TESTTIM will be set to NA"))
+      warning(
+        paste0("Column not found in test dataset '", test_dataset, "': ", test_time_var, ", TESTTIM will be set to NA")
+      )
     }
     merged_data$TESTTIM <- NA_character_
   }
@@ -583,7 +595,9 @@ prepare_single_test_data <- function(data,
       merged_data$ORRES <- as.character(merged_data$ORRES)
     }
   } else {
-    warning(paste0("Column not found in test dataset '", test_dataset, "': ", test_result_var, ", ORRES will be set to NA"))
+    warning(
+      paste0("Column not found in test dataset '", test_dataset, "': ", test_result_var, ", ORRES will be set to NA")
+    )
     merged_data$ORRES <- NA_character_
   }
 

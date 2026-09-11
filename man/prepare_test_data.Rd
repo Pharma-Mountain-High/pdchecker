@@ -31,7 +31,9 @@ prepare_test_data(
 \arguments{
 \item{data}{List containing all clinical trial datasets}
 
-\item{test_dataset}{Character string, test dataset name to extract (e.g., "LB")}
+\item{test_dataset}{Character vector, test dataset name(s) to extract (e.g. "LB").
+Can be a named vector to prepare multiple datasets at once. When named,
+other per-dataset arguments should use the same names for alignment.}
 
 \item{test_date_var}{Character string, original test date variable (default: "LBDAT")}
 
@@ -168,7 +170,7 @@ result <- check_missing_test(
 
 \subsection{Data Processing Logic}{
 \enumerate{
-\item Extract specified test dataset (e.g., "LB") from data list
+\item Extract specified test dataset (e.g. "LB") from data list
 \item Extract visit dataset (default "SV") from data list, keeping only:
 SUBJID, VISIT, VISITNUM, SVDAT
 \item Left join test dataset to visit dataset by SUBJID, VISIT, VISITNUM
